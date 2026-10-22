@@ -45,8 +45,8 @@ export default function EmployeeForm({ employee, positions, departments }: Props
     }
 
     return (
-        <form onSubmit={submit} className="space-y-6">
-            <div className="grid gap-5 sm:grid-cols-2">
+        <form onSubmit={submit} className="min-w-0 space-y-6">
+            <div className="grid min-w-0 gap-5 sm:grid-cols-2">
                 <div className="space-y-2">
                     <Label htmlFor="first_name">First name</Label>
                     <Input
@@ -205,11 +205,11 @@ export default function EmployeeForm({ employee, positions, departments }: Props
                 ))}
             </div>
 
-            <div className="flex items-center gap-2">
-                <Button type="submit" disabled={form.processing}>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+                <Button className="w-full sm:w-auto" type="submit" disabled={form.processing}>
                     {form.processing ? 'Saving...' : editing ? 'Update Employee' : 'Create Employee'}
                 </Button>
-                <Button type="button" variant="outline" asChild>
+                <Button className="w-full sm:w-auto" type="button" variant="outline" asChild>
                     <Link href={route('employees.index')}>Cancel</Link>
                 </Button>
             </div>

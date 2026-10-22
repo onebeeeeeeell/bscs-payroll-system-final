@@ -23,34 +23,37 @@ export default function EmployeeIndex({ employees, filters }: Props) {
     return (
         <AppLayout>
             <Head title="Employees" />
-            <div className="flex w-full flex-col gap-6 p-4 md:p-6">
-                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div className="flex min-w-0 w-full flex-col gap-6 p-4 md:p-6">
+                <div className="flex min-w-0 flex-col justify-between gap-4 sm:flex-row sm:items-center">
                     <div className="space-y-1">
                         <h1 className="text-2xl font-semibold tracking-tight">Employees</h1>
                         <p className="text-muted-foreground text-sm">Manage employee records.</p>
                     </div>
-                    <Button asChild>
+                    <Button className="w-full sm:w-auto" asChild>
                         <Link href={route('employees.create')}>Add Employee</Link>
                     </Button>
                 </div>
 
-                <form onSubmit={submitSearch} className="flex flex-col gap-2 sm:flex-row">
+                <form onSubmit={submitSearch} className="flex min-w-0 flex-col gap-2 sm:flex-row">
                     <Input
+                        className="min-w-0 sm:flex-1"
                         aria-label="Search employees"
                         placeholder="Search name or identification number"
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
                     />
-                    <Button type="submit">Search</Button>
+                    <Button className="w-full sm:w-auto" type="submit">
+                        Search
+                    </Button>
                     {filters.search && (
-                        <Button type="button" variant="outline" asChild>
+                        <Button className="w-full sm:w-auto" type="button" variant="outline" asChild>
                             <Link href={route('employees.index')}>Clear</Link>
                         </Button>
                     )}
                 </form>
 
-                <div className="bg-card text-card-foreground overflow-x-auto rounded-xl border">
-                    <table className="w-full text-sm">
+                <div className="hidden overflow-x-auto rounded-xl border bg-card text-card-foreground md:block">
+                    <table className="w-full min-w-[760px] text-sm">
                         <thead>
                             <tr className="border-b text-left">
                                 <th className="px-4 py-3 font-medium">Employee</th>
@@ -84,6 +87,50 @@ export default function EmployeeIndex({ employees, filters }: Props) {
                                                 <Button variant="outline" size="sm" asChild>
                                                     <Link href={route('employees.edit', employee.id)}>Edit</Link>
                                                 </Button>
+                                            </div>
+
+                                            <div className="grid min-w-0 gap-3 md:hidden">
+                                                {employees.data.length > 0 ? (
+                                                    employees.data.map((employee) => (
+                                                        <article key={employee.id} className="min-w-0 space-y-4 rounded-xl border bg-card p-4 text-card-foreground">
+                                                            <div className="min-w-0">
+                                                                <h2 className="break-words font-semibold">
+                                                                    {[employee.first_name, employee.last_name, employee.suffix].filter(Boolean).join(' ')}
+                                                                </h2>
+                                                                <p className="break-words text-sm text-muted-foreground">
+                                                                    {employee.position?.title ?? 'Position not set'}
+                                                                    {employee.department?.department_name ? ` · ${employee.department.department_name}` : ''}
+                                                                </p>
+                                                            </div>
+                                                            <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                                                                <div>
+                                                                    <dt className="text-muted-foreground">Status</dt>
+                                                                    <dd className="break-words">{employee.status}</dd>
+                                                                </div>
+                                                                <div>
+                                                                    <dt className="text-muted-foreground">Daily rate</dt>
+                                                                    <dd>
+                                                                        {Number(employee.daily_rate).toLocaleString(undefined, {
+                                                                            minimumFractionDigits: 2,
+                                                                            maximumFractionDigits: 2,
+                                                                        })}
+                                                                    </dd>
+                                                                </div>
+                                                                <div className="col-span-2">
+                                                                    <dt className="text-muted-foreground">Date hired</dt>
+                                                                    <dd>{employee.date_hired}</dd>
+                                                                </div>
+                                                            </dl>
+                                                            <Button className="w-full" variant="outline" asChild>
+                                                                <Link href={route('employees.edit', employee.id)}>Edit Employee</Link>
+                                                            </Button>
+                                                        </article>
+                                                    ))
+                                                ) : (
+                                                    <p className="rounded-xl border px-4 py-10 text-center text-sm text-muted-foreground">
+                                                        No employees found.
+                                                    </p>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
