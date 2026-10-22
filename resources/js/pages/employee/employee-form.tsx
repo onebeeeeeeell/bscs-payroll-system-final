@@ -11,8 +11,17 @@ type Props = {
     departments: Pick<Department, 'id' | 'department_name'>[];
 };
 
+function getTodayDate(): string {
+    const today = new Date();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+
+    return `${today.getFullYear()}-${month}-${day}`;
+}
+
 export default function EmployeeForm({ employee, positions, departments }: Props) {
     const editing = Boolean(employee);
+    const today = getTodayDate();
     const form = useForm({
         first_name: employee?.first_name ?? '',
         last_name: employee?.last_name ?? '',
@@ -139,6 +148,7 @@ export default function EmployeeForm({ employee, positions, departments }: Props
                     <Input
                         id="date_hired"
                         type="date"
+                        min={today}
                         value={form.data.date_hired}
                         onChange={(event) => form.setData('date_hired', event.target.value)}
                         required
