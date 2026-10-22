@@ -1,7 +1,10 @@
 <?php
 namespace Database\Factories;
+
 use App\Models\Attendance;
+use App\Models\Employee;
 use Illuminate\Database\Eloquent\Factories\Factory;
+
 /**
  * @extends Factory<Attendance>
  */
@@ -14,13 +17,15 @@ class AttendanceFactory extends Factory
      */
     public function definition(): array
     {
+        $workDate = now()->toDateString();
+
         return [
-            'employee_id' => Attendance::factory(),
-            'work_date' => $this->faker->date(),
-            'time_in' => $this->faker,
-            'time_out' => $this->faker,
-            'hours_worked',
-            'overtime_hours'
+            'employee_id' => Employee::factory()->state(['date_hired' => $workDate]),
+            'work_date' => $workDate,
+            'time_in' => '08:00',
+            'time_out' => '17:00',
+            'hours_worked' => 8,
+            'overtime_hours' => 0,
         ];
     }
 }

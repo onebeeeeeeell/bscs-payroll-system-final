@@ -1,7 +1,9 @@
 <?php
 namespace Database\Factories;
+
 use App\Models\ContributionType;
 use Illuminate\Database\Eloquent\Factories\Factory;
+
 /**
  * @extends Factory<ContributionType>
  */
@@ -15,7 +17,7 @@ class ContributionTypeFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->name(),
+            'name' => $this->faker->randomElement(['SSS', 'PhilHealth', 'Pag-IBIG']),
         ];
     }
 }

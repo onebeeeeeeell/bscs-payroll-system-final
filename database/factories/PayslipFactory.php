@@ -1,8 +1,10 @@
 <?php
 namespace Database\Factories;
+
 use App\Models\Payroll;
 use App\Models\Payslip;
 use Illuminate\Database\Eloquent\Factories\Factory;
+
 /**
  * @extends Factory<Payslip>
  */
@@ -16,8 +18,8 @@ class PayslipFactory extends Factory
     public function definition(): array
     {
         return [
-            'payroll_id' =>Payroll::factory(),
-            'date_generated'
+            'payroll_id' => Payroll::factory(),
+            'date_generated' => now(),
         ];
     }
 }

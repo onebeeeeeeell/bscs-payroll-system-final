@@ -1,8 +1,10 @@
 <?php
 namespace Database\Factories;
+
 use App\Models\ContributionRate;
 use App\Models\ContributionType;
 use Illuminate\Database\Eloquent\Factories\Factory;
+
 /**
  * @extends Factory<ContributionRate>
  */
@@ -17,7 +19,7 @@ class ContributionRateFactory extends Factory
     {
         return [
             'contribution_type_id' => ContributionType::factory(),
-            'rate' => $this->faker->randomFloat(2, 10, 99),
+            'rate' => $this->faker->randomFloat(2, 1, 15),
         ];
     }
 }

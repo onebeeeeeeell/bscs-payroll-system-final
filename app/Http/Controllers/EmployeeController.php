@@ -17,27 +17,13 @@ class EmployeeController extends Controller
      */
     public function index()
     {
-        $search = request()->string('search')->trim()->toString();
-
         $employees = Employee::query()
             ->with(['position:id,title', 'department:id,department_name'])
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('first_name', 'like', "%{$search}%")
-                        ->orWhere('last_name', 'like', "%{$search}%")
-                        ->orWhere('sss_no', 'like', "%{$search}%")
-                        ->orWhere('philhealth_no', 'like', "%{$search}%")
-                        ->orWhere('pagibig_no', 'like', "%{$search}%")
-                        ->orWhere('tin_no', 'like', "%{$search}%");
-                });
-            })
             ->latest()
-            ->paginate(10)
-            ->withQueryString();
+            ->paginate(10);
 
         return Inertia::render('employee/index', [
             'employees' => $employees,
-            'filters' => ['search' => $search],
         ]);
     }
 

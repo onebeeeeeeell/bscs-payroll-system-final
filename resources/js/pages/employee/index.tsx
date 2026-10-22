@@ -1,25 +1,15 @@
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
+// DTO - Data Transfer Object
 import type { Employee, PaginatedData } from '@/types/models';
-import { Head, Link, router } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { Head, Link } from '@inertiajs/react';
 
+// Types
 type Props = {
     employees: PaginatedData<Employee>;
-    filters: {
-        search: string;
-    };
 };
 
-export default function EmployeeIndex({ employees, filters }: Props) {
-    const [search, setSearch] = useState(filters.search);
-
-    function submitSearch(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        router.get(route('employees.index'), { search }, { preserveState: true, replace: true });
-    }
-
+export default function EmployeeIndex({ employees }: Props) {
     return (
         <AppLayout>
             <Head title="Employees" />
@@ -27,30 +17,12 @@ export default function EmployeeIndex({ employees, filters }: Props) {
                 <div className="flex min-w-0 flex-col justify-between gap-4 sm:flex-row sm:items-center">
                     <div className="space-y-1">
                         <h1 className="text-2xl font-semibold tracking-tight">Employees</h1>
-                        <p className="text-muted-foreground text-sm">Manage employee records.</p>
+                        <p className="text-muted-foreground text-sm">Manage employee records</p>
                     </div>
                     <Button className="w-full sm:w-auto" asChild>
                         <Link href={route('employees.create')}>Add Employee</Link>
                     </Button>
                 </div>
-
-                <form onSubmit={submitSearch} className="flex min-w-0 flex-col gap-2 sm:flex-row">
-                    <Input
-                        className="min-w-0 sm:flex-1"
-                        aria-label="Search employees"
-                        placeholder="Search name or identification number"
-                        value={search}
-                        onChange={(event) => setSearch(event.target.value)}
-                    />
-                    <Button className="w-full sm:w-auto" type="submit">
-                        Search
-                    </Button>
-                    {filters.search && (
-                        <Button className="w-full sm:w-auto" type="button" variant="outline" asChild>
-                            <Link href={route('employees.index')}>Clear</Link>
-                        </Button>
-                    )}
-                </form>
 
                 <div className="bg-card text-card-foreground hidden overflow-x-auto rounded-xl border md:block">
                     <table className="w-full min-w-[760px] text-sm">
@@ -88,57 +60,6 @@ export default function EmployeeIndex({ employees, filters }: Props) {
                                                     <Link href={route('employees.edit', employee.id)}>Edit</Link>
                                                 </Button>
                                             </div>
-
-                                            <div className="grid min-w-0 gap-3 md:hidden">
-                                                {employees.data.length > 0 ? (
-                                                    employees.data.map((employee) => (
-                                                        <article
-                                                            key={employee.id}
-                                                            className="bg-card text-card-foreground min-w-0 space-y-4 rounded-xl border p-4"
-                                                        >
-                                                            <div className="min-w-0">
-                                                                <h2 className="font-semibold break-words">
-                                                                    {[employee.first_name, employee.last_name, employee.suffix]
-                                                                        .filter(Boolean)
-                                                                        .join(' ')}
-                                                                </h2>
-                                                                <p className="text-muted-foreground text-sm break-words">
-                                                                    {employee.position?.title ?? 'Position not set'}
-                                                                    {employee.department?.department_name
-                                                                        ? ` · ${employee.department.department_name}`
-                                                                        : ''}
-                                                                </p>
-                                                            </div>
-                                                            <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
-                                                                <div>
-                                                                    <dt className="text-muted-foreground">Status</dt>
-                                                                    <dd className="break-words">{employee.status}</dd>
-                                                                </div>
-                                                                <div>
-                                                                    <dt className="text-muted-foreground">Daily rate</dt>
-                                                                    <dd>
-                                                                        {Number(employee.daily_rate).toLocaleString(undefined, {
-                                                                            minimumFractionDigits: 2,
-                                                                            maximumFractionDigits: 2,
-                                                                        })}
-                                                                    </dd>
-                                                                </div>
-                                                                <div className="col-span-2">
-                                                                    <dt className="text-muted-foreground">Date hired</dt>
-                                                                    <dd>{employee.date_hired}</dd>
-                                                                </div>
-                                                            </dl>
-                                                            <Button className="w-full" variant="outline" asChild>
-                                                                <Link href={route('employees.edit', employee.id)}>Edit Employee</Link>
-                                                            </Button>
-                                                        </article>
-                                                    ))
-                                                ) : (
-                                                    <p className="text-muted-foreground rounded-xl border px-4 py-10 text-center text-sm">
-                                                        No employees found.
-                                                    </p>
-                                                )}
-                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -151,6 +72,48 @@ export default function EmployeeIndex({ employees, filters }: Props) {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                <div className="grid min-w-0 gap-3 md:hidden">
+                    {employees.data.length > 0 ? (
+                        employees.data.map((employee) => (
+                            <article key={employee.id} className="bg-card text-card-foreground min-w-0 space-y-4 rounded-xl border p-4">
+                                <div className="min-w-0">
+                                    <h2 className="font-semibold break-words">
+                                        {[employee.first_name, employee.last_name, employee.suffix].filter(Boolean).join(' ')}
+                                    </h2>
+                                    <p className="text-muted-foreground text-sm break-words">
+                                        {employee.position?.title ?? 'Position not set'}
+                                        {employee.department?.department_name ? ` · ${employee.department.department_name}` : ''}
+                                    </p>
+                                </div>
+                                <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                                    <div>
+                                        <dt className="text-muted-foreground">Status</dt>
+                                        <dd className="break-words">{employee.status}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-muted-foreground">Daily rate</dt>
+                                        <dd>
+                                            {Number(employee.daily_rate).toLocaleString(undefined, {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })}
+                                        </dd>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <dt className="text-muted-foreground">Date hired</dt>
+                                        <dd>{employee.date_hired}</dd>
+                                    </div>
+                                </dl>
+                                <Button className="w-full" variant="outline" asChild>
+                                    <Link href={route('employees.edit', employee.id)}>Edit Employee</Link>
+                                </Button>
+                            </article>
+                        ))
+                    ) : (
+                        <p className="text-muted-foreground rounded-xl border px-4 py-10 text-center text-sm">No employees found.</p>
+                    )}
                 </div>
 
                 <nav aria-label="Employee pagination" className="flex flex-wrap justify-end gap-2">

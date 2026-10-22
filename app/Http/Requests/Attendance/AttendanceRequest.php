@@ -17,6 +17,7 @@ class AttendanceRequest extends FormRequest
      */
     public function rules(): array
     {
+        //for update/store meaning ka patch process di
         $required = $this->isMethod('PATCH') ? 'sometimes' : 'required';
 
         return [
