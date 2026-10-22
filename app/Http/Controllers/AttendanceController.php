@@ -22,6 +22,7 @@ class AttendanceController extends Controller
         return Inertia::render('attendance/index', [
             'attendances' => $attendances,
         ]);
+        //
     }
 
     /**
