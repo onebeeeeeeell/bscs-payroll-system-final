@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Inertia\Inertia;
 use App\Models\PayrollPeriod;
 use Illuminate\Http\Request;
 
@@ -12,7 +13,15 @@ class PayrollPeriodController extends Controller
      */
     public function index()
     {
-        //
+        $payrollPeriods = PayrollPeriod::select(['id', 'start_date', 'end_date', 'pay_date', 'status'])->with([
+           'payrolls:id,employee_id,payroll_period_id,user_id,gross_pay,total_deductions,net_pay,date_processed',
+           ])->get();
+           
+           dd($payrollPeriods);
+           
+           return Inertia::render('payroll-period/index', [
+            'payrollPeriods' => $payrollPeriods,
+           ]);
     }
 
     /**
