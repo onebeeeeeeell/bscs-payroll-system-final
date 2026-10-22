@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Models\Attendance;
-use Illuminate\Http\Request;
+use App\Http\Requests\Attendance\AttendanceRequest;
 
 class AttendanceController extends Controller
 {
@@ -36,7 +36,7 @@ class AttendanceController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(AttendanceRequest $request)
     {
         //
     }
@@ -60,7 +60,7 @@ class AttendanceController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Attendance $attendance)
+    public function update(AttendanceRequest $request, Attendance $attendance)
     {
         //
     }

@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Models\Department;
-use Illuminate\Http\Request;
+use App\Http\Requests\Department\DepartmentRequest;
 
 class DepartmentController extends Controller
 {
@@ -36,7 +36,7 @@ class DepartmentController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(DepartmentRequest $request)
     {
         //
     }
@@ -60,7 +60,7 @@ class DepartmentController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Department $department)
+    public function update(DepartmentRequest $request, Department $department)
     {
         //
     }

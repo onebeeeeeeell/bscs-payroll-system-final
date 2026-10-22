@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Models\Payslip;
-use Illuminate\Http\Request;
+use App\Http\Requests\Payslip\PayslipRequest;
 
 class PayslipController extends Controller
 {
@@ -35,7 +35,7 @@ class PayslipController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(PayslipRequest $request)
     {
         //
     }
@@ -59,7 +59,7 @@ class PayslipController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Payslip $payslip)
+    public function update(PayslipRequest $request, Payslip $payslip)
     {
         //
     }

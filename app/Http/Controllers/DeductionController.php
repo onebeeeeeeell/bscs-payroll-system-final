@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Models\Deduction;
-use Illuminate\Http\Request;
+use App\Http\Requests\Deduction\DeductionRequest;
 
 class DeductionController extends Controller
 {
@@ -36,7 +36,7 @@ class DeductionController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(DeductionRequest $request)
     {
         //
     }
@@ -60,7 +60,7 @@ class DeductionController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Deduction $deduction)
+    public function update(DeductionRequest $request, Deduction $deduction)
     {
         //
     }

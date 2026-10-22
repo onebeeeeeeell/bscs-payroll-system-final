@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Models\ContributionRate;
-use Illuminate\Http\Request;
+use App\Http\Requests\ContributionRate\ContributionRateRequest;
 
 class ContributionRateController extends Controller
 {
@@ -37,7 +37,7 @@ class ContributionRateController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(ContributionRateRequest $request)
     {
         //
     }
@@ -61,7 +61,7 @@ class ContributionRateController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, ContributionRate $contributionRate)
+    public function update(ContributionRateRequest $request, ContributionRate $contributionRate)
     {
         //
     }

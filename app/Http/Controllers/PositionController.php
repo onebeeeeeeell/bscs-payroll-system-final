@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Models\Position;
-use Illuminate\Http\Request;
+use App\Http\Requests\Position\PositionRequest;
 
 class PositionController extends Controller
 {
@@ -36,7 +36,7 @@ class PositionController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(PositionRequest $request)
     {
         //
     }
@@ -60,7 +60,7 @@ class PositionController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Position $position)
+    public function update(PositionRequest $request, Position $position)
     {
         //
     }

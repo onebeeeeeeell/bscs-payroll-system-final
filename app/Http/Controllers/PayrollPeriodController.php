@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Models\PayrollPeriod;
-use Illuminate\Http\Request;
+use App\Http\Requests\PayrollPeriod\PayrollPeriodRequest;
 
 class PayrollPeriodController extends Controller
 {
@@ -35,7 +35,7 @@ class PayrollPeriodController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(PayrollPeriodRequest $request)
     {
         //
     }
@@ -59,7 +59,7 @@ class PayrollPeriodController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, PayrollPeriod $payrollPeriod)
+    public function update(PayrollPeriodRequest $request, PayrollPeriod $payrollPeriod)
     {
         //
     }

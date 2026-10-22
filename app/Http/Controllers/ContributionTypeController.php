@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Models\ContributionType;
-use Illuminate\Http\Request;
+use App\Http\Requests\ContributionType\ContributionTypeRequest;
 
 class ContributionTypeController extends Controller
 {
@@ -36,7 +36,7 @@ class ContributionTypeController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(ContributionTypeRequest $request)
     {
         //
     }
@@ -60,7 +60,7 @@ class ContributionTypeController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, ContributionType $contributionType)
+    public function update(ContributionTypeRequest $request, ContributionType $contributionType)
     {
         //
     }
