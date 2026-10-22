@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Inertia\Inertia;
 use App\Models\ContributionType;
 use Illuminate\Http\Request;
 
@@ -12,6 +13,15 @@ class ContributionTypeController extends Controller
      */
     public function index()
     {
+        $contributionTypes = ContributionType::select(['id', 'name'])->with([
+            'contribution_rate:id,contribution_type_id,rate',
+        ])->get();
+        
+        dd ($contributionTypes);
+
+        return Inertia::render('contribution-type/index', [
+            'contributionTypes' => $contributionTypes,
+        ]);
         //
     }
 
