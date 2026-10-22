@@ -23,7 +23,7 @@ export default function EmployeeIndex({ employees, filters }: Props) {
     return (
         <AppLayout>
             <Head title="Employees" />
-            <div className="flex min-w-0 w-full flex-col gap-6 p-4 md:p-6">
+            <div className="flex w-full min-w-0 flex-col gap-6 p-4 md:p-6">
                 <div className="flex min-w-0 flex-col justify-between gap-4 sm:flex-row sm:items-center">
                     <div className="space-y-1">
                         <h1 className="text-2xl font-semibold tracking-tight">Employees</h1>
@@ -52,7 +52,7 @@ export default function EmployeeIndex({ employees, filters }: Props) {
                     )}
                 </form>
 
-                <div className="hidden overflow-x-auto rounded-xl border bg-card text-card-foreground md:block">
+                <div className="bg-card text-card-foreground hidden overflow-x-auto rounded-xl border md:block">
                     <table className="w-full min-w-[760px] text-sm">
                         <thead>
                             <tr className="border-b text-left">
@@ -92,14 +92,21 @@ export default function EmployeeIndex({ employees, filters }: Props) {
                                             <div className="grid min-w-0 gap-3 md:hidden">
                                                 {employees.data.length > 0 ? (
                                                     employees.data.map((employee) => (
-                                                        <article key={employee.id} className="min-w-0 space-y-4 rounded-xl border bg-card p-4 text-card-foreground">
+                                                        <article
+                                                            key={employee.id}
+                                                            className="bg-card text-card-foreground min-w-0 space-y-4 rounded-xl border p-4"
+                                                        >
                                                             <div className="min-w-0">
-                                                                <h2 className="break-words font-semibold">
-                                                                    {[employee.first_name, employee.last_name, employee.suffix].filter(Boolean).join(' ')}
+                                                                <h2 className="font-semibold break-words">
+                                                                    {[employee.first_name, employee.last_name, employee.suffix]
+                                                                        .filter(Boolean)
+                                                                        .join(' ')}
                                                                 </h2>
-                                                                <p className="break-words text-sm text-muted-foreground">
+                                                                <p className="text-muted-foreground text-sm break-words">
                                                                     {employee.position?.title ?? 'Position not set'}
-                                                                    {employee.department?.department_name ? ` · ${employee.department.department_name}` : ''}
+                                                                    {employee.department?.department_name
+                                                                        ? ` · ${employee.department.department_name}`
+                                                                        : ''}
                                                                 </p>
                                                             </div>
                                                             <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
@@ -127,7 +134,7 @@ export default function EmployeeIndex({ employees, filters }: Props) {
                                                         </article>
                                                     ))
                                                 ) : (
-                                                    <p className="rounded-xl border px-4 py-10 text-center text-sm text-muted-foreground">
+                                                    <p className="text-muted-foreground rounded-xl border px-4 py-10 text-center text-sm">
                                                         No employees found.
                                                     </p>
                                                 )}
