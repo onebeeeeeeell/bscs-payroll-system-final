@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Inertia\Inertia;
 use App\Models\ContributionRate;
 use Illuminate\Http\Request;
 
@@ -12,6 +13,16 @@ class ContributionRateController extends Controller
      */
     public function index()
     {
+        $contributionRates = ContributionRate::select(['id', 'contribution_type_id', 'rate'])->with([
+            'contribution_type:id,name',
+            'deductions:payroll_id, contribution_rate_id, amount',
+        ])->get();
+
+        dd($contributionRates);
+
+        return Inertia::render('contribution-rate/index', [
+            'contributionRates' => $contributionRates,
+        ]);
         //
     }
 
