@@ -8,29 +8,26 @@ use Illuminate\Validation\Rule;
 
 class EmployeeRequest extends FormRequest
 {
-    public function authorize(): bool
+        public function authorize(): bool
     {
         return true;
     }
 
-<<<<<<< HEAD
     protected function prepareForValidation(): void
     {
-    // trim spaces on the name fields
-    foreach (['first_name', 'last_name', 'suffix'] as $field) {
-        $value = $this->input($field);
+        // trim spaces on the name fields
+        foreach (['first_name', 'last_name', 'suffix'] as $field) {
+            $value = $this->input($field);
 
-        if (is_string($value)) {
-            $this->merge([
-                // trim the ends and make multiple spaces into one
-                $field => preg_replace('/\s+/u', ' ', trim($value)),
+            if (is_string($value)) {
+                $this->merge([
+                    // trim the ends and make multiple spaces into one
+                    $field => preg_replace('/\s+/u', ' ', trim($value)),
                 ]);
             }
         }
     }
 
-=======
->>>>>>> 0ce055a9bde8dbad52cd7418dbfafaee2125f892
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
