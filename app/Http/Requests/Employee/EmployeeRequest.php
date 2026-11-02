@@ -13,6 +13,22 @@ class EmployeeRequest extends FormRequest
         return true;
     }
 
+    
+    protected function prepareForValidation(): void
+    {
+    // trim spaces on the name fields
+    foreach (['first_name', 'last_name', 'suffix'] as $field) {
+        $value = $this->input($field);
+
+        if (is_string($value)) {
+            $this->merge([
+                // trim the ends and make multiple spaces into one
+                $field => preg_replace('/\s+/u', ' ', trim($value)),
+                ]);
+            }
+        }
+    }
+
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
