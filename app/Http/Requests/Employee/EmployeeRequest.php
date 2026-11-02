@@ -13,7 +13,6 @@ class EmployeeRequest extends FormRequest
         return true;
     }
 
-    
     protected function prepareForValidation(): void
     {
     // trim spaces on the name fields
