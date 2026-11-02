@@ -6,24 +6,24 @@ use Inertia\Inertia;
 use App\Models\Employee;
 use App\Models\Department;
 use App\Models\Position;
+use App\Services\EmployeeService;
 use App\Http\Requests\Employee\EmployeeRequest;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Response;
 
 class EmployeeController extends Controller
 {
+    public function __construct(
+        private EmployeeService $employeeService,
+    ) {}
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $employees = Employee::query()
-            ->with(['position:id,title', 'department:id,department_name'])
-            ->latest()
-            ->paginate(10);
-
         return Inertia::render('employee/index', [
-            'employees' => $employees,
+            'employees' => $this->employeeService->paginate(),
         ]);
     }
 
@@ -43,7 +43,7 @@ class EmployeeController extends Controller
      */
     public function store(EmployeeRequest $request): RedirectResponse
     {
-        Employee::create($request->validated());
+        $this->employeeService->create($request->validated());
 
         return to_route('employees.index')->with('success', 'Employee created successfully.');
     }
@@ -73,7 +73,7 @@ class EmployeeController extends Controller
      */
     public function update(EmployeeRequest $request, Employee $employee): RedirectResponse
     {
-        $employee->update($request->validated());
+        $this->employeeService->update($employee, $request->validated());
 
         return to_route('employees.index')->with('success', 'Employee updated successfully.');
     }
@@ -83,7 +83,7 @@ class EmployeeController extends Controller
      */
     public function destroy(Employee $employee)
     {
-        $employee->delete();
+        $this->employeeService->delete($employee);
 
         return to_route('employees.index')->with('success', 'Employee deleted successfully.');
     }

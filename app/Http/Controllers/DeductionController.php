@@ -14,8 +14,8 @@ class DeductionController extends Controller
     public function index()
     {
         $deductions = Deduction::select(['id', 'payroll_id', 'contribution_rate_id', 'amount',])->with([
-            'payrolls:id,employee_id,payroll_period_id,user_id,gross_pay,total_deductions,net_pay,date_processed',
-            'contribution_rate:id,contribution_type_id,rate',
+            'payroll:id,employee_id,payroll_period_id,user_id,gross_pay,total_deductions,net_pay,date_processed',
+            'contributionRate:id,contribution_type_id,rate',
         ])->get();
 
         dd($deductions);

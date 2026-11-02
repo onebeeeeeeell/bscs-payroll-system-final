@@ -14,7 +14,7 @@ class PositionController extends Controller
     public function index()
     {
         $positions = Position::select(['id', 'title'])->with([
-            'employees:id, first_name, last_name, suffix, position_id, department_id, date_hired, daily_rate, sss_no, philhealth_no, pagibig_no, tin_no, status',
+            'employees:id,first_name,last_name,suffix,position_id,department_id,date_hired,daily_rate,sss_no,philhealth_no,pagibig_no,tin_no,status',
             ])->get();
             
             dd($positions);

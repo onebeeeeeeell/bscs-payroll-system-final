@@ -14,8 +14,8 @@ class ContributionRateController extends Controller
     public function index()
     {
         $contributionRates = ContributionRate::select(['id', 'contribution_type_id', 'rate'])->with([
-            'contribution_type:id,name',
-            'deductions:payroll_id, contribution_rate_id, amount',
+            'contributionType:id,name',
+            'deductions:id,payroll_id,contribution_rate_id,amount',
         ])->get();
 
         dd($contributionRates);

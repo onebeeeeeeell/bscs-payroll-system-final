@@ -14,8 +14,8 @@ class DepartmentController extends Controller
     public function index()
     {
         $departments = Department::select(['id', 'department_name'])->with([
-            'employees:id, first_name, last_name, suffix, position_id, department_id, date_hired, daily_rate, sss_no, philhealth_no, pagibig_no, tin_no, status',
-        ]);
+            'employees:id,first_name,last_name,suffix,position_id,department_id,date_hired,daily_rate,sss_no,philhealth_no,pagibig_no,tin_no,status',
+        ])->get();
 
         dd($departments);
 

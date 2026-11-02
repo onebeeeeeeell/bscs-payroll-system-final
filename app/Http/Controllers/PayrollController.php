@@ -14,9 +14,9 @@ class PayrollController extends Controller
     public function index()
     {
         $payrolls = Payroll::select(['id', 'employee_id', 'payroll_period_id', 'user_id', 'gross_pay', 'total_deductions', 'net_pay', 'date_processed'])->with([
-            'employees:id, first_name, last_name, suffix, position_id, department_id, date_hired, daily_rate, sss_no, philhealth_no, pagibig_no, tin_no, status',
-            'payroll_periods:id,start_date,end_date,pay_date,status',
-            'users:id,name,email,password',
+            'employee:id,first_name,last_name,suffix,position_id,department_id,date_hired,daily_rate,sss_no,philhealth_no,pagibig_no,tin_no,status',
+            'payrollPeriod:id,start_date,end_date,pay_date,status',
+            'user:id,name,email',
         ])->get();
 
         dd($payrolls);

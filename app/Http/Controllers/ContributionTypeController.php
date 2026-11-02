@@ -14,7 +14,7 @@ class ContributionTypeController extends Controller
     public function index()
     {
         $contributionTypes = ContributionType::select(['id', 'name'])->with([
-            'contribution_rate:id,contribution_type_id,rate',
+            'contributionRates:id,contribution_type_id,rate',
         ])->get();
         
         dd ($contributionTypes);
