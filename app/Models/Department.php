@@ -1,0 +1,23 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+#[Fillable([
+        'department_name'
+        ])]
+
+class Department extends Model
+{
+        use HasFactory;
+
+    public function employees(): HasMany
+    {
+        return $this->hasMany(Employee::class, 'department_id', 'id');
+    }
+
+}
