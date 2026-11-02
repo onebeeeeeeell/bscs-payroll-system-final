@@ -37,8 +37,8 @@ class EmployeeRequest extends FormRequest
         $employee = $this->route('employee');
 
         return [
-            'first_name' => [$required, 'string', 'max:255'],
-            'last_name' => [$required, 'string', 'max:255'],
+            'first_name' => [$required, 'string', 'max:255', 'not_regex:/\d/'],
+            'last_name' => [$required, 'string', 'max:255', 'not_regex:/\d/'],
             'suffix' => ['nullable', 'string', 'max:50'],
             'position_id' => [$required, 'integer', 'exists:positions,id'],
             'department_id' => [$required, 'integer', 'exists:departments,id'],
@@ -59,6 +59,8 @@ class EmployeeRequest extends FormRequest
     {
         return [
             'date_hired.after_or_equal' => 'The hire date must be today or a future date.',
+            'first_name.not_regex' => 'Numbers are not allowed in the first name.',
+            'last_name.not_regex' => 'Numbers are not allowed in the last name.',
         ];
     }
 }

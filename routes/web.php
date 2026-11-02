@@ -21,9 +21,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
+
+    Route::resource('attendance', AttendanceController::class);
 });
 
-Route::resource('attendance', AttendanceController::class);
 Route::resource('contribution_rates', ContributionRateController::class);
 Route::resource('contribution_types', ContributionTypeController::class);
 Route::resource('departments', DepartmentController::class);

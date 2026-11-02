@@ -13,21 +13,25 @@ export default function EmployeeIndex({ employees }: Props) {
     return (
         <AppLayout>
             <Head title="Employees" />
-            <div className="flex w-full min-w-0 flex-col gap-6 p-4 md:p-6">
-                <div className="flex min-w-0 flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div className="to-background dark:to-background flex w-full min-w-0 flex-col gap-6 bg-gradient-to-b from-emerald-50/60 p-4 md:p-6 dark:from-emerald-950/20">
+                <div className="flex min-w-0 flex-col justify-between gap-4 rounded-2xl border border-emerald-800/10 bg-white/80 p-5 shadow-sm sm:flex-row sm:items-center sm:p-6 dark:border-emerald-400/15 dark:bg-[#07130f]">
                     <div className="space-y-1">
+                        <p className="text-xs font-semibold tracking-[0.16em] text-emerald-700 uppercase dark:text-emerald-400">Team management</p>
                         <h1 className="text-2xl font-semibold tracking-tight">Employees</h1>
                         <p className="text-muted-foreground text-sm">Manage employee records</p>
                     </div>
-                    <Button className="w-full sm:w-auto" asChild>
+                    <Button
+                        className="w-full bg-emerald-700 text-white hover:bg-emerald-800 sm:w-auto dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                        asChild
+                    >
                         <Link href={route('employees.create')}>Add Employee</Link>
                     </Button>
                 </div>
 
-                <div className="bg-card text-card-foreground hidden overflow-x-auto rounded-xl border md:block">
+                <div className="hidden overflow-x-auto rounded-xl border border-emerald-800/10 bg-white shadow-sm md:block dark:border-emerald-400/15 dark:bg-[#07130f]">
                     <table className="w-full min-w-[760px] text-sm">
                         <thead>
-                            <tr className="border-b text-left">
+                            <tr className="border-b border-emerald-800/10 bg-emerald-50/70 text-left dark:border-emerald-400/15 dark:bg-emerald-950/30">
                                 <th className="px-4 py-3 font-medium">Employee</th>
                                 <th className="px-4 py-3 font-medium">Position</th>
                                 <th className="px-4 py-3 font-medium">Department</th>
@@ -40,7 +44,10 @@ export default function EmployeeIndex({ employees }: Props) {
                         <tbody>
                             {employees.data.length > 0 ? (
                                 employees.data.map((employee) => (
-                                    <tr key={employee.id} className="border-b last:border-0">
+                                    <tr
+                                        key={employee.id}
+                                        className="border-border/70 border-b transition-colors last:border-0 hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20"
+                                    >
                                         <td className="px-4 py-3">
                                             {[employee.first_name, employee.last_name, employee.suffix].filter(Boolean).join(' ')}
                                         </td>
@@ -56,7 +63,12 @@ export default function EmployeeIndex({ employees }: Props) {
                                         <td className="px-4 py-3">{employee.status}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex justify-end gap-2">
-                                                <Button variant="outline" size="sm" asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="border-emerald-700/25 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-400/25 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
+                                                    asChild
+                                                >
                                                     <Link href={route('employees.edit', employee.id)}>Edit</Link>
                                                 </Button>
                                             </div>
@@ -77,7 +89,10 @@ export default function EmployeeIndex({ employees }: Props) {
                 <div className="grid min-w-0 gap-3 md:hidden">
                     {employees.data.length > 0 ? (
                         employees.data.map((employee) => (
-                            <article key={employee.id} className="bg-card text-card-foreground min-w-0 space-y-4 rounded-xl border p-4">
+                            <article
+                                key={employee.id}
+                                className="min-w-0 space-y-4 rounded-xl border border-emerald-800/10 bg-white p-4 shadow-sm dark:border-emerald-400/15 dark:bg-[#07130f]"
+                            >
                                 <div className="min-w-0">
                                     <h2 className="font-semibold break-words">
                                         {[employee.first_name, employee.last_name, employee.suffix].filter(Boolean).join(' ')}
@@ -106,7 +121,11 @@ export default function EmployeeIndex({ employees }: Props) {
                                         <dd>{employee.date_hired}</dd>
                                     </div>
                                 </dl>
-                                <Button className="w-full" variant="outline" asChild>
+                                <Button
+                                    className="w-full border-emerald-700/25 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-400/25 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
+                                    variant="outline"
+                                    asChild
+                                >
                                     <Link href={route('employees.edit', employee.id)}>Edit Employee</Link>
                                 </Button>
                             </article>

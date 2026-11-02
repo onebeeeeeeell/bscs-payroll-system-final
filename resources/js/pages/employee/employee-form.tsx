@@ -54,7 +54,10 @@ export default function EmployeeForm({ employee, positions, departments }: Props
     }
 
     return (
-        <form onSubmit={submit} className="min-w-0 space-y-6">
+        <form
+            onSubmit={submit}
+            className="min-w-0 space-y-6 rounded-2xl border border-emerald-800/10 bg-white p-5 shadow-sm sm:p-6 dark:border-emerald-400/15 dark:bg-[#07130f]"
+        >
             <div className="grid min-w-0 gap-5 sm:grid-cols-2">
                 <div className="space-y-2">
                     <Label htmlFor="first_name">First name</Label>
@@ -63,6 +66,8 @@ export default function EmployeeForm({ employee, positions, departments }: Props
                         value={form.data.first_name}
                         onChange={(event) => form.setData('first_name', event.target.value)}
                         maxLength={255}
+                        pattern="[^0-9]*"
+                        title="Numbers are not allowed in names."
                         required
                         disabled={form.processing}
                         aria-invalid={Boolean(form.errors.first_name)}
@@ -77,6 +82,8 @@ export default function EmployeeForm({ employee, positions, departments }: Props
                         value={form.data.last_name}
                         onChange={(event) => form.setData('last_name', event.target.value)}
                         maxLength={255}
+                        pattern="[^0-9]*"
+                        title="Numbers are not allowed in names."
                         required
                         disabled={form.processing}
                         aria-invalid={Boolean(form.errors.last_name)}
@@ -216,10 +223,19 @@ export default function EmployeeForm({ employee, positions, departments }: Props
             </div>
 
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
-                <Button className="w-full sm:w-auto" type="submit" disabled={form.processing}>
+                <Button
+                    className="w-full bg-emerald-700 text-white hover:bg-emerald-800 sm:w-auto dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                    type="submit"
+                    disabled={form.processing}
+                >
                     {form.processing ? 'Saving...' : editing ? 'Update Employee' : 'Create Employee'}
                 </Button>
-                <Button className="w-full sm:w-auto" type="button" variant="outline" asChild>
+                <Button
+                    className="w-full border-emerald-700/25 text-emerald-800 hover:bg-emerald-50 sm:w-auto dark:border-emerald-400/25 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
+                    type="button"
+                    variant="outline"
+                    asChild
+                >
                     <Link href={route('employees.index')}>Cancel</Link>
                 </Button>
             </div>
