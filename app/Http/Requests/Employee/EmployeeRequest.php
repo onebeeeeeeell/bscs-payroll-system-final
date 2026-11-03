@@ -43,7 +43,8 @@ class EmployeeRequest extends FormRequest
             'position_id' => [$required, 'integer', 'exists:positions,id'],
             'department_id' => [$required, 'integer', 'exists:departments,id'],
             'date_hired' => [$required, 'date', 'after_or_equal:today'],
-            'daily_rate' => [$required, 'numeric', 'min:0'],
+            // max matches the decimal(10,2) column so it can't overflow
+            'daily_rate' => [$required, 'numeric', 'min:0', 'max:99999999.99'],
             'sss_no' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'sss_no')->ignore($employee)],
             'philhealth_no' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'philhealth_no')->ignore($employee)],
             'pagibig_no' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'pagibig_no')->ignore($employee)],
@@ -58,6 +59,7 @@ class EmployeeRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'daily_rate.max' => 'The daily rate is too large.',
             'date_hired.after_or_equal' => 'The hire date must be today or a future date.',
             'first_name.not_regex' => 'Numbers are not allowed in the first name.',
             'last_name.not_regex' => 'Numbers are not allowed in the last name.',
