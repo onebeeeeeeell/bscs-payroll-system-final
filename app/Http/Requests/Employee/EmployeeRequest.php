@@ -15,7 +15,7 @@ class EmployeeRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        // trim spaces on the name fields
+        // trim spaces on the name fields.
         foreach (['first_name', 'last_name', 'suffix'] as $field) {
             $value = $this->input($field);
 
