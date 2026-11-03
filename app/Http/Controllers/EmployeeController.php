@@ -51,9 +51,16 @@ class EmployeeController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Employee $employee)
+    public function show(Employee $employee): Response
     {
-        //
+        $employee->load([
+            'position:id,title',
+            'department:id,department_name',
+        ]);
+
+        return Inertia::render('employee/show', [
+            'employee' => $employee,
+        ]);
     }
 
     /**

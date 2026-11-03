@@ -1,5 +1,8 @@
+import { MoreHorizontal } from 'lucide-react';
+
 import { DataTable, type DataTableColumn } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import AppLayout from '@/layouts/app-layout';
 import type { Employee, PaginatedData } from '@/types/models';
 import { Head, Link } from '@inertiajs/react';
@@ -69,14 +72,21 @@ export default function EmployeeIndex({ employees }: Props) {
                                 header: 'Actions',
                                 className: 'text-right',
                                 cell: (employee) => (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="border-emerald-700/25 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-400/25 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
-                                        asChild
-                                    >
-                                        <Link href={route('employees.edit', employee.id)}>Edit</Link>
-                                    </Button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" aria-label={`Actions for employee ${employee.id}`}>
+                                                <MoreHorizontal className="size-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem asChild>
+                                                <Link href={route('employees.show', employee.id)}>View</Link>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem asChild>
+                                                <Link href={route('employees.edit', employee.id)}>Edit</Link>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 ),
                             },
                         ] satisfies DataTableColumn<Employee>[]

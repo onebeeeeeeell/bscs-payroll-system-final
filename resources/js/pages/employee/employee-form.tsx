@@ -116,7 +116,7 @@ export default function EmployeeForm({ employee, positions, departments }: Props
                         className="border-input bg-background flex h-10 w-full rounded-md border px-3 py-2 text-sm"
                     >
                         <option value="" disabled>
-                            Select a position
+                            Select a Position
                         </option>
                         {positions.map((position) => (
                             <option key={position.id} value={position.id}>
@@ -139,7 +139,7 @@ export default function EmployeeForm({ employee, positions, departments }: Props
                         className="border-input bg-background flex h-10 w-full rounded-md border px-3 py-2 text-sm"
                     >
                         <option value="" disabled>
-                            Select a department
+                            Select a Department
                         </option>
                         {departments.map((department) => (
                             <option key={department.id} value={department.id}>
