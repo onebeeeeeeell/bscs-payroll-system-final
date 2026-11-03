@@ -12,18 +12,18 @@ class PositionService
     {
         return Position::query()
             ->withCount('employees')
-            // only filter when something was typed in the search box (ilike = case-insensitive in PostgreSQL)
+            
             ->when($search, fn ($query) => $query->where(function ($query) use ($search) {
                 $query->where('title', 'ilike', "%{$search}%");
             }))
             ->latest()
             ->paginate($perPage)
-            ->withQueryString(); // keep ?search= when changing pages
+            ->withQueryString(); // it keep ?search= when changing pages
     }
 
     public function create(array $data): Position
     {
-        // transaction so nothing is saved if something fails in the middle
+        // transaction, so nothing is saved if something fails in the middle
         return DB::transaction(
             fn () => Position::create($data)
         );

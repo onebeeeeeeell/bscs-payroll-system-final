@@ -14,12 +14,12 @@ class PayslipService
             ->with(['payroll:id,employee_id,gross_pay,total_deductions,net_pay', 'payroll.employee:id,first_name,last_name,suffix'])
             ->latest('date_generated')
             ->paginate($perPage)
-            ->withQueryString(); // keep ?search= when changing pages
+            ->withQueryString(); // to keep ?search= when changing pages
     }
 
     public function create(array $data): Payslip
     {
-        // transaction so nothing is saved if something fails in the middle
+        // transaction, so nothing is saved if something fails in the middle
         return DB::transaction(
             fn () => Payslip::create($data)
         );

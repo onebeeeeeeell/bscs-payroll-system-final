@@ -1,6 +1,6 @@
+import { DataTable, type DataTableColumn } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
-// DTO - Data Transfer Object
 import type { Employee, PaginatedData } from '@/types/models';
 import { Head, Link } from '@inertiajs/react';
 
@@ -28,112 +28,60 @@ export default function EmployeeIndex({ employees }: Props) {
                     </Button>
                 </div>
 
-                <div className="hidden overflow-x-auto rounded-xl border border-emerald-800/10 bg-white shadow-sm md:block dark:border-emerald-400/15 dark:bg-[#07130f]">
-                    <table className="w-full min-w-[760px] text-sm">
-                        <thead>
-                            <tr className="border-b border-emerald-800/10 bg-emerald-50/70 text-left dark:border-emerald-400/15 dark:bg-emerald-950/30">
-                                <th className="px-4 py-3 font-medium">Employee</th>
-                                <th className="px-4 py-3 font-medium">Position</th>
-                                <th className="px-4 py-3 font-medium">Department</th>
-                                <th className="px-4 py-3 font-medium">Date Hired</th>
-                                <th className="px-4 py-3 font-medium">Daily Rate</th>
-                                <th className="px-4 py-3 font-medium">Status</th>
-                                <th className="px-4 py-3 text-right font-medium">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {employees.data.length > 0 ? (
-                                employees.data.map((employee) => (
-                                    <tr
-                                        key={employee.id}
-                                        className="border-border/70 border-b transition-colors last:border-0 hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20"
+                <DataTable
+                    data={employees.data}
+                    getRowId={(employee) => employee.id}
+                    getSearchValue={(employee) =>
+                        [
+                            employee.first_name,
+                            employee.last_name,
+                            employee.suffix,
+                            employee.position?.title,
+                            employee.department?.department_name,
+                            employee.date_hired,
+                            employee.daily_rate,
+                            employee.status,
+                        ]
+                            .filter(Boolean)
+                            .join(' ')
+                    }
+                    searchPlaceholder="Search employees..."
+                    emptyMessage="No employees found."
+                    columns={
+                        [
+                            {
+                                header: 'Employee',
+                                cell: (employee) => [employee.first_name, employee.last_name, employee.suffix].filter(Boolean).join(' '),
+                            },
+                            { header: 'Position', cell: (employee) => employee.position?.title ?? '—' },
+                            { header: 'Department', cell: (employee) => employee.department?.department_name ?? '—' },
+                            { header: 'Date Hired', cell: (employee) => employee.date_hired },
+                            {
+                                header: 'Daily Rate',
+                                cell: (employee) =>
+                                    Number(employee.daily_rate).toLocaleString(undefined, {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    }),
+                            },
+                            { header: 'Status', cell: (employee) => employee.status },
+                            {
+                                header: 'Actions',
+                                className: 'text-right',
+                                cell: (employee) => (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-emerald-700/25 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-400/25 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
+                                        asChild
                                     >
-                                        <td className="px-4 py-3">
-                                            {[employee.first_name, employee.last_name, employee.suffix].filter(Boolean).join(' ')}
-                                        </td>
-                                        <td className="px-4 py-3">{employee.position?.title ?? '—'}</td>
-                                        <td className="px-4 py-3">{employee.department?.department_name ?? '—'}</td>
-                                        <td className="px-4 py-3">{employee.date_hired}</td>
-                                        <td className="px-4 py-3">
-                                            {Number(employee.daily_rate).toLocaleString(undefined, {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2,
-                                            })}
-                                        </td>
-                                        <td className="px-4 py-3">{employee.status}</td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex justify-end gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="border-emerald-700/25 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-400/25 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
-                                                    asChild
-                                                >
-                                                    <Link href={route('employees.edit', employee.id)}>Edit</Link>
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={7} className="text-muted-foreground px-4 py-10 text-center">
-                                        No employees found.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="grid min-w-0 gap-3 md:hidden">
-                    {employees.data.length > 0 ? (
-                        employees.data.map((employee) => (
-                            <article
-                                key={employee.id}
-                                className="min-w-0 space-y-4 rounded-xl border border-emerald-800/10 bg-white p-4 shadow-sm dark:border-emerald-400/15 dark:bg-[#07130f]"
-                            >
-                                <div className="min-w-0">
-                                    <h2 className="font-semibold break-words">
-                                        {[employee.first_name, employee.last_name, employee.suffix].filter(Boolean).join(' ')}
-                                    </h2>
-                                    <p className="text-muted-foreground text-sm break-words">
-                                        {employee.position?.title ?? 'Position not set'}
-                                        {employee.department?.department_name ? ` · ${employee.department.department_name}` : ''}
-                                    </p>
-                                </div>
-                                <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
-                                    <div>
-                                        <dt className="text-muted-foreground">Status</dt>
-                                        <dd className="break-words">{employee.status}</dd>
-                                    </div>
-                                    <div>
-                                        <dt className="text-muted-foreground">Daily rate</dt>
-                                        <dd>
-                                            {Number(employee.daily_rate).toLocaleString(undefined, {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2,
-                                            })}
-                                        </dd>
-                                    </div>
-                                    <div className="col-span-2">
-                                        <dt className="text-muted-foreground">Date hired</dt>
-                                        <dd>{employee.date_hired}</dd>
-                                    </div>
-                                </dl>
-                                <Button
-                                    className="w-full border-emerald-700/25 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-400/25 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
-                                    variant="outline"
-                                    asChild
-                                >
-                                    <Link href={route('employees.edit', employee.id)}>Edit Employee</Link>
-                                </Button>
-                            </article>
-                        ))
-                    ) : (
-                        <p className="text-muted-foreground rounded-xl border px-4 py-10 text-center text-sm">No employees found.</p>
-                    )}
-                </div>
+                                        <Link href={route('employees.edit', employee.id)}>Edit</Link>
+                                    </Button>
+                                ),
+                            },
+                        ] satisfies DataTableColumn<Employee>[]
+                    }
+                />
 
                 <nav aria-label="Employee pagination" className="flex flex-wrap justify-end gap-2">
                     {employees.links.map((link, index) => {

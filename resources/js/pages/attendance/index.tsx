@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
-import { CalendarDays, Clock3 } from 'lucide-react';
 
+import { DataTable, type DataTableColumn } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import type { Attendance, PaginatedData } from '@/types/models';
@@ -59,104 +59,56 @@ export default function AttendanceIndex({ attendances }: Props) {
                     </Button>
                 </header>
 
-                <div className="hidden overflow-x-auto rounded-xl border border-emerald-800/10 bg-white shadow-sm md:block dark:border-emerald-400/15 dark:bg-[#07130f]">
-                    <table className="w-full min-w-[760px] text-sm">
-                        <thead>
-                            <tr className="border-b border-emerald-800/10 bg-emerald-50/70 text-left dark:border-emerald-400/15 dark:bg-emerald-950/30">
-                                <th className="px-4 py-3 font-medium">Employee</th>
-                                <th className="px-4 py-3 font-medium">Work date</th>
-                                <th className="px-4 py-3 font-medium">Time in</th>
-                                <th className="px-4 py-3 font-medium">Time out</th>
-                                <th className="px-4 py-3 text-right font-medium">Hours worked</th>
-                                <th className="px-4 py-3 text-right font-medium">Overtime</th>
-                                <th className="px-4 py-3 text-right font-medium">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {attendances.data.length > 0 ? (
-                                attendances.data.map((attendance) => (
-                                    <tr
-                                        key={attendance.id}
-                                        className="border-border/70 border-b transition-colors last:border-0 hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20"
+                <DataTable
+                    data={attendances.data}
+                    getRowId={(attendance) => attendance.id}
+                    getSearchValue={(attendance) =>
+                        [
+                            employeeName(attendance),
+                            attendance.work_date,
+                            attendance.time_in,
+                            attendance.time_out,
+                            attendance.hours_worked,
+                            attendance.overtime_hours,
+                        ]
+                            .filter(Boolean)
+                            .join(' ')
+                    }
+                    searchPlaceholder="Search attendance..."
+                    emptyMessage="No attendance records yet."
+                    columns={
+                        [
+                            { header: 'Employee', cell: employeeName },
+                            { header: 'Work date', cell: (attendance) => formatWorkDate(attendance.work_date) },
+                            { header: 'Time in', cell: (attendance) => formatTime(attendance.time_in) },
+                            { header: 'Time out', cell: (attendance) => formatTime(attendance.time_out) },
+                            {
+                                header: 'Hours worked',
+                                className: 'text-right',
+                                cell: (attendance) => hours(attendance.hours_worked),
+                            },
+                            {
+                                header: 'Overtime',
+                                className: 'text-right',
+                                cell: (attendance) => hours(attendance.overtime_hours),
+                            },
+                            {
+                                header: 'Actions',
+                                className: 'text-right',
+                                cell: (attendance) => (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-emerald-700/25 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-400/25 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
+                                        asChild
                                     >
-                                        <td className="px-4 py-3 font-medium">{employeeName(attendance)}</td>
-                                        <td className="px-4 py-3">{formatWorkDate(attendance.work_date)}</td>
-                                        <td className="px-4 py-3">{formatTime(attendance.time_in)}</td>
-                                        <td className="px-4 py-3">{formatTime(attendance.time_out)}</td>
-                                        <td className="px-4 py-3 text-right">{hours(attendance.hours_worked)}</td>
-                                        <td className="px-4 py-3 text-right">{hours(attendance.overtime_hours)}</td>
-                                        <td className="px-4 py-3 text-right">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="border-emerald-700/25 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-400/25 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
-                                                asChild
-                                            >
-                                                <Link href={route('attendance.edit', attendance.id)}>Edit</Link>
-                                            </Button>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={7} className="text-muted-foreground px-4 py-10 text-center">
-                                        No attendance records yet.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="grid min-w-0 gap-3 md:hidden">
-                    {attendances.data.length > 0 ? (
-                        attendances.data.map((attendance) => (
-                            <article
-                                key={attendance.id}
-                                className="space-y-4 rounded-xl border border-emerald-800/10 bg-white p-4 shadow-sm dark:border-emerald-400/15 dark:bg-[#07130f]"
-                            >
-                                <div className="flex min-w-0 items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                        <h2 className="font-semibold break-words">{employeeName(attendance)}</h2>
-                                        <p className="text-muted-foreground mt-1 flex items-center gap-2 text-sm">
-                                            <CalendarDays className="size-4 shrink-0" />
-                                            {formatWorkDate(attendance.work_date)}
-                                        </p>
-                                    </div>
-                                    <Clock3 className="text-muted-foreground mt-1 size-4 shrink-0" />
-                                </div>
-
-                                <dl className="grid grid-cols-2 gap-3 text-sm">
-                                    <div>
-                                        <dt className="text-muted-foreground">Time in</dt>
-                                        <dd>{formatTime(attendance.time_in)}</dd>
-                                    </div>
-                                    <div>
-                                        <dt className="text-muted-foreground">Time out</dt>
-                                        <dd>{formatTime(attendance.time_out)}</dd>
-                                    </div>
-                                    <div>
-                                        <dt className="text-muted-foreground">Hours worked</dt>
-                                        <dd>{hours(attendance.hours_worked)}</dd>
-                                    </div>
-                                    <div>
-                                        <dt className="text-muted-foreground">Overtime</dt>
-                                        <dd>{hours(attendance.overtime_hours)}</dd>
-                                    </div>
-                                </dl>
-                                <Button
-                                    variant="outline"
-                                    className="w-full border-emerald-700/25 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-400/25 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
-                                    asChild
-                                >
-                                    <Link href={route('attendance.edit', attendance.id)}>Edit Attendance</Link>
-                                </Button>
-                            </article>
-                        ))
-                    ) : (
-                        <p className="text-muted-foreground rounded-xl border px-4 py-10 text-center text-sm">No attendance records yet.</p>
-                    )}
-                </div>
+                                        <Link href={route('attendance.edit', attendance.id)}>Edit</Link>
+                                    </Button>
+                                ),
+                            },
+                        ] satisfies DataTableColumn<Attendance>[]
+                    }
+                />
 
                 <nav aria-label="Attendance pagination" className="flex flex-wrap justify-end gap-2">
                     {attendances.links.map((link, index) => {
