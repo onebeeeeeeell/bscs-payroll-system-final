@@ -23,6 +23,8 @@ class AttendanceController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+            dd($attendances);
+            
         return Inertia::render('attendance/index', [
             'attendances' => $attendances,
         ]);
