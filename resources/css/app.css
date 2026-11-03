@@ -155,4 +155,9 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    /* makes native stuff (date picker popup + calendar icon) use dark colors */
+    .dark {
+        color-scheme: dark;
+    }
 }
