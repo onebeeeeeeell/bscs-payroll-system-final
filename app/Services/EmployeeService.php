@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Employee;
+use App\Models\Position;
+use App\Models\Department;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -45,4 +47,18 @@ class EmployeeService
             fn () => $employee->delete()
         );
     }
+
+    // diri saylo ang sa controller part na method
+    public function kuhaSangPosition():array
+    {
+       return Position::query()->orderBy('title')->get(['id', 'title']);
+    }
+
+    public function kuhaSangDepartment():array
+    {
+       return Department::query()->orderBy('department_name')->get(['id', 'department_name']);
+    }
+
+
+
 }

@@ -33,8 +33,8 @@ class EmployeeController extends Controller
     public function create(): Response
     {
         return Inertia::render('employee/create', [
-            'positions' => Position::query()->orderBy('title')->get(['id', 'title']),
-            'departments' => Department::query()->orderBy('department_name')->get(['id', 'department_name']),
+            'positions' => $this->employeeService->kuhaSangPosition(),
+            'departments' => $this->employeeService->kuhaSangDepartment(),
         ]);
     }
 
