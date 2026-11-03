@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use Inertia\Inertia;
 use App\Models\Employee;
 use App\Models\Department;
+use App\Models\EmploymentStatus;
 use App\Models\Position;
 use App\Services\EmployeeService;
 use App\Http\Requests\Employee\EmployeeRequest;
+use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Carbon;
 use Inertia\Response;
 
 class EmployeeController extends Controller
@@ -20,10 +23,32 @@ class EmployeeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request): Response
     {
+        $validated = $request->validate([
+            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'position_id' => ['nullable', 'integer', 'exists:positions,id'],
+            'hire_year' => ['nullable', 'integer', 'between:1900,9999'],
+            'hire_month' => ['nullable', 'integer', 'between:1,12'],
+        ]);
+        $filters = [
+            'department_id' => $validated['department_id'] ?? '',
+            'position_id' => $validated['position_id'] ?? '',
+            'hire_year' => $validated['hire_year'] ?? '',
+            'hire_month' => $validated['hire_month'] ?? '',
+        ];
+
+        $firstHireDate = Employee::min('date_hired');
+        $lastHireDate = Employee::max('date_hired');
+        $firstYear = $firstHireDate ? Carbon::parse($firstHireDate)->year : now()->year;
+        $lastYear = $lastHireDate ? max(now()->year, Carbon::parse($lastHireDate)->year) : now()->year;
+
         return Inertia::render('employee/index', [
-            'employees' => $this->employeeService->paginate(),
+            'employees' => $this->employeeService->paginate($validated),
+            'departments' => Department::query()->orderBy('department_name')->get(['id', 'department_name']),
+            'positions' => Position::query()->orderBy('title')->get(['id', 'title']),
+            'hireYears' => range($lastYear, $firstYear),
+            'filters' => $filters,
         ]);
     }
 
@@ -35,6 +60,7 @@ class EmployeeController extends Controller
         return Inertia::render('employee/create', [
             'positions' => Position::query()->orderBy('title')->get(['id', 'title']),
             'departments' => Department::query()->orderBy('department_name')->get(['id', 'department_name']),
+            'statuses' => EmploymentStatus::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -72,6 +98,8 @@ class EmployeeController extends Controller
             'employee' => $employee,
             'positions' => Position::query()->orderBy('title')->get(['id', 'title']),
             'departments' => Department::query()->orderBy('department_name')->get(['id', 'department_name']),
+            'statuses' => EmploymentStatus::query()->orderBy('name')->get(['id', 'name']),
+            'statuses' => EmploymentStatus::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 

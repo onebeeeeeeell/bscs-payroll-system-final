@@ -23,6 +23,10 @@ export interface ContributionType {
     id: number;
     name: string;
 }
+export interface EmploymentStatus {
+    id: number;
+    name: string;
+}
 export interface PayrollPeriod {
     id: number;
     start_date: string;
@@ -43,7 +47,7 @@ export interface Employee {
     philhealth_no: string | null;
     pagibig_no: string | null;
     tin_no: string | null;
-    status: 'Casual' | 'Regular' | 'Permanent';
+    status: string;
     position?: Position;
     department?: Department;
     created_at: string;

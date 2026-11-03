@@ -4,15 +4,56 @@ import { DataTable, type DataTableColumn } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import AppLayout from '@/layouts/app-layout';
-import type { Employee, PaginatedData } from '@/types/models';
-import { Head, Link } from '@inertiajs/react';
+import type { Department, Employee, PaginatedData, Position } from '@/types/models';
+import { Head, Link, router } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 
 // Types
 type Props = {
     employees: PaginatedData<Employee>;
+    departments: Pick<Department, 'id' | 'department_name'>[];
+    positions: Pick<Position, 'id' | 'title'>[];
+    hireYears: number[];
+    filters: {
+        department_id: string;
+        position_id: string;
+        hire_year: string;
+        hire_month: string;
+    };
 };
 
-export default function EmployeeIndex({ employees }: Props) {
+const months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+];
+
+export default function EmployeeIndex({ employees, departments, positions, hireYears, filters: initialFilters }: Props) {
+    const [filters, setFilters] = useState(initialFilters);
+
+    useEffect(() => {
+        setFilters(initialFilters);
+    }, [initialFilters]);
+
+    function updateFilter(name: keyof typeof filters, value: string) {
+        const nextFilters = { ...filters, [name]: value };
+        setFilters(nextFilters);
+        router.get(route('employees.index'), nextFilters, {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    }
+
     return (
         <AppLayout>
             <Head title="Employees" />
@@ -50,6 +91,62 @@ export default function EmployeeIndex({ employees }: Props) {
                     }
                     searchPlaceholder="Search employees..."
                     emptyMessage="No employees found."
+                    toolbar={
+                        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                            <select
+                                aria-label="Filter by department"
+                                value={filters.department_id}
+                                onChange={(event) => updateFilter('department_id', event.target.value)}
+                                className="border-input bg-background h-10 min-w-36 rounded-md border px-3 text-sm"
+                            >
+                                <option value="">All departments</option>
+                                {departments.map((department) => (
+                                    <option key={department.id} value={department.id}>
+                                        {department.department_name}
+                                    </option>
+                                ))}
+                            </select>
+                            <select
+                                aria-label="Filter by position"
+                                value={filters.position_id}
+                                onChange={(event) => updateFilter('position_id', event.target.value)}
+                                className="border-input bg-background h-10 min-w-36 rounded-md border px-3 text-sm"
+                            >
+                                <option value="">All positions</option>
+                                {positions.map((position) => (
+                                    <option key={position.id} value={position.id}>
+                                        {position.title}
+                                    </option>
+                                ))}
+                            </select>
+                            <select
+                                aria-label="Filter by hire year"
+                                value={filters.hire_year}
+                                onChange={(event) => updateFilter('hire_year', event.target.value)}
+                                className="border-input bg-background h-10 min-w-32 rounded-md border px-3 text-sm"
+                            >
+                                <option value="">All years</option>
+                                {hireYears.map((year) => (
+                                    <option key={year} value={year}>
+                                        {year}
+                                    </option>
+                                ))}
+                            </select>
+                            <select
+                                aria-label="Filter by hire month"
+                                value={filters.hire_month}
+                                onChange={(event) => updateFilter('hire_month', event.target.value)}
+                                className="border-input bg-background h-10 min-w-36 rounded-md border px-3 text-sm"
+                            >
+                                <option value="">All months</option>
+                                {months.map((month, index) => (
+                                    <option key={month} value={index + 1}>
+                                        {month}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    }
                     columns={
                         [
                             {
