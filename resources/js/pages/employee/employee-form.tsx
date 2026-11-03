@@ -3,7 +3,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { Department, Employee, Position } from '@/types/models';
 import { Link, useForm } from '@inertiajs/react';
-import type { FormEvent } from 'react';
+import { CalendarDays } from 'lucide-react';
+import { useRef, type FormEvent } from 'react';
 
 type Props = {
     employee?: Employee;
@@ -22,6 +23,7 @@ function getTodayDate(): string {
 export default function EmployeeForm({ employee, positions, departments }: Props) {
     const editing = Boolean(employee);
     const today = getTodayDate();
+    const dateHiredInput = useRef<HTMLInputElement>(null);
     const form = useForm({
         first_name: employee?.first_name ?? '',
         last_name: employee?.last_name ?? '',
@@ -53,6 +55,20 @@ export default function EmployeeForm({ employee, positions, departments }: Props
         return message ? <p className="text-destructive text-sm">{message}</p> : null;
     }
 
+    function filterName(value: string) {
+        return value.replace(/[^\p{L}\s]/gu, '');
+    }
+
+    function openDatePicker() {
+        const input = dateHiredInput.current;
+
+        if (input?.showPicker) {
+            input.showPicker();
+        } else {
+            input?.focus();
+        }
+    }
+
     return (
         <form
             onSubmit={submit}
@@ -64,10 +80,9 @@ export default function EmployeeForm({ employee, positions, departments }: Props
                     <Input
                         id="first_name"
                         value={form.data.first_name}
-                        onChange={(event) => form.setData('first_name', event.target.value)}
+                        onChange={(event) => form.setData('first_name', filterName(event.target.value))}
                         maxLength={255}
-                        pattern="[^0-9]*"
-                        title="Numbers are not allowed in names."
+                        title="Only letters and spaces are allowed."
                         required
                         disabled={form.processing}
                         aria-invalid={Boolean(form.errors.first_name)}
@@ -80,10 +95,9 @@ export default function EmployeeForm({ employee, positions, departments }: Props
                     <Input
                         id="last_name"
                         value={form.data.last_name}
-                        onChange={(event) => form.setData('last_name', event.target.value)}
+                        onChange={(event) => form.setData('last_name', filterName(event.target.value))}
                         maxLength={255}
-                        pattern="[^0-9]*"
-                        title="Numbers are not allowed in names."
+                        title="Only letters and spaces are allowed."
                         required
                         disabled={form.processing}
                         aria-invalid={Boolean(form.errors.last_name)}
@@ -152,32 +166,54 @@ export default function EmployeeForm({ employee, positions, departments }: Props
 
                 <div className="space-y-2">
                     <Label htmlFor="date_hired">Date hired</Label>
-                    <Input
-                        id="date_hired"
-                        type="date"
-                        min={today}
-                        value={form.data.date_hired}
-                        onChange={(event) => form.setData('date_hired', event.target.value)}
-                        required
-                        disabled={form.processing}
-                        aria-invalid={Boolean(form.errors.date_hired)}
-                    />
+                    <div className="relative">
+                        <Input
+                            ref={dateHiredInput}
+                            id="date_hired"
+                            type="date"
+                            min={today}
+                            value={form.data.date_hired}
+                            onChange={(event) => form.setData('date_hired', event.target.value)}
+                            className="pr-12 [&::-webkit-calendar-picker-indicator]:hidden"
+                            required
+                            disabled={form.processing}
+                            aria-invalid={Boolean(form.errors.date_hired)}
+                        />
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-0 right-0 text-muted-foreground hover:text-foreground"
+                            onClick={openDatePicker}
+                            disabled={form.processing}
+                            aria-label="Open date picker"
+                            title="Open date picker"
+                        >
+                            <CalendarDays aria-hidden="true" />
+                        </Button>
+                    </div>
                     {fieldError('date_hired')}
                 </div>
 
                 <div className="space-y-2">
                     <Label htmlFor="daily_rate">Daily rate</Label>
-                    <Input
-                        id="daily_rate"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={form.data.daily_rate}
-                        onChange={(event) => form.setData('daily_rate', event.target.value)}
-                        required
-                        disabled={form.processing}
-                        aria-invalid={Boolean(form.errors.daily_rate)}
-                    />
+                    <div className="relative">
+                        <span className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2" aria-hidden="true">
+                            ₱
+                        </span>
+                        <Input
+                            id="daily_rate"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={form.data.daily_rate}
+                            onChange={(event) => form.setData('daily_rate', event.target.value)}
+                            className="pl-8"
+                            required
+                            disabled={form.processing}
+                            aria-invalid={Boolean(form.errors.daily_rate)}
+                        />
+                    </div>
                     {fieldError('daily_rate')}
                 </div>
 

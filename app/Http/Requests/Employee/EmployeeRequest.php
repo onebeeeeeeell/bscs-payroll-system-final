@@ -37,8 +37,8 @@ class EmployeeRequest extends FormRequest
         $employee = $this->route('employee');
 
         return [
-            'first_name' => [$required, 'string', 'max:255', 'not_regex:/\d/'],
-            'last_name' => [$required, 'string', 'max:255', 'not_regex:/\d/'],
+            'first_name' => [$required, 'string', 'max:255', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
+            'last_name' => [$required, 'string', 'max:255', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
             'suffix' => ['nullable', 'string', 'max:50'],
             'position_id' => [$required, 'integer', 'exists:positions,id'],
             'department_id' => [$required, 'integer', 'exists:departments,id'],
@@ -61,8 +61,8 @@ class EmployeeRequest extends FormRequest
         return [
             'daily_rate.max' => 'The daily rate is too large.',
             'date_hired.after_or_equal' => 'The hire date must be today or a future date.',
-            'first_name.not_regex' => 'Numbers are not allowed in the first name.',
-            'last_name.not_regex' => 'Numbers are not allowed in the last name.',
+            'first_name.regex' => 'The first name may only contain letters and spaces.',
+            'last_name.regex' => 'The last name may only contain letters and spaces.',
         ];
     }
 }

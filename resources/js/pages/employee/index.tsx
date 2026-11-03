@@ -62,9 +62,9 @@ export default function EmployeeIndex({ employees }: Props) {
                             {
                                 header: 'Daily Rate',
                                 cell: (employee) =>
-                                    Number(employee.daily_rate).toLocaleString(undefined, {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
+                                    Number(employee.daily_rate).toLocaleString('en-PH', {
+                                        style: 'currency',
+                                        currency: 'PHP',
                                     }),
                             },
                             { header: 'Status', cell: (employee) => employee.status },

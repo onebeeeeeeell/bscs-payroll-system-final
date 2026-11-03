@@ -58,9 +58,9 @@ export default function EmployeeShow({ employee }: Props) {
                         <Detail label="Date hired" value={employee.date_hired} />
                         <Detail
                             label="Daily rate"
-                            value={Number(employee.daily_rate).toLocaleString(undefined, {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
+                            value={Number(employee.daily_rate).toLocaleString('en-PH', {
+                                style: 'currency',
+                                currency: 'PHP',
                             })}
                         />
                     </dl>
