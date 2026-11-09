@@ -7,10 +7,13 @@ use App\Http\Controllers\DeductionController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeOptionController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OrganizationSettingsController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\PayrollPeriodController;
 use App\Http\Controllers\PayslipController;
 use App\Http\Controllers\PositionController;
+use App\Http\Controllers\SearchController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -24,6 +27,13 @@ Route::middleware(['auth'])->group(function () {
     })->name('dashboard');
 
     Route::resource('attendance', AttendanceController::class);
+
+    // Top bar: Ctrl+K search and notification bell (JSON)
+    Route::get('search', SearchController::class)->name('search');
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+
+    // Settings > Organization
+    Route::get('settings/organization', [OrganizationSettingsController::class, 'index'])->name('settings.organization');
 });
 
 Route::resource('contribution_rates', ContributionRateController::class);

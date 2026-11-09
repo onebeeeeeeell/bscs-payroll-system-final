@@ -4,7 +4,7 @@ import type { Department, EmploymentStatus, Position } from '@/types/models';
 import { Head } from '@inertiajs/react';
 import EmployeeForm from './employee-form';
 
-// Types 
+// Types
 type Props = {
     positions: Pick<Position, 'id' | 'title'>[];
     departments: Pick<Department, 'id' | 'department_name'>[];

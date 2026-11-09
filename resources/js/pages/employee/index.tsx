@@ -25,20 +25,7 @@ type Props = {
     };
 };
 
-const months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-];
+const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export default function EmployeeIndex({ employees, departments, positions, hireYears, filters: initialFilters }: Props) {
     const [filters, setFilters] = useState(initialFilters);

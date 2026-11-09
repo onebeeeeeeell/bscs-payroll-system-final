@@ -50,9 +50,7 @@ export default function PayrollIndex({ payrolls }: Props) {
                             {
                                 header: 'Pay period',
                                 cell: (payroll) =>
-                                    payroll.payroll_period
-                                        ? `${payroll.payroll_period.start_date} – ${payroll.payroll_period.end_date}`
-                                        : '—',
+                                    payroll.payroll_period ? `${payroll.payroll_period.start_date} – ${payroll.payroll_period.end_date}` : '—',
                             },
                             { header: 'Gross pay', cell: (payroll) => formatCurrency(payroll.gross_pay) },
                             { header: 'Deductions', cell: (payroll) => formatCurrency(payroll.total_deductions) },

@@ -4,7 +4,7 @@ export interface PaginatedData<T> {
     last_page: number;
     per_page: number;
     total: number;
-    links: { url: string | null, label: string, active: boolean }[];
+    links: { url: string | null; label: string; active: boolean }[];
 }
 export interface User {
     id: number;

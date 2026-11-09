@@ -45,11 +45,7 @@ export default function PayslipIndex({ payslips }: Props) {
                             {
                                 header: 'Employee',
                                 cell: (payslip) =>
-                                    [
-                                        payslip.payroll?.employee?.first_name,
-                                        payslip.payroll?.employee?.last_name,
-                                        payslip.payroll?.employee?.suffix,
-                                    ]
+                                    [payslip.payroll?.employee?.first_name, payslip.payroll?.employee?.last_name, payslip.payroll?.employee?.suffix]
                                         .filter(Boolean)
                                         .join(' ') || '—',
                             },
