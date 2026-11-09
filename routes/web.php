@@ -34,6 +34,7 @@ Route::resource('payrolls', PayrollController::class);
 Route::resource('deductions', DeductionController::class);
 Route::resource('payslips', PayslipController::class);
 Route::resource('Payroll_periods', PayrollPeriodController::class);
+Route::patch('employees/{employee}/restore', [EmployeeController::class, 'restore'])->name('employees.restore');
 Route::resource('employees', EmployeeController::class);
 Route::post('employee-options/departments', [EmployeeOptionController::class, 'storeDepartment'])->name('employee-options.departments.store');
 Route::patch('employee-options/departments/{department}', [EmployeeOptionController::class, 'updateDepartment'])->name('employee-options.departments.update');

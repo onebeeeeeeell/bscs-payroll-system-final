@@ -48,6 +48,7 @@ export interface Employee {
     pagibig_no: string | null;
     tin_no: string | null;
     status: string;
+    archived_at: string | null;
     position?: Position;
     department?: Department;
     created_at: string;

@@ -30,12 +30,14 @@ class EmployeeController extends Controller
             'position_id' => ['nullable', 'integer', 'exists:positions,id'],
             'hire_year' => ['nullable', 'integer', 'between:1900,9999'],
             'hire_month' => ['nullable', 'integer', 'between:1,12'],
+            'status' => ['nullable', 'in:active,archived'],
         ]);
         $filters = [
             'department_id' => $validated['department_id'] ?? '',
             'position_id' => $validated['position_id'] ?? '',
             'hire_year' => $validated['hire_year'] ?? '',
             'hire_month' => $validated['hire_month'] ?? '',
+            'status' => $validated['status'] ?? 'active',
         ];
 
         $firstHireDate = Employee::min('date_hired');
@@ -94,6 +96,8 @@ class EmployeeController extends Controller
      */
     public function edit(Employee $employee): Response
     {
+        abort_if($employee->archived_at !== null, 404);
+
         return Inertia::render('employee/edit', [
             'employee' => $employee,
             'positions' => Position::query()->orderBy('title')->get(['id', 'title']),
@@ -108,6 +112,8 @@ class EmployeeController extends Controller
      */
     public function update(EmployeeRequest $request, Employee $employee): RedirectResponse
     {
+        abort_if($employee->archived_at !== null, 404);
+
         $this->employeeService->update($employee, $request->validated());
 
         return to_route('employees.index')->with('success', 'Employee updated successfully.');
@@ -116,10 +122,29 @@ class EmployeeController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Employee $employee)
+    public function destroy(Request $request, Employee $employee): RedirectResponse
     {
-        $this->employeeService->delete($employee);
+        $this->employeeService->archive($employee);
 
-        return to_route('employees.index')->with('success', 'Employee deleted successfully.');
+        return to_route('employees.index', $request->only([
+            'status',
+            'department_id',
+            'position_id',
+            'hire_year',
+            'hire_month',
+        ]))->with('success', 'Employee archived successfully.');
+    }
+
+    public function restore(Request $request, Employee $employee): RedirectResponse
+    {
+        $this->employeeService->restore($employee);
+
+        return to_route('employees.index', $request->only([
+            'status',
+            'department_id',
+            'position_id',
+            'hire_year',
+            'hire_month',
+        ]))->with('success', 'Employee restored successfully.');
     }
 }

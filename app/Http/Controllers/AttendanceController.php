@@ -18,13 +18,12 @@ class AttendanceController extends Controller
     {
         $attendances = Attendance::query()
             ->with('employee:id,first_name,last_name,suffix')
+            ->whereHas('employee', fn ($query) => $query->whereNull('archived_at'))
             ->latest('work_date')
             ->latest('time_in')
             ->paginate(10)
             ->withQueryString();
 
-            dd($attendances);
-            
         return Inertia::render('attendance/index', [
             'attendances' => $attendances,
         ]);
@@ -37,6 +36,7 @@ class AttendanceController extends Controller
     {
         return Inertia::render('attendance/create', [
             'employees' => Employee::query()
+                ->whereNull('archived_at')
                 ->orderBy('last_name')
                 ->orderBy('first_name')
                 ->get(['id', 'first_name', 'last_name', 'suffix']),
@@ -78,6 +78,7 @@ class AttendanceController extends Controller
                 'overtime_hours',
             ]),
             'employees' => Employee::query()
+                ->whereNull('archived_at')
                 ->orderBy('last_name')
                 ->orderBy('first_name')
                 ->get(['id', 'first_name', 'last_name', 'suffix']),

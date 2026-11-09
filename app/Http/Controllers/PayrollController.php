@@ -19,8 +19,6 @@ class PayrollController extends Controller
             'user:id,name,email',
         ])->get();
 
-        dd($payrolls);
-
         return Inertia::render('payroll/index', [
             'payrolls' => $payrolls,
         ]);
