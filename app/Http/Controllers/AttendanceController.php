@@ -121,4 +121,6 @@ class AttendanceController extends Controller
             'overtime_hours' => number_format($overtimeMinutes / 60, 2, '.', ''),
         ];
     }
+
+    // diri SAYLO ang halin sa controller tas callout nalang sa controller
 }

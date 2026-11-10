@@ -42,7 +42,7 @@ class EmployeeRequest extends FormRequest
             'suffix' => ['nullable', 'string', 'max:3', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
             'position_id' => [$required, 'integer', 'exists:positions,id'],
             'department_id' => [$required, 'integer', 'exists:departments,id'],
-            'date_hired' => [$required, 'date', 'after_or_equal:today'],
+            'date_hired' => [$required, 'date', 'after_or_equal:today', 'before_or_equal:'.now()->endOfYear()->toDateString()],
             // max matches the decimal(10,2) column so it can't overflow
             'daily_rate' => [$required, 'numeric', 'regex:/^\d+(?:\.\d{1,2})?$/', 'min:0', 'max:99999999.99'],
             'sss_no' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'sss_no')->ignore($employee)],
@@ -62,6 +62,7 @@ class EmployeeRequest extends FormRequest
             'daily_rate.max' => 'The daily rate is too large.',
             'daily_rate.regex' => 'The daily rate must contain only numbers and an optional decimal point with up to two decimal places.',
             'date_hired.after_or_equal' => 'The hire date must be today or a future date.',
+            'date_hired.before_or_equal' => 'The hire date must be within the current year.',
             'first_name.regex' => 'The first name may only contain letters and spaces.',
             'last_name.regex' => 'The last name may only contain letters and spaces.',
             'suffix.regex' => 'The suffix may only contain letters and spaces.',

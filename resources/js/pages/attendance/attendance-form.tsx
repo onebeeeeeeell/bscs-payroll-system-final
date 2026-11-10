@@ -191,8 +191,8 @@ export default function AttendanceForm({ attendance, employees }: Props) {
             onSubmit={submit}
             className="space-y-6 rounded-2xl border border-emerald-800/10 bg-white p-5 shadow-sm sm:p-6 dark:border-emerald-400/15 dark:bg-[#07130f]"
         >
-            <div className="grid min-w-0 gap-5 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2">
+            <div className="grid min-w-0 gap-5 lg:grid-cols-2">
+                <div className="space-y-2 lg:col-span-2">
                     <Label htmlFor="employee_id">Employee</Label>
                     <select
                         id="employee_id"
@@ -215,7 +215,7 @@ export default function AttendanceForm({ attendance, employees }: Props) {
                     {fieldError('employee_id')}
                 </div>
 
-                <div className="space-y-2 sm:col-span-2">
+                <div className="space-y-2 lg:col-span-2">
                     <Label htmlFor="work_date">Work date</Label>
                     <Input
                         id="work_date"
@@ -249,7 +249,7 @@ export default function AttendanceForm({ attendance, employees }: Props) {
                     error={form.errors.time_out}
                 />
 
-                <div className="grid gap-4 rounded-lg border border-emerald-800/10 bg-emerald-50/70 p-4 sm:col-span-2 sm:grid-cols-2 dark:border-emerald-400/15 dark:bg-emerald-950/30">
+                <div className="grid gap-4 rounded-lg border border-emerald-800/10 bg-emerald-50/70 p-4 lg:col-span-2 lg:grid-cols-2 dark:border-emerald-400/15 dark:bg-emerald-950/30">
                     <div>
                         <p className="text-muted-foreground text-sm">Total hours worked</p>
                         <p className="mt-1 font-semibold">{hasValidTimeRange ? (workedMinutes / 60).toFixed(2) : '—'}</p>
@@ -258,13 +258,13 @@ export default function AttendanceForm({ attendance, employees }: Props) {
                         <p className="text-muted-foreground text-sm">Overtime (above 8 hours)</p>
                         <p className="mt-1 font-semibold">{hasValidTimeRange ? (overtimeMinutes / 60).toFixed(2) : '—'}</p>
                     </div>
-                    <p className="text-muted-foreground text-xs sm:col-span-2">
+                    <p className="text-muted-foreground text-xs lg:col-span-2">
                         No break is deducted. Overtime is the portion of total hours worked beyond 8 hours.
                     </p>
                 </div>
             </div>
 
-            <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
+            <div className="flex flex-col-reverse justify-end gap-3 lg:flex-row">
                 <Button
                     variant="outline"
                     className="border-emerald-700/25 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-400/25 dark:text-emerald-300 dark:hover:bg-emerald-950/50"

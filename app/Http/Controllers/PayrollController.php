@@ -74,4 +74,6 @@ class PayrollController extends Controller
     {
         //
     }
+
+    // diri SAYLO ang halin sa controller tas callout nalang sa controller
 }

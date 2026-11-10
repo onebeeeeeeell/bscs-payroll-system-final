@@ -67,6 +67,6 @@ class PayrollPeriodController extends Controller
      */
     public function destroy(PayrollPeriod $payrollPeriod)
     {
-        // diri SAYLO ang sanitaization sang halin sa controller
+        // diri SAYLO ang halin sa controller tas callout nalang sa controller
     }
 }

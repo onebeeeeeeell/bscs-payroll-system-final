@@ -5,16 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import type { ContributionRate, ContributionType, PayrollPeriod } from '@/types/models';
+import type { ContributionRate, ContributionType } from '@/types/models';
 import { Head, router } from '@inertiajs/react';
 
 type OptionRow = { id: number; label: string; count: number };
+const OPTION_PAGE_SIZE = 5;
 
 type Props = {
     departments: { id: number; department_name: string; employees_count: number }[];
     positions: { id: number; title: string; employees_count: number }[];
     statuses: { id: number; name: string; employees_count: number }[];
-    payrollPeriods: PayrollPeriod[];
     contributionRates: (ContributionRate & { contribution_type?: ContributionType })[];
 };
 
@@ -28,11 +28,6 @@ function csrfHeaders(): HeadersInit {
         'X-Requested-With': 'XMLHttpRequest',
         ...(xsrfCookie ? { 'X-XSRF-TOKEN': decodeURIComponent(xsrfCookie.slice('XSRF-TOKEN='.length)) } : {}),
     };
-}
-
-function formatDate(value: string): string {
-    // keep only YYYY-MM-DD so the date never shifts because of time zones
-    return new Date(`${value.slice(0, 10)}T00:00:00`).toLocaleDateString('en-PH', { dateStyle: 'medium' });
 }
 
 function filterOptionName(value: string): string {
@@ -63,6 +58,10 @@ function OptionManager({
     const [editingName, setEditingName] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
+    const [page, setPage] = useState(1);
+    const pageCount = Math.max(1, Math.ceil(rows.length / OPTION_PAGE_SIZE));
+    const currentPage = Math.min(page, pageCount);
+    const pageRows = rows.slice((currentPage - 1) * OPTION_PAGE_SIZE, currentPage * OPTION_PAGE_SIZE);
 
     // Sends the request, shows the server's error if there is one, and reloads the lists on success
     async function send(url: string, method: 'POST' | 'PATCH' | 'DELETE', name?: string): Promise<boolean> {
@@ -96,7 +95,10 @@ function OptionManager({
     async function add(event: FormEvent) {
         event.preventDefault();
         if (!newName.trim()) return;
-        if (await send(createEndpoint, 'POST', newName.trim())) setNewName('');
+        if (await send(createEndpoint, 'POST', newName.trim())) {
+            setNewName('');
+            setPage(1);
+        }
     }
 
     async function saveEdit(id: number) {
@@ -121,7 +123,11 @@ function OptionManager({
                     placeholder={`Add ${title.toLowerCase()}`}
                     aria-label={`Add ${title}`}
                 />
-                <Button type="submit" disabled={busy} className="bg-emerald-700 text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500">
+                <Button
+                    type="submit"
+                    disabled={busy}
+                    className="bg-emerald-700 text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                >
                     <Plus className="size-4" />
                     Add
                 </Button>
@@ -137,7 +143,7 @@ function OptionManager({
                 <p className="text-muted-foreground py-4 text-sm">Nothing here yet.</p>
             ) : (
                 <ul className="divide-y">
-                    {rows.map((row) => (
+                    {pageRows.map((row) => (
                         <li key={row.id} className="flex items-center gap-2 py-2">
                             {editingId === row.id ? (
                                 <>
@@ -149,17 +155,34 @@ function OptionManager({
                                         aria-label="Rename"
                                         autoFocus
                                     />
-                                    <Button type="button" size="icon" variant="ghost" className="size-8" disabled={busy} onClick={() => saveEdit(row.id)} aria-label="Save">
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="ghost"
+                                        className="size-8"
+                                        disabled={busy}
+                                        onClick={() => saveEdit(row.id)}
+                                        aria-label="Save"
+                                    >
                                         <Check className="size-4" />
                                     </Button>
-                                    <Button type="button" size="icon" variant="ghost" className="size-8" onClick={() => setEditingId(null)} aria-label="Cancel">
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="ghost"
+                                        className="size-8"
+                                        onClick={() => setEditingId(null)}
+                                        aria-label="Cancel"
+                                    >
                                         <X className="size-4" />
                                     </Button>
                                 </>
                             ) : (
                                 <>
                                     <span className="flex-1 truncate text-sm font-medium">{row.label}</span>
-                                    <span className="text-muted-foreground text-xs">{row.count} employee{row.count === 1 ? '' : 's'}</span>
+                                    <span className="text-muted-foreground text-xs">
+                                        {row.count} employee{row.count === 1 ? '' : 's'}
+                                    </span>
                                     <Button
                                         type="button"
                                         size="icon"
@@ -174,7 +197,15 @@ function OptionManager({
                                     >
                                         <Pencil className="size-4" />
                                     </Button>
-                                    <Button type="button" size="icon" variant="ghost" className="size-8" disabled={busy} onClick={() => remove(row)} aria-label={`Delete ${row.label}`}>
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="ghost"
+                                        className="size-8"
+                                        disabled={busy}
+                                        onClick={() => remove(row)}
+                                        aria-label={`Delete ${row.label}`}
+                                    >
                                         <Trash2 className="size-4" />
                                     </Button>
                                 </>
@@ -183,11 +214,44 @@ function OptionManager({
                     ))}
                 </ul>
             )}
+
+            {rows.length > OPTION_PAGE_SIZE && (
+                <nav aria-label={`${title} pagination`} className="mt-4 flex items-center justify-between gap-3 border-t pt-3">
+                    <p className="text-muted-foreground text-xs">
+                        Showing {(currentPage - 1) * OPTION_PAGE_SIZE + 1}-{Math.min(currentPage * OPTION_PAGE_SIZE, rows.length)} of {rows.length}
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={currentPage === 1}
+                            onClick={() => setPage(currentPage - 1)}
+                            aria-label="Previous page"
+                        >
+                            Previous
+                        </Button>
+                        <span className="text-muted-foreground text-xs" aria-live="polite">
+                            Page {currentPage} of {pageCount}
+                        </span>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={currentPage === pageCount}
+                            onClick={() => setPage(currentPage + 1)}
+                            aria-label="Next page"
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </nav>
+            )}
         </section>
     );
 }
 
-export default function OrganizationSettings({ departments, positions, statuses, payrollPeriods, contributionRates }: Props) {
+export default function OrganizationSettings({ departments, positions, statuses, contributionRates }: Props) {
     return (
         <AppLayout>
             <Head title="Organization settings" />
@@ -195,7 +259,7 @@ export default function OrganizationSettings({ departments, positions, statuses,
                 <div className="space-y-1 rounded-2xl border border-emerald-800/10 bg-white/80 p-5 shadow-sm sm:p-6 dark:border-emerald-400/15 dark:bg-[#07130f]">
                     <p className="text-xs font-semibold tracking-[0.16em] text-emerald-700 uppercase dark:text-emerald-400">Administration</p>
                     <h1 className="text-2xl font-semibold tracking-tight">Organization</h1>
-                    <p className="text-muted-foreground text-sm">Departments, positions, employment statuses, pay periods, and contribution rates.</p>
+                    <p className="text-muted-foreground text-sm">Departments, positions, employment statuses, and contribution rates.</p>
                 </div>
 
                 <div className="grid gap-6 lg:grid-cols-2">
@@ -248,7 +312,9 @@ export default function OrganizationSettings({ departments, positions, statuses,
                                     contributionRates.map((rate) => (
                                         <TableRow key={rate.id}>
                                             <TableCell>{rate.contribution_type?.name ?? '—'}</TableCell>
-                                            <TableCell className="text-right">{Number(rate.rate).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</TableCell>
+                                            <TableCell className="text-right">
+                                                {Number(rate.rate).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 )}
@@ -256,39 +322,6 @@ export default function OrganizationSettings({ departments, positions, statuses,
                         </Table>
                     </section>
                 </div>
-
-                <section className="min-w-0 rounded-2xl border border-emerald-800/10 bg-white p-5 shadow-sm dark:border-emerald-400/15 dark:bg-[#07130f]">
-                    <h2 className="text-lg font-semibold">Pay periods</h2>
-                    <p className="text-muted-foreground mb-4 text-sm">The 12 most recent pay periods (view only for now).</p>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Start</TableHead>
-                                <TableHead>End</TableHead>
-                                <TableHead>Pay date</TableHead>
-                                <TableHead>Status</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {payrollPeriods.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={4} className="text-muted-foreground text-center">
-                                        No pay periods yet.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                payrollPeriods.map((period) => (
-                                    <TableRow key={period.id}>
-                                        <TableCell>{formatDate(period.start_date)}</TableCell>
-                                        <TableCell>{formatDate(period.end_date)}</TableCell>
-                                        <TableCell>{formatDate(period.pay_date)}</TableCell>
-                                        <TableCell>{period.status}</TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </section>
             </div>
         </AppLayout>
     );

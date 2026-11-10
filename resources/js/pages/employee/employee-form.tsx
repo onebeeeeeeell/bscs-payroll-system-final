@@ -36,9 +36,14 @@ function getTodayDate(): string {
     return `${today.getFullYear()}-${month}-${day}`;
 }
 
+function getCurrentYearEnd(): string {
+    return `${new Date().getFullYear()}-12-31`;
+}
+
 export default function EmployeeForm({ employee, positions, departments, statuses }: Props) {
     const editing = Boolean(employee);
     const today = getTodayDate();
+    const currentYearEnd = getCurrentYearEnd();
     const dateHiredInput = useRef<HTMLInputElement>(null);
     const form = useForm({
         first_name: employee?.first_name ?? '',
@@ -90,7 +95,7 @@ export default function EmployeeForm({ employee, positions, departments, statuse
             onSubmit={submit}
             className="min-w-0 space-y-6 rounded-2xl border border-emerald-800/10 bg-white p-5 shadow-sm sm:p-6 dark:border-emerald-400/15 dark:bg-[#07130f]"
         >
-            <div className="grid min-w-0 gap-5 sm:grid-cols-2">
+            <div className="grid min-w-0 gap-5 lg:grid-cols-2">
                 <div className="space-y-2">
                     <Label htmlFor="first_name">First name</Label>
                     <Input
@@ -98,6 +103,7 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                         value={form.data.first_name}
                         onChange={(event) => form.setData('first_name', filterName(event.target.value))}
                         maxLength={50}
+                        className="h-10"
                         title="Only letters and spaces are allowed."
                         required
                         disabled={form.processing}
@@ -113,6 +119,7 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                         value={form.data.last_name}
                         onChange={(event) => form.setData('last_name', filterName(event.target.value))}
                         maxLength={20}
+                        className="h-10"
                         title="Only letters and spaces are allowed."
                         required
                         disabled={form.processing}
@@ -128,6 +135,7 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                         value={form.data.suffix}
                         onChange={(event) => form.setData('suffix', filterName(event.target.value))}
                         maxLength={3}
+                        className="h-10"
                         title="Only letters and spaces are allowed."
                         disabled={form.processing}
                         aria-invalid={Boolean(form.errors.suffix)}
@@ -187,9 +195,10 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                             id="date_hired"
                             type="date"
                             min={today}
+                            max={currentYearEnd}
                             value={form.data.date_hired}
                             onChange={(event) => form.setData('date_hired', event.target.value)}
-                            className="pr-12 [&::-webkit-calendar-picker-indicator]:hidden"
+                            className="h-10 pr-12 [&::-webkit-calendar-picker-indicator]:hidden"
                             required
                             disabled={form.processing}
                             aria-invalid={Boolean(form.errors.date_hired)}
@@ -198,7 +207,7 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="text-muted-foreground hover:text-foreground absolute top-0 right-0"
+                            className="text-muted-foreground hover:text-foreground absolute top-1/2 right-0 -translate-y-1/2"
                             onClick={openDatePicker}
                             disabled={form.processing}
                             aria-label="Open date picker"
@@ -225,7 +234,7 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                             title="Enter numbers only, with up to two decimal places."
                             value={form.data.daily_rate}
                             onChange={(event) => form.setData('daily_rate', filterDailyRate(event.target.value))}
-                            className="pl-8"
+                            className="h-10 pl-8"
                             required
                             disabled={form.processing}
                             aria-invalid={Boolean(form.errors.daily_rate)}
@@ -269,6 +278,7 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                             value={form.data[name]}
                             onChange={(event) => form.setData(name, event.target.value)}
                             maxLength={20}
+                            className="h-10"
                             disabled={form.processing}
                             aria-invalid={Boolean(form.errors[name])}
                         />
@@ -277,16 +287,16 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                 ))}
             </div>
 
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+            <div className="flex flex-col-reverse gap-2 lg:flex-row lg:items-center">
                 <Button
-                    className="w-full bg-emerald-700 text-white hover:bg-emerald-800 sm:w-auto dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                    className="w-full bg-emerald-700 text-white hover:bg-emerald-800 lg:w-auto dark:bg-emerald-600 dark:hover:bg-emerald-500"
                     type="submit"
                     disabled={form.processing}
                 >
                     {form.processing ? 'Saving...' : editing ? 'Update Employee' : 'Create Employee'}
                 </Button>
                 <Button
-                    className="w-full border-emerald-700/25 text-emerald-800 hover:bg-emerald-50 sm:w-auto dark:border-emerald-400/25 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
+                    className="w-full border-emerald-700/25 text-emerald-800 hover:bg-emerald-50 lg:w-auto dark:border-emerald-400/25 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
                     type="button"
                     variant="outline"
                     asChild

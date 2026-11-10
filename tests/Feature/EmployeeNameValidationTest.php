@@ -114,6 +114,45 @@ class EmployeeNameValidationTest extends TestCase
         $this->assertDatabaseHas('employees', ['suffix' => 'Jr']);
     }
 
+    public function test_hire_date_must_be_within_the_current_year_when_creating_or_editing(): void
+    {
+        $position = Position::factory()->create();
+        $department = Department::factory()->create();
+        $employee = Employee::factory()->create([
+            'position_id' => $position->id,
+            'department_id' => $department->id,
+            'date_hired' => today()->toDateString(),
+        ]);
+        $nextYearDate = now()->addYear()->startOfYear()->toDateString();
+        $employeeData = [
+            'first_name' => 'Alex',
+            'last_name' => 'Santos',
+            'position_id' => $position->id,
+            'department_id' => $department->id,
+            'date_hired' => $nextYearDate,
+            'daily_rate' => 500,
+            'status' => 'Regular',
+        ];
+
+        $this->from(route('employees.create'))
+            ->post(route('employees.store'), $employeeData)
+            ->assertRedirect(route('employees.create'))
+            ->assertSessionHasErrors([
+                'date_hired' => 'The hire date must be within the current year.',
+            ]);
+
+        $this->patch(route('employees.update', $employee), ['date_hired' => $nextYearDate])
+            ->assertSessionHasErrors([
+                'date_hired' => 'The hire date must be within the current year.',
+            ]);
+
+        $this->assertDatabaseCount('employees', 1);
+        $this->assertDatabaseHas('employees', [
+            'id' => $employee->id,
+            'date_hired' => today()->toDateString(),
+        ]);
+    }
+
     public function test_name_and_suffix_length_limits_are_enforced_on_create_and_edit(): void
     {
         $position = Position::factory()->create();
