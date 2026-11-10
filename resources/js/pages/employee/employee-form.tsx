@@ -97,7 +97,7 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                         id="first_name"
                         value={form.data.first_name}
                         onChange={(event) => form.setData('first_name', filterName(event.target.value))}
-                        maxLength={255}
+                        maxLength={50}
                         title="Only letters and spaces are allowed."
                         required
                         disabled={form.processing}
@@ -112,7 +112,7 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                         id="last_name"
                         value={form.data.last_name}
                         onChange={(event) => form.setData('last_name', filterName(event.target.value))}
-                        maxLength={255}
+                        maxLength={20}
                         title="Only letters and spaces are allowed."
                         required
                         disabled={form.processing}
@@ -127,7 +127,7 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                         id="suffix"
                         value={form.data.suffix}
                         onChange={(event) => form.setData('suffix', filterName(event.target.value))}
-                        maxLength={50}
+                        maxLength={3}
                         title="Only letters and spaces are allowed."
                         disabled={form.processing}
                         aria-invalid={Boolean(form.errors.suffix)}

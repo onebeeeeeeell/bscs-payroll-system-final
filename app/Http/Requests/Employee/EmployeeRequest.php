@@ -37,9 +37,9 @@ class EmployeeRequest extends FormRequest
         $employee = $this->route('employee');
 
         return [
-            'first_name' => [$required, 'string', 'max:255', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
-            'last_name' => [$required, 'string', 'max:255', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
-            'suffix' => ['nullable', 'string', 'max:50', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
+            'first_name' => [$required, 'string', 'max:50', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
+            'last_name' => [$required, 'string', 'max:20', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
+            'suffix' => ['nullable', 'string', 'max:3', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
             'position_id' => [$required, 'integer', 'exists:positions,id'],
             'department_id' => [$required, 'integer', 'exists:departments,id'],
             'date_hired' => [$required, 'date', 'after_or_equal:today'],

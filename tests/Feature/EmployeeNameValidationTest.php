@@ -94,7 +94,7 @@ class EmployeeNameValidationTest extends TestCase
         $this->assertDatabaseHas('employees', ['id' => $employee->id, 'suffix' => null]);
     }
 
-    public function test_suffix_accepts_accented_letters_and_spaces(): void
+    public function test_suffix_accepts_letters_within_the_three_character_limit(): void
     {
         $position = Position::factory()->create();
         $department = Department::factory()->create();
@@ -102,7 +102,7 @@ class EmployeeNameValidationTest extends TestCase
         $response = $this->post(route('employees.store'), [
             'first_name' => 'Alex',
             'last_name' => 'Santos',
-            'suffix' => 'De la Cruz',
+            'suffix' => 'Jr',
             'position_id' => $position->id,
             'department_id' => $department->id,
             'date_hired' => today()->toDateString(),
@@ -111,7 +111,45 @@ class EmployeeNameValidationTest extends TestCase
         ]);
 
         $response->assertRedirect(route('employees.index'));
-        $this->assertDatabaseHas('employees', ['suffix' => 'De la Cruz']);
+        $this->assertDatabaseHas('employees', ['suffix' => 'Jr']);
+    }
+
+    public function test_name_and_suffix_length_limits_are_enforced_on_create_and_edit(): void
+    {
+        $position = Position::factory()->create();
+        $department = Department::factory()->create();
+        $employee = Employee::factory()->create([
+            'position_id' => $position->id,
+            'department_id' => $department->id,
+        ]);
+        $overLimitValues = [
+            'first_name' => str_repeat('A', 51),
+            'last_name' => str_repeat('B', 21),
+            'suffix' => 'IIII',
+        ];
+
+        foreach ($overLimitValues as $field => $value) {
+            $createData = [
+                'first_name' => 'Alex',
+                'last_name' => 'Santos',
+                'position_id' => $position->id,
+                'department_id' => $department->id,
+                'date_hired' => today()->toDateString(),
+                'daily_rate' => 500,
+                'status' => 'Regular',
+                $field => $value,
+            ];
+
+            $this->from(route('employees.create'))
+                ->post(route('employees.store'), $createData)
+                ->assertRedirect(route('employees.create'))
+                ->assertSessionHasErrors($field);
+
+            $this->patch(route('employees.update', $employee), [$field => $value])
+                ->assertSessionHasErrors($field);
+        }
+
+        $this->assertDatabaseCount('employees', 1);
     }
 
     public function test_daily_rate_rejects_special_characters_and_more_than_two_decimal_places(): void
