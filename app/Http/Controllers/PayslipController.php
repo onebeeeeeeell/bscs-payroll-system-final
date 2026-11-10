@@ -18,7 +18,7 @@ class PayslipController extends Controller
             'payroll.employee:id,first_name,last_name,suffix',
             ])->get();
 
-        dd($payslips);
+            dd($payslips);
 
         return Inertia::render('payslip/index', [
             'payslips' => $payslips,

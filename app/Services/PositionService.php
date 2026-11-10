@@ -43,5 +43,7 @@ class PositionService
         DB::transaction(
             fn () => $position->delete()
         );
+        
+        // diri
     }
 }

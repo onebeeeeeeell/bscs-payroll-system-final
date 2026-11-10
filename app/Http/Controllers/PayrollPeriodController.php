@@ -17,8 +17,6 @@ class PayrollPeriodController extends Controller
            'payrolls:id,employee_id,payroll_period_id,user_id,gross_pay,total_deductions,net_pay,date_processed',
            ])->get();
            
-           dd($payrollPeriods);
-           
            return Inertia::render('payroll-period/index', [
             'payrollPeriods' => $payrollPeriods,
            ]);

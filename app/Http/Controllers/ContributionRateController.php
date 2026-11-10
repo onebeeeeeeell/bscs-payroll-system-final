@@ -18,8 +18,6 @@ class ContributionRateController extends Controller
             'deductions:id,payroll_id,contribution_rate_id,amount',
         ])->get();
 
-        dd($contributionRates);
-
         return Inertia::render('contribution-rate/index', [
             'contributionRates' => $contributionRates,
         ]);

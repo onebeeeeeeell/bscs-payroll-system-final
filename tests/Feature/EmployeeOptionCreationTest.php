@@ -39,19 +39,30 @@ class EmployeeOptionCreationTest extends TestCase
 
     public function test_new_department_position_and_status_names_reject_numbers_and_special_characters(): void
     {
-        $this->postJson(route('employee-options.departments.store'), ['department_name' => 'Operations 2'])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('department_name');
-        $this->postJson(route('employee-options.positions.store'), ['title' => 'Payroll-Analyst'])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('title');
-        $this->postJson(route('employee-options.statuses.store'), ['name' => 'Contractual!'])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('name');
+        $invalidDepartmentNames = ['Operations 2', 'People & Culture'];
+        $invalidPositionNames = ['Payroll Analyst 2', 'Payroll-Analyst'];
+        $invalidStatusNames = ['Contractual 2', 'Contractual!'];
 
-        $this->assertDatabaseMissing('departments', ['department_name' => 'Operations 2']);
-        $this->assertDatabaseMissing('positions', ['title' => 'Payroll-Analyst']);
-        $this->assertDatabaseMissing('employment_statuses', ['name' => 'Contractual!']);
+        foreach ($invalidDepartmentNames as $name) {
+            $this->postJson(route('employee-options.departments.store'), ['department_name' => $name])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('department_name');
+            $this->assertDatabaseMissing('departments', ['department_name' => $name]);
+        }
+
+        foreach ($invalidPositionNames as $name) {
+            $this->postJson(route('employee-options.positions.store'), ['title' => $name])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('title');
+            $this->assertDatabaseMissing('positions', ['title' => $name]);
+        }
+
+        foreach ($invalidStatusNames as $name) {
+            $this->postJson(route('employee-options.statuses.store'), ['name' => $name])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('name');
+            $this->assertDatabaseMissing('employment_statuses', ['name' => $name]);
+        }
     }
 
     public function test_custom_employment_status_can_be_created_and_assigned_to_an_employee(): void

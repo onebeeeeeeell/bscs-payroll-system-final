@@ -18,8 +18,6 @@ class DeductionController extends Controller
             'contributionRate:id,contribution_type_id,rate',
         ])->get();
 
-        dd($deductions);
-
         return Inertia::render('deduction/index', [
             'deductions' => $deductions,
         ]);

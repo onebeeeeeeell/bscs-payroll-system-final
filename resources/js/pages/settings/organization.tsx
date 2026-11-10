@@ -35,6 +35,10 @@ function formatDate(value: string): string {
     return new Date(`${value.slice(0, 10)}T00:00:00`).toLocaleDateString('en-PH', { dateStyle: 'medium' });
 }
 
+function filterOptionName(value: string): string {
+    return value.replace(/[^\p{L} ]/gu, '').replace(/ {2,}/g, ' ');
+}
+
 // One reusable box for departments, positions and employment statuses.
 // It uses the existing employee-options endpoints (add / rename / delete).
 function OptionManager({
@@ -110,7 +114,13 @@ function OptionManager({
             <p className="text-muted-foreground mb-4 text-sm">{description}</p>
 
             <form onSubmit={add} className="mb-3 flex gap-2">
-                <Input value={newName} onChange={(event) => setNewName(event.target.value)} placeholder={`Add ${title.toLowerCase()}`} aria-label={`Add ${title}`} />
+                <Input
+                    value={newName}
+                    onChange={(event) => setNewName(filterOptionName(event.target.value))}
+                    maxLength={field === 'name' ? 50 : 255}
+                    placeholder={`Add ${title.toLowerCase()}`}
+                    aria-label={`Add ${title}`}
+                />
                 <Button type="submit" disabled={busy} className="bg-emerald-700 text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500">
                     <Plus className="size-4" />
                     Add
@@ -131,7 +141,14 @@ function OptionManager({
                         <li key={row.id} className="flex items-center gap-2 py-2">
                             {editingId === row.id ? (
                                 <>
-                                    <Input value={editingName} onChange={(event) => setEditingName(event.target.value)} className="h-8" aria-label="Rename" autoFocus />
+                                    <Input
+                                        value={editingName}
+                                        onChange={(event) => setEditingName(filterOptionName(event.target.value))}
+                                        maxLength={field === 'name' ? 50 : 255}
+                                        className="h-8"
+                                        aria-label="Rename"
+                                        autoFocus
+                                    />
                                     <Button type="button" size="icon" variant="ghost" className="size-8" disabled={busy} onClick={() => saveEdit(row.id)} aria-label="Save">
                                         <Check className="size-4" />
                                     </Button>

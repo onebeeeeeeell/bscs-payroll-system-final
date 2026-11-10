@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Employee;
 use App\Models\Position;
 use App\Models\Department;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -35,7 +36,7 @@ class EmployeeService
     {
         // transaction so nothing is saved if something fails in the middle
         return DB::transaction(
-            fn () => Employee::create($data)//sanitizedData not data
+            fn () => Employee::create($data)//(sanitizedData) not data
         );
     }
 
@@ -63,12 +64,12 @@ class EmployeeService
     }
 
     // diri saylo ang sa controller part na method
-    public function kuhaSangPosition():array
+    public function kuhaSangPosition(): Collection
     {
        return Position::query()->orderBy('title')->get(['id', 'title']);
     }
 
-    public function kuhaSangDepartment():array
+    public function kuhaSangDepartment(): Collection
     {
        return Department::query()->orderBy('department_name')->get(['id', 'department_name']);
     }
