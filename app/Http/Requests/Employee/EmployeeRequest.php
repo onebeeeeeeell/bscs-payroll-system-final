@@ -39,7 +39,7 @@ class EmployeeRequest extends FormRequest
         return [
             'first_name' => [$required, 'string', 'max:255', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
             'last_name' => [$required, 'string', 'max:255', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
-            'suffix' => ['nullable', 'string', 'max:50'],
+            'suffix' => ['nullable', 'string', 'max:50', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
             'position_id' => [$required, 'integer', 'exists:positions,id'],
             'department_id' => [$required, 'integer', 'exists:departments,id'],
             'date_hired' => [$required, 'date', 'after_or_equal:today'],
@@ -64,6 +64,7 @@ class EmployeeRequest extends FormRequest
             'date_hired.after_or_equal' => 'The hire date must be today or a future date.',
             'first_name.regex' => 'The first name may only contain letters and spaces.',
             'last_name.regex' => 'The last name may only contain letters and spaces.',
+            'suffix.regex' => 'The suffix may only contain letters and spaces.',
         ];
     }
 }

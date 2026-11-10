@@ -126,8 +126,9 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                     <Input
                         id="suffix"
                         value={form.data.suffix}
-                        onChange={(event) => form.setData('suffix', event.target.value)}
+                        onChange={(event) => form.setData('suffix', filterName(event.target.value))}
                         maxLength={50}
+                        title="Only letters and spaces are allowed."
                         disabled={form.processing}
                         aria-invalid={Boolean(form.errors.suffix)}
                     />
