@@ -20,7 +20,7 @@ class ContributionTypeRequest extends FormRequest
         $required = $this->isMethod('PATCH') ? 'sometimes' : 'required';
 
         return [
-            'name' => [$required, 'string', 'max:255'],
+            'name' => [$required, 'string', 'max:30', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u'],
         ];
     }
 }

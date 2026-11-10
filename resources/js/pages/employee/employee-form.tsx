@@ -102,7 +102,7 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                         id="first_name"
                         value={form.data.first_name}
                         onChange={(event) => form.setData('first_name', filterName(event.target.value))}
-                        maxLength={50}
+                        maxLength={30}
                         className="h-10"
                         title="Only letters and spaces are allowed."
                         required

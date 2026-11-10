@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Position;
+use App\Services\EmployeeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -112,6 +113,55 @@ class EmployeeNameValidationTest extends TestCase
 
         $response->assertRedirect(route('employees.index'));
         $this->assertDatabaseHas('employees', ['suffix' => 'Jr']);
+    }
+
+    public function test_employee_service_normalizes_names_and_only_updates_editable_fields(): void
+    {
+        $employee = Employee::factory()->create([
+            'first_name' => 'Alex',
+            'suffix' => 'Jr',
+        ]);
+
+        app(EmployeeService::class)->update($employee, [
+            'first_name' => "  Alex   Marie \t",
+            'suffix' => '   ',
+            'archived_at' => now(),
+        ]);
+
+        $this->assertDatabaseHas('employees', [
+            'id' => $employee->id,
+            'first_name' => 'Alex Marie',
+            'suffix' => null,
+            'archived_at' => null,
+        ]);
+    }
+
+    public function test_employee_service_normalizes_names_without_dropping_other_create_fields(): void
+    {
+        $position = Position::factory()->create();
+        $department = Department::factory()->create();
+
+        $employee = app(EmployeeService::class)->create([
+            'first_name' => "  Alex   Marie \t",
+            'last_name' => ' Santos ',
+            'suffix' => ' Jr ',
+            'position_id' => $position->id,
+            'department_id' => $department->id,
+            'date_hired' => today()->toDateString(),
+            'daily_rate' => 500,
+            'sss_no' => ' 123456 ',
+            'status' => 'Regular',
+        ]);
+
+        $this->assertDatabaseHas('employees', [
+            'id' => $employee->id,
+            'first_name' => 'Alex Marie',
+            'last_name' => 'Santos',
+            'suffix' => 'Jr',
+            'date_hired' => today()->toDateString(),
+            'daily_rate' => 500,
+            'sss_no' => '123456',
+        ]);
     }
 
     public function test_hire_date_must_be_within_the_current_year_when_creating_or_editing(): void

@@ -20,7 +20,7 @@ class PositionRequest extends FormRequest
         $required = $this->isMethod('PATCH') ? 'sometimes' : 'required';
 
         return [
-            'title' => [$required, 'string', 'max:255'],
+            'title' => [$required, 'string', 'max:30', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u'],
         ];
     }
 }

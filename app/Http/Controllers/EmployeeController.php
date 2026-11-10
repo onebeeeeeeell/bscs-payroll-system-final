@@ -64,7 +64,7 @@ class EmployeeController extends Controller
             'positions' => $this->employeeService->kuhaSangPosition(),
             'departments' => $this->employeeService->kuhaSangDepartment(),
             // groupmate's version: the new statuses list
-            'statuses' => EmploymentStatus::query()->orderBy('name')->get(['id', 'name']),
+            'statuses' =>$this->employeeService->kuhaSangStatus(),
         ]);
     }
 

@@ -119,7 +119,7 @@ function OptionManager({
                 <Input
                     value={newName}
                     onChange={(event) => setNewName(filterOptionName(event.target.value))}
-                    maxLength={field === 'name' ? 50 : 255}
+                    maxLength={30}
                     placeholder={`Add ${title.toLowerCase()}`}
                     aria-label={`Add ${title}`}
                 />
@@ -150,7 +150,7 @@ function OptionManager({
                                     <Input
                                         value={editingName}
                                         onChange={(event) => setEditingName(filterOptionName(event.target.value))}
-                                        maxLength={field === 'name' ? 50 : 255}
+                                        maxLength={30}
                                         className="h-8"
                                         aria-label="Rename"
                                         autoFocus

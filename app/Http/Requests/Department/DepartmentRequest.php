@@ -20,7 +20,7 @@ class DepartmentRequest extends FormRequest
         $required = $this->isMethod('PATCH') ? 'sometimes' : 'required';
 
         return [
-            'department_name' => [$required, 'string', 'max:255'],
+            'department_name' => [$required, 'string', 'max:30', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u'],
         ];
     }
 }

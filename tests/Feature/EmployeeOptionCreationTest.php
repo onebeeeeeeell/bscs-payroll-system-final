@@ -37,6 +37,23 @@ class EmployeeOptionCreationTest extends TestCase
         $this->assertDatabaseHas('positions', ['title' => 'Payroll Specialist']);
     }
 
+    public function test_organization_option_names_are_limited_to_thirty_letters(): void
+    {
+        $longDepartmentName = 'ThisDepartmentNameIsWayTooLongerNow';
+        $longPositionName = 'ThisPositionNameIsWayTooLongerNow';
+        $longStatusName = 'ThisStatusNameIsWayTooLongerNow';
+
+        $this->postJson(route('employee-options.departments.store'), ['department_name' => $longDepartmentName])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('department_name');
+        $this->postJson(route('employee-options.positions.store'), ['title' => $longPositionName])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('title');
+        $this->postJson(route('employee-options.statuses.store'), ['name' => $longStatusName])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('name');
+    }
+
     public function test_new_department_position_and_status_names_reject_numbers_and_special_characters(): void
     {
         $invalidDepartmentNames = ['Operations 2', 'People & Culture'];

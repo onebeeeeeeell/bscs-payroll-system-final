@@ -5,8 +5,9 @@ namespace App\Services;
 use App\Models\Employee;
 use App\Models\Position;
 use App\Models\Department;
-use Illuminate\Database\Eloquent\Collection;
+use App\Models\EmploymentStatus;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class EmployeeService
@@ -34,19 +35,63 @@ class EmployeeService
 
     public function create(array $data): Employee
     {
-        // transaction so nothing is saved if something fails in the middle
+        $sanitizedData = $this->sanitizeEmployeeData($data);
+
         return DB::transaction(
-            fn () => Employee::create($data)//(sanitizedData) not data
+            fn () => Employee::create($sanitizedData)
         );
     }
 
     public function update(Employee $employee, array $data): Employee
     {
-        return DB::transaction(function () use ($employee, $data) {
-            $employee->update($data);
+        $sanitizedData = $this->sanitizeEmployeeData($data);
 
+        return DB::transaction(function () use ($employee, $sanitizedData) {
+            $employee->update($sanitizedData);
             return $employee;
         });
+    }
+
+    /**
+     * Normalize validated employee input and keep only editable employee fields.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function sanitizeEmployeeData(array $data): array
+    {
+        $allowedFields = [
+            'first_name',
+            'last_name',
+            'suffix',
+            'position_id',
+            'department_id',
+            'date_hired',
+            'daily_rate',
+            'sss_no',
+            'philhealth_no',
+            'pagibig_no',
+            'tin_no',
+            'status',
+        ];
+        $sanitizedData = array_intersect_key($data, array_flip($allowedFields));
+
+        foreach (['first_name', 'last_name', 'suffix'] as $field) {
+            if (isset($sanitizedData[$field]) && is_string($sanitizedData[$field])) {
+                $sanitizedData[$field] = trim(preg_replace('/\s+/u', ' ', trim($sanitizedData[$field])) ?? '');
+            }
+        }
+
+        foreach (['suffix', 'sss_no', 'philhealth_no', 'pagibig_no', 'tin_no'] as $field) {
+            if (isset($sanitizedData[$field]) && is_string($sanitizedData[$field])) {
+                $sanitizedData[$field] = trim($sanitizedData[$field]);
+                if ($sanitizedData[$field] === '') {
+                    $sanitizedData[$field] = null;
+                }
+            }
+        }
+
+        return $sanitizedData;
     }
 
     public function archive(Employee $employee): void
@@ -73,7 +118,9 @@ class EmployeeService
     {
        return Department::query()->orderBy('department_name')->get(['id', 'department_name']);
     }
-
-
+    public function kuhaSangStatus(): Collection
+    {
+       return EmploymentStatus::query()->orderBy('name')->get(['id', 'name']);
+    }
 
 }

@@ -17,7 +17,7 @@ class EmployeeOptionController extends Controller
     public function storeDepartment(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'department_name' => ['required', 'string', 'max:255', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', 'unique:departments,department_name'],
+            'department_name' => ['required', 'string', 'max:30', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', 'unique:departments,department_name'],
         ]);
         $department = Department::create($validated);
 
@@ -27,7 +27,7 @@ class EmployeeOptionController extends Controller
     public function storePosition(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', 'unique:positions,title'],
+            'title' => ['required', 'string', 'max:30', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', 'unique:positions,title'],
         ]);
         $position = Position::create($validated);
 
@@ -37,7 +37,7 @@ class EmployeeOptionController extends Controller
     public function storeStatus(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:50', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', Rule::unique('employment_statuses', 'name')],
+            'name' => ['required', 'string', 'max:30', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', Rule::unique('employment_statuses', 'name')],
         ]);
         $status = EmploymentStatus::create($validated);
 
@@ -47,7 +47,7 @@ class EmployeeOptionController extends Controller
     public function updateDepartment(Request $request, Department $department): JsonResponse
     {
         $validated = $request->validate([
-            'department_name' => ['required', 'string', 'max:255', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', Rule::unique('departments', 'department_name')->ignore($department)],
+            'department_name' => ['required', 'string', 'max:30', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', Rule::unique('departments', 'department_name')->ignore($department)],
         ]);
         $department->update($validated);
 
@@ -57,7 +57,7 @@ class EmployeeOptionController extends Controller
     public function updatePosition(Request $request, Position $position): JsonResponse
     {
         $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', Rule::unique('positions', 'title')->ignore($position)],
+            'title' => ['required', 'string', 'max:30', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', Rule::unique('positions', 'title')->ignore($position)],
         ]);
         $position->update($validated);
 
@@ -67,7 +67,7 @@ class EmployeeOptionController extends Controller
     public function updateStatus(Request $request, EmploymentStatus $status): JsonResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:50', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', Rule::unique('employment_statuses', 'name')->ignore($status)],
+            'name' => ['required', 'string', 'max:30', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', Rule::unique('employment_statuses', 'name')->ignore($status)],
         ]);
 
         DB::transaction(function () use ($status, $validated) {
