@@ -60,14 +60,11 @@ class EmployeeController extends Controller
     public function create(): Response
     {
         return Inertia::render('employee/create', [
-<<<<<<< HEAD
+            // your version: uses the service methods
             'positions' => $this->employeeService->kuhaSangPosition(),
             'departments' => $this->employeeService->kuhaSangDepartment(),
-=======
-            'positions' => Position::query()->orderBy('title')->get(['id', 'title']),
-            'departments' => Department::query()->orderBy('department_name')->get(['id', 'department_name']),
+            // groupmate's version: the new statuses list
             'statuses' => EmploymentStatus::query()->orderBy('name')->get(['id', 'name']),
->>>>>>> 58d2f63a03ebb8998a66465371f01d72067ebf0c
         ]);
     }
 
@@ -107,7 +104,7 @@ class EmployeeController extends Controller
             'employee' => $employee,
             'positions' => Position::query()->orderBy('title')->get(['id', 'title']),
             'departments' => Department::query()->orderBy('department_name')->get(['id', 'department_name']),
-            'statuses' => EmploymentStatus::query()->orderBy('name')->get(['id', 'name']),
+            // removed the duplicate 'statuses' line that was here
             'statuses' => EmploymentStatus::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
