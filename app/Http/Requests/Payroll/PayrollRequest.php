@@ -4,6 +4,7 @@ namespace App\Http\Requests\Payroll;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class PayrollRequest extends FormRequest
 {
@@ -20,7 +21,7 @@ class PayrollRequest extends FormRequest
         $required = $this->isMethod('PATCH') ? 'sometimes' : 'required';
 
         return [
-            'employee_id' => [$required, 'integer', 'exists:employees,id'],
+            'employee_id' => [$required, 'integer', Rule::exists('employees', 'id')->whereNull('archived_at')],
             'payroll_period_id' => [$required, 'integer', 'exists:payroll_periods,id'],
             'user_id' => [$required, 'integer', 'exists:users,id'],
             'gross_pay' => [$required, 'numeric', 'min:0'],

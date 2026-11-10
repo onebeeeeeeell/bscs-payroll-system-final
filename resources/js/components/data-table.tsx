@@ -18,25 +18,29 @@ type DataTableProps<T> = {
     getSearchValue: (row: T) => string;
     searchPlaceholder: string;
     emptyMessage: string;
+    toolbar?: ReactNode;
 };
 
-export function DataTable<T>({ data, columns, getRowId, getSearchValue, searchPlaceholder, emptyMessage }: DataTableProps<T>) {
+export function DataTable<T>({ data, columns, getRowId, getSearchValue, searchPlaceholder, emptyMessage, toolbar }: DataTableProps<T>) {
     const [search, setSearch] = useState('');
     const normalizedSearch = search.trim().toLocaleLowerCase();
     const filteredData = normalizedSearch ? data.filter((row) => getSearchValue(row).toLocaleLowerCase().includes(normalizedSearch)) : data;
 
     return (
         <div className="min-w-0 rounded-xl border border-emerald-800/10 bg-white p-4 shadow-sm dark:border-emerald-400/15 dark:bg-[#07130f]">
-            <div className="relative w-full pb-4 sm:max-w-sm">
-                <Search className="text-muted-foreground absolute top-3 left-3 size-4" aria-hidden="true" />
-                <Input
-                    type="search"
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder={searchPlaceholder}
-                    aria-label={searchPlaceholder}
-                    className="pl-9"
-                />
+            <div className="flex flex-wrap items-center gap-3 pb-4">
+                <div className="relative w-full sm:max-w-sm">
+                    <Search className="text-muted-foreground absolute top-3 left-3 size-4" aria-hidden="true" />
+                    <Input
+                        type="search"
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                        placeholder={searchPlaceholder}
+                        aria-label={searchPlaceholder}
+                        className="pl-9"
+                    />
+                </div>
+                {toolbar}
             </div>
             <Table className="min-w-[760px]">
                 <TableHeader>

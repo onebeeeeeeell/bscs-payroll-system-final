@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\Payroll;
+use App\Models\Employee;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Validation\ValidationException;
 
 class PayrollService
 {
@@ -25,10 +27,21 @@ class PayrollService
 
     public function create(array $data): Payroll
     {
-        // transaction so nothing is saved if something fails in the middle
-        return DB::transaction(
-            fn () => Payroll::create($data)
-        );
+        return DB::transaction(function () use ($data) {
+            $employeeIsActive = Employee::query()
+                ->whereKey($data['employee_id'])
+                ->whereNull('archived_at')
+                ->lockForUpdate()
+                ->exists();
+
+            if (! $employeeIsActive) {
+                throw ValidationException::withMessages([
+                    'employee_id' => 'Archived employees cannot be included in new payroll records.',
+                ]);
+            }
+
+            return Payroll::create($data);
+        });
     }
 
     public function update(Payroll $payroll, array $data): Payroll

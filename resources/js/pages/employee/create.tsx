@@ -1,17 +1,18 @@
 import AppLayout from '@/layouts/app-layout';
 // DTO - Data Transfer Object
-import type { Department, Position } from '@/types/models';
+import type { Department, EmploymentStatus, Position } from '@/types/models';
 import { Head } from '@inertiajs/react';
 import EmployeeForm from './employee-form';
 
-// Types 
+// Types
 type Props = {
     positions: Pick<Position, 'id' | 'title'>[];
     departments: Pick<Department, 'id' | 'department_name'>[];
+    statuses: EmploymentStatus[];
 };
 
 // store() - ui
-export default function CreateEmployee({ positions, departments }: Props) {
+export default function CreateEmployee({ positions, departments, statuses }: Props) {
     return (
         <AppLayout>
             <Head title="Create Employee" />
@@ -21,7 +22,7 @@ export default function CreateEmployee({ positions, departments }: Props) {
                     <h1 className="text-2xl font-semibold tracking-tight">Create Employee</h1>
                     <p className="text-muted-foreground text-sm">Enter the employee's details below.</p>
                 </div>
-                <EmployeeForm positions={positions} departments={departments} />
+                <EmployeeForm positions={positions} departments={departments} statuses={statuses} />
             </div>
         </AppLayout>
     );

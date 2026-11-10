@@ -10,18 +10,25 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class EmployeeService
 {
-    public function paginate(?string $search = null, int $perPage = 10): LengthAwarePaginator
+    /**
+     * @param array{department_id?: int|null, position_id?: int|null, hire_year?: int|null, hire_month?: int|null, status?: 'active'|'archived'} $filters
+     */
+    public function paginate(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
         return Employee::query()
             ->with(['position:id,title', 'department:id,department_name'])
-            // only filter when something was typed in the search box (ilike = case-insensitive in PostgreSQL)
-            ->when($search, fn ($query) => $query->where(function ($query) use ($search) {
-                $query->where('first_name', 'ilike', "%{$search}%")
-                    ->orWhere('last_name', 'ilike', "%{$search}%");
-            }))
+            ->when(
+                ($filters['status'] ?? 'active') === 'archived',
+                fn ($query) => $query->whereNotNull('archived_at'),
+                fn ($query) => $query->whereNull('archived_at'),
+            )
+            ->when($filters['department_id'] ?? null, fn ($query, $departmentId) => $query->where('department_id', $departmentId))
+            ->when($filters['position_id'] ?? null, fn ($query, $positionId) => $query->where('position_id', $positionId))
+            ->when($filters['hire_year'] ?? null, fn ($query, $year) => $query->whereYear('date_hired', $year))
+            ->when($filters['hire_month'] ?? null, fn ($query, $month) => $query->whereMonth('date_hired', $month))
             ->latest()
             ->paginate($perPage)
-            ->withQueryString(); // keep ?search= when changing pages
+            ->withQueryString();
     }
 
     public function create(array $data): Employee
@@ -41,11 +48,18 @@ class EmployeeService
         });
     }
 
-    public function delete(Employee $employee): void
+    public function archive(Employee $employee): void
     {
-        DB::transaction(
-            fn () => $employee->delete()
-        );
+        DB::transaction(function () use ($employee) {
+            $employee->update(['archived_at' => now()]);
+        });
+    }
+
+    public function restore(Employee $employee): void
+    {
+        DB::transaction(function () use ($employee) {
+            $employee->update(['archived_at' => null]);
+        });
     }
 
     // diri saylo ang sa controller part na method

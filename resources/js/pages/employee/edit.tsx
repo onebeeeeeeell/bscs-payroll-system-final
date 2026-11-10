@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 // DTO - Data Transfer Object
-import type { Department, Employee, Position } from '@/types/models';
+import type { Department, Employee, EmploymentStatus, Position } from '@/types/models';
 import { Head } from '@inertiajs/react';
 import EmployeeForm from './employee-form';
 
@@ -9,10 +9,11 @@ type Props = {
     employee: Employee;
     positions: Pick<Position, 'id' | 'title'>[];
     departments: Pick<Department, 'id' | 'department_name'>[];
+    statuses: EmploymentStatus[];
 };
 
 // update() - ui
-export default function EditEmployee({ employee, positions, departments }: Props) {
+export default function EditEmployee({ employee, positions, departments, statuses }: Props) {
     return (
         <AppLayout>
             <Head title={`Edit ${employee.first_name} ${employee.last_name}`} />
@@ -24,7 +25,7 @@ export default function EditEmployee({ employee, positions, departments }: Props
                         Update {employee.first_name} {employee.last_name}&apos;s details.
                     </p>
                 </div>
-                <EmployeeForm employee={employee} positions={positions} departments={departments} />
+                <EmployeeForm employee={employee} positions={positions} departments={departments} statuses={statuses} />
             </div>
         </AppLayout>
     );

@@ -1,18 +1,73 @@
-import { MoreHorizontal } from 'lucide-react';
+import { Archive, MoreHorizontal, RotateCcw } from 'lucide-react';
 
 import { DataTable, type DataTableColumn } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import AppLayout from '@/layouts/app-layout';
-import type { Employee, PaginatedData } from '@/types/models';
-import { Head, Link } from '@inertiajs/react';
+import type { SharedData } from '@/types';
+import type { Department, Employee, PaginatedData, Position } from '@/types/models';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 
 // Types
 type Props = {
     employees: PaginatedData<Employee>;
+    departments: Pick<Department, 'id' | 'department_name'>[];
+    positions: Pick<Position, 'id' | 'title'>[];
+    hireYears: number[];
+    filters: {
+        department_id: string;
+        position_id: string;
+        hire_year: string;
+        hire_month: string;
+        status: 'active' | 'archived';
+    };
 };
 
-export default function EmployeeIndex({ employees }: Props) {
+const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+export default function EmployeeIndex({ employees, departments, positions, hireYears, filters: initialFilters }: Props) {
+    const [filters, setFilters] = useState(initialFilters);
+    const [archiveCandidate, setArchiveCandidate] = useState<Employee | null>(null);
+    const [isArchiving, setIsArchiving] = useState(false);
+    const [restoringEmployeeId, setRestoringEmployeeId] = useState<number | null>(null);
+    const { flash } = usePage<SharedData>().props;
+
+    useEffect(() => {
+        setFilters(initialFilters);
+    }, [initialFilters]);
+
+    function updateFilter<K extends keyof typeof filters>(name: K, value: (typeof filters)[K]) {
+        const nextFilters = { ...filters, [name]: value };
+        setFilters(nextFilters);
+        router.get(route('employees.index'), nextFilters, {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    }
+
+    function archiveEmployee() {
+        if (!archiveCandidate) return;
+
+        setIsArchiving(true);
+        router.delete(route('employees.destroy', archiveCandidate.id), {
+            data: filters,
+            preserveScroll: true,
+            onSuccess: () => setArchiveCandidate(null),
+            onFinish: () => setIsArchiving(false),
+        });
+    }
+
+    function restoreEmployee(employee: Employee) {
+        setRestoringEmployeeId(employee.id);
+        router.patch(route('employees.restore', employee.id), filters, {
+            preserveScroll: true,
+            onFinish: () => setRestoringEmployeeId(null),
+        });
+    }
+
     return (
         <AppLayout>
             <Head title="Employees" />
@@ -30,6 +85,15 @@ export default function EmployeeIndex({ employees }: Props) {
                         <Link href={route('employees.create')}>Add Employee</Link>
                     </Button>
                 </div>
+
+                {flash.success && (
+                    <div
+                        role="status"
+                        className="rounded-lg border border-emerald-700/20 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-950/30 dark:text-emerald-200"
+                    >
+                        {flash.success}
+                    </div>
+                )}
 
                 <DataTable
                     data={employees.data}
@@ -50,6 +114,71 @@ export default function EmployeeIndex({ employees }: Props) {
                     }
                     searchPlaceholder="Search employees..."
                     emptyMessage="No employees found."
+                    toolbar={
+                        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                            <select
+                                aria-label="Filter by department"
+                                value={filters.department_id}
+                                onChange={(event) => updateFilter('department_id', event.target.value)}
+                                className="border-input bg-background h-10 min-w-36 rounded-md border px-3 text-sm"
+                            >
+                                <option value="">All departments</option>
+                                {departments.map((department) => (
+                                    <option key={department.id} value={department.id}>
+                                        {department.department_name}
+                                    </option>
+                                ))}
+                            </select>
+                            <select
+                                aria-label="Filter by position"
+                                value={filters.position_id}
+                                onChange={(event) => updateFilter('position_id', event.target.value)}
+                                className="border-input bg-background h-10 min-w-36 rounded-md border px-3 text-sm"
+                            >
+                                <option value="">All positions</option>
+                                {positions.map((position) => (
+                                    <option key={position.id} value={position.id}>
+                                        {position.title}
+                                    </option>
+                                ))}
+                            </select>
+                            <select
+                                aria-label="Filter by date hired year"
+                                value={filters.hire_year}
+                                onChange={(event) => updateFilter('hire_year', event.target.value)}
+                                className="border-input bg-background h-10 min-w-32 rounded-md border px-3 text-sm"
+                            >
+                                <option value="">All hire years</option>
+                                {hireYears.map((year) => (
+                                    <option key={year} value={year}>
+                                        {year}
+                                    </option>
+                                ))}
+                            </select>
+                            <select
+                                aria-label="Filter by date hired month"
+                                value={filters.hire_month}
+                                onChange={(event) => updateFilter('hire_month', event.target.value)}
+                                className="border-input bg-background h-10 min-w-36 rounded-md border px-3 text-sm"
+                            >
+                                <option value="">All hire months</option>
+                                {months.map((month, index) => (
+                                    <option key={month} value={index + 1}>
+                                        {month}
+                                    </option>
+                                ))}
+                            </select>
+                            <select
+                                aria-label="Filter by employee archive status"
+                                value={filters.status}
+                                onChange={(event) => updateFilter('status', event.target.value === 'archived' ? 'archived' : 'active')}
+                                className="border-input bg-background h-10 min-w-36 rounded-md border px-3 text-sm"
+                            >
+                                <option value="active">Active</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                        </div>
+                    }
                     columns={
                         [
                             {
@@ -62,9 +191,9 @@ export default function EmployeeIndex({ employees }: Props) {
                             {
                                 header: 'Daily Rate',
                                 cell: (employee) =>
-                                    Number(employee.daily_rate).toLocaleString(undefined, {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
+                                    Number(employee.daily_rate).toLocaleString('en-PH', {
+                                        style: 'currency',
+                                        currency: 'PHP',
                                     }),
                             },
                             { header: 'Status', cell: (employee) => employee.status },
@@ -82,9 +211,28 @@ export default function EmployeeIndex({ employees }: Props) {
                                             <DropdownMenuItem asChild>
                                                 <Link href={route('employees.show', employee.id)}>View</Link>
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem asChild>
-                                                <Link href={route('employees.edit', employee.id)}>Edit</Link>
-                                            </DropdownMenuItem>
+                                            {filters.status === 'active' ? (
+                                                <>
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={route('employees.edit', employee.id)}>Edit</Link>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        className="text-destructive focus:text-destructive"
+                                                        onSelect={() => setArchiveCandidate(employee)}
+                                                    >
+                                                        <Archive aria-hidden="true" />
+                                                        Archive
+                                                    </DropdownMenuItem>
+                                                </>
+                                            ) : (
+                                                <DropdownMenuItem
+                                                    disabled={restoringEmployeeId === employee.id}
+                                                    onSelect={() => restoreEmployee(employee)}
+                                                >
+                                                    <RotateCcw aria-hidden="true" />
+                                                    {restoringEmployeeId === employee.id ? 'Restoring...' : 'Restore'}
+                                                </DropdownMenuItem>
+                                            )}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 ),
@@ -116,6 +264,30 @@ export default function EmployeeIndex({ employees }: Props) {
                         );
                     })}
                 </nav>
+
+                <Dialog
+                    open={archiveCandidate !== null}
+                    onOpenChange={(open) => {
+                        if (!open && !isArchiving) setArchiveCandidate(null);
+                    }}
+                >
+                    <DialogContent>
+                        <DialogTitle>Archive employee?</DialogTitle>
+                        <DialogDescription>
+                            {archiveCandidate
+                                ? `${[archiveCandidate.first_name, archiveCandidate.last_name, archiveCandidate.suffix].filter(Boolean).join(' ')} will be removed from the active employee list. Existing payroll and attendance history will be kept.`
+                                : ''}
+                        </DialogDescription>
+                        <DialogFooter>
+                            <Button variant="outline" disabled={isArchiving} onClick={() => setArchiveCandidate(null)}>
+                                Cancel
+                            </Button>
+                            <Button variant="destructive" disabled={isArchiving} onClick={archiveEmployee}>
+                                {isArchiving ? 'Archiving...' : 'Archive employee'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </AppLayout>
     );

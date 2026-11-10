@@ -15,13 +15,14 @@ class PayslipController extends Controller
     {
         $payslips = Payslip::select(['id', 'payroll_id', 'date_generated'])->with([
             'payroll:id,employee_id,payroll_period_id,user_id,gross_pay,total_deductions,net_pay,date_processed',
+            'payroll.employee:id,first_name,last_name,suffix',
             ])->get();
-            
-            dd($payslips);
-            
-            return Inertia::render('payslip/index', [
-                'payslips' => $payslips,
-            ]);
+
+        dd($payslips);
+
+        return Inertia::render('payslip/index', [
+            'payslips' => $payslips,
+        ]);
     }
 
     /**

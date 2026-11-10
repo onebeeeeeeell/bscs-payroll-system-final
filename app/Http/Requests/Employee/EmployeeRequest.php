@@ -8,7 +8,7 @@ use Illuminate\Validation\Rule;
 
 class EmployeeRequest extends FormRequest
 {
-        public function authorize(): bool
+    public function authorize(): bool
     {
         return true;
     }
@@ -37,19 +37,19 @@ class EmployeeRequest extends FormRequest
         $employee = $this->route('employee');
 
         return [
-            'first_name' => [$required, 'string', 'max:255', 'not_regex:/\d/'],
-            'last_name' => [$required, 'string', 'max:255', 'not_regex:/\d/'],
+            'first_name' => [$required, 'string', 'max:255', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
+            'last_name' => [$required, 'string', 'max:255', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
             'suffix' => ['nullable', 'string', 'max:50'],
             'position_id' => [$required, 'integer', 'exists:positions,id'],
             'department_id' => [$required, 'integer', 'exists:departments,id'],
             'date_hired' => [$required, 'date', 'after_or_equal:today'],
             // max matches the decimal(10,2) column so it can't overflow
-            'daily_rate' => [$required, 'numeric', 'min:0', 'max:99999999.99'],
+            'daily_rate' => [$required, 'numeric', 'regex:/^\d+(?:\.\d{1,2})?$/', 'min:0', 'max:99999999.99'],
             'sss_no' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'sss_no')->ignore($employee)],
             'philhealth_no' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'philhealth_no')->ignore($employee)],
             'pagibig_no' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'pagibig_no')->ignore($employee)],
             'tin_no' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'tin_no')->ignore($employee)],
-            'status' => [$required, Rule::in(['Casual', 'Regular', 'Permanent'])],
+            'status' => [$required, 'string', 'max:50', Rule::exists('employment_statuses', 'name')],
         ];
     }
 
@@ -60,9 +60,10 @@ class EmployeeRequest extends FormRequest
     {
         return [
             'daily_rate.max' => 'The daily rate is too large.',
+            'daily_rate.regex' => 'The daily rate must contain only numbers and an optional decimal point with up to two decimal places.',
             'date_hired.after_or_equal' => 'The hire date must be today or a future date.',
-            'first_name.not_regex' => 'Numbers are not allowed in the first name.',
-            'last_name.not_regex' => 'Numbers are not allowed in the last name.',
+            'first_name.regex' => 'The first name may only contain letters and spaces.',
+            'last_name.regex' => 'The last name may only contain letters and spaces.',
         ];
     }
 }
