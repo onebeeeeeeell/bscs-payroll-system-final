@@ -1,10 +1,12 @@
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { Department, Employee, EmploymentStatus, Position } from '@/types/models';
 import { Link, useForm } from '@inertiajs/react';
-import { CalendarDays } from 'lucide-react';
-import { useRef, type FormEvent } from 'react';
+import { CalendarDays, Check, ChevronsUpDown } from 'lucide-react';
+import { useRef, useState, type FormEvent } from 'react';
 
 type Props = {
     employee?: Employee;
@@ -12,6 +14,78 @@ type Props = {
     departments: Pick<Department, 'id' | 'department_name'>[];
     statuses: EmploymentStatus[];
 };
+
+type ComboboxOption = {
+    value: string;
+    label: string;
+};
+
+function EmployeeCombobox({
+    id,
+    value,
+    options,
+    placeholder,
+    searchPlaceholder,
+    disabled,
+    invalid,
+    onValueChange,
+}: {
+    id: string;
+    value: string;
+    options: ComboboxOption[];
+    placeholder: string;
+    searchPlaceholder: string;
+    disabled: boolean;
+    invalid: boolean;
+    onValueChange: (value: string) => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const selectedOption = options.find((option) => option.value === value);
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    id={id}
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    aria-required="true"
+                    aria-invalid={invalid}
+                    disabled={disabled}
+                    className="border-input bg-background h-10 w-full justify-between px-3 py-2 text-sm font-normal"
+                >
+                    <span className={selectedOption ? '' : 'text-muted-foreground'}>{selectedOption?.label ?? placeholder}</span>
+                    <ChevronsUpDown className="text-muted-foreground ml-2 size-4 shrink-0" aria-hidden="true" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
+                <Command>
+                    <CommandInput placeholder={searchPlaceholder} maxLength={30} />
+                    <CommandList>
+                        <CommandEmpty>No options found.</CommandEmpty>
+                        <CommandGroup>
+                            {options.map((option) => (
+                                <CommandItem
+                                    key={option.value}
+                                    value={`${option.label} ${option.value}`}
+                                    onSelect={() => {
+                                        onValueChange(option.value);
+                                        setOpen(false);
+                                    }}
+                                >
+                                    <Check className={`size-4 ${value === option.value ? 'opacity-100' : 'opacity-0'}`} aria-hidden="true" />
+                                    {option.label}
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    );
+}
 
 function filterDailyRate(value: string) {
     const sanitized = value.replace(/[^\d.]/g, '');
@@ -63,6 +137,18 @@ export default function EmployeeForm({ employee, positions, departments, statuse
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
+        const requiredSelections = [
+            [form.data.position_id, 'position_id', 'Please select a position.'],
+            [form.data.department_id, 'department_id', 'Please select a department.'],
+            [form.data.status, 'status', 'Please select an employment status.'],
+        ] as const;
+        const missingSelections = requiredSelections.filter(([value]) => value === '');
+
+        if (missingSelections.length > 0) {
+            missingSelections.forEach(([, field, message]) => form.setError(field, message));
+            return;
+        }
+
         if (employee) {
             form.put(route('employees.update', employee.id));
             return;
@@ -78,6 +164,10 @@ export default function EmployeeForm({ employee, positions, departments, statuse
 
     function filterName(value: string) {
         return value.replace(/[^\p{L}\s]/gu, '');
+    }
+
+    function filterIdentificationNumber(value: string) {
+        return value.replace(/[^\d-]/g, '');
     }
 
     function openDatePicker() {
@@ -145,46 +235,36 @@ export default function EmployeeForm({ employee, positions, departments, statuse
 
                 <div className="space-y-2">
                     <Label htmlFor="position_id">Position</Label>
-                    <select
+                    <EmployeeCombobox
                         id="position_id"
                         value={form.data.position_id}
-                        onChange={(event) => form.setData('position_id', event.target.value)}
-                        required
+                        options={positions.map((position) => ({ value: String(position.id), label: position.title }))}
+                        placeholder="Select a Position"
+                        searchPlaceholder="Search positions..."
                         disabled={form.processing}
-                        aria-invalid={Boolean(form.errors.position_id)}
-                        className="border-input bg-background flex h-10 w-full rounded-md border px-3 py-2 text-sm"
-                    >
-                        <option value="" disabled>
-                            Select a Position
-                        </option>
-                        {positions.map((position) => (
-                            <option key={position.id} value={position.id}>
-                                {position.title}
-                            </option>
-                        ))}
-                    </select>
+                        invalid={Boolean(form.errors.position_id)}
+                        onValueChange={(value) => {
+                            form.setData('position_id', value);
+                            form.clearErrors('position_id');
+                        }}
+                    />
                     {fieldError('position_id')}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="department_id">Department</Label>
-                    <select
+                    <EmployeeCombobox
                         id="department_id"
                         value={form.data.department_id}
-                        onChange={(event) => form.setData('department_id', event.target.value)}
-                        required
+                        options={departments.map((department) => ({ value: String(department.id), label: department.department_name }))}
+                        placeholder="Select a Department"
+                        searchPlaceholder="Search departments..."
                         disabled={form.processing}
-                        aria-invalid={Boolean(form.errors.department_id)}
-                        className="border-input bg-background flex h-10 w-full rounded-md border px-3 py-2 text-sm"
-                    >
-                        <option value="" disabled>
-                            Select a Department
-                        </option>
-                        {departments.map((department) => (
-                            <option key={department.id} value={department.id}>
-                                {department.department_name}
-                            </option>
-                        ))}
-                    </select>
+                        invalid={Boolean(form.errors.department_id)}
+                        onValueChange={(value) => {
+                            form.setData('department_id', value);
+                            form.clearErrors('department_id');
+                        }}
+                    />
                     {fieldError('department_id')}
                 </div>
                 <div className="space-y-2">
@@ -203,18 +283,20 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                             disabled={form.processing}
                             aria-invalid={Boolean(form.errors.date_hired)}
                         />
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground hover:text-foreground absolute top-1/2 right-0 -translate-y-1/2"
-                            onClick={openDatePicker}
-                            disabled={form.processing}
-                            aria-label="Open date picker"
-                            title="Open date picker"
-                        >
-                            <CalendarDays aria-hidden="true" />
-                        </Button>
+                        <div className="absolute inset-y-0 right-0 flex items-center">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="text-muted-foreground hover:text-foreground active:translate-y-0"
+                                onClick={openDatePicker}
+                                disabled={form.processing}
+                                aria-label="Open date picker"
+                                title="Open date picker"
+                            >
+                                <CalendarDays aria-hidden="true" />
+                            </Button>
+                        </div>
                     </div>
                     {fieldError('date_hired')}
                 </div>
@@ -245,21 +327,19 @@ export default function EmployeeForm({ employee, positions, departments, statuse
 
                 <div className="space-y-2">
                     <Label htmlFor="status">Employment status</Label>
-                    <select
+                    <EmployeeCombobox
                         id="status"
                         value={form.data.status}
-                        onChange={(event) => form.setData('status', event.target.value)}
-                        required
+                        options={statuses.map((status) => ({ value: status.name, label: status.name }))}
+                        placeholder="Select an Employment Status"
+                        searchPlaceholder="Search statuses..."
                         disabled={form.processing}
-                        aria-invalid={Boolean(form.errors.status)}
-                        className="border-input bg-background flex h-10 w-full rounded-md border px-3 py-2 text-sm"
-                    >
-                        {statuses.map((status) => (
-                            <option key={status.id} value={status.name}>
-                                {status.name}
-                            </option>
-                        ))}
-                    </select>
+                        invalid={Boolean(form.errors.status)}
+                        onValueChange={(value) => {
+                            form.setData('status', value);
+                            form.clearErrors('status');
+                        }}
+                    />
                     {fieldError('status')}
                 </div>
 
@@ -276,7 +356,10 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                         <Input
                             id={name}
                             value={form.data[name]}
-                            onChange={(event) => form.setData(name, event.target.value)}
+                            onChange={(event) => form.setData(name, filterIdentificationNumber(event.target.value))}
+                            inputMode="numeric"
+                            pattern="[0-9-]*"
+                            title="Use numbers and hyphens only."
                             maxLength={20}
                             className="h-10"
                             disabled={form.processing}

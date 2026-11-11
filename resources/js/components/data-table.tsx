@@ -18,10 +18,20 @@ type DataTableProps<T> = {
     getSearchValue: (row: T) => string;
     searchPlaceholder: string;
     emptyMessage: string;
+    maxSearchLength?: number;
     toolbar?: ReactNode;
 };
 
-export function DataTable<T>({ data, columns, getRowId, getSearchValue, searchPlaceholder, emptyMessage, toolbar }: DataTableProps<T>) {
+export function DataTable<T>({
+    data,
+    columns,
+    getRowId,
+    getSearchValue,
+    searchPlaceholder,
+    emptyMessage,
+    maxSearchLength,
+    toolbar,
+}: DataTableProps<T>) {
     const [search, setSearch] = useState('');
     const normalizedSearch = search.trim().toLocaleLowerCase();
     const filteredData = normalizedSearch ? data.filter((row) => getSearchValue(row).toLocaleLowerCase().includes(normalizedSearch)) : data;
@@ -30,11 +40,14 @@ export function DataTable<T>({ data, columns, getRowId, getSearchValue, searchPl
         <div className="min-w-0 rounded-xl border border-emerald-800/10 bg-white p-4 shadow-sm dark:border-emerald-400/15 dark:bg-[#07130f]">
             <div className="flex flex-wrap items-center gap-3 pb-4">
                 <div className="relative w-full sm:max-w-sm">
-                    <Search className="text-muted-foreground absolute top-3 left-3 size-4" aria-hidden="true" />
+                    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center" aria-hidden="true">
+                        <Search className="text-muted-foreground size-4" />
+                    </span>
                     <Input
                         type="search"
                         value={search}
-                        onChange={(event) => setSearch(event.target.value)}
+                        onChange={(event) => setSearch(event.target.value.slice(0, maxSearchLength))}
+                        maxLength={maxSearchLength}
                         placeholder={searchPlaceholder}
                         aria-label={searchPlaceholder}
                         className="pl-9"

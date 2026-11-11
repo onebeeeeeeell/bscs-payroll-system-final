@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Position;
+use App\Models\User;
 use App\Services\EmployeeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -113,6 +114,35 @@ class EmployeeNameValidationTest extends TestCase
 
         $response->assertRedirect(route('employees.index'));
         $this->assertDatabaseHas('employees', ['suffix' => 'Jr']);
+    }
+
+    public function test_identification_numbers_only_allow_numbers_and_hyphens_when_creating_or_editing(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $employee = Employee::factory()->create();
+        $fields = ['sss_no', 'philhealth_no', 'pagibig_no', 'tin_no'];
+
+        foreach ($fields as $field) {
+            $this->from(route('employees.create'))
+                ->post(route('employees.store'), [
+                    'first_name' => 'Alex',
+                    'last_name' => 'Santos',
+                    'position_id' => $employee->position_id,
+                    'department_id' => $employee->department_id,
+                    'date_hired' => today()->toDateString(),
+                    'daily_rate' => 500,
+                    'status' => 'Regular',
+                    $field => '123ABC!',
+                ])
+                ->assertRedirect(route('employees.create'))
+                ->assertSessionHasErrors($field);
+
+            $this->patch(route('employees.update', $employee), [$field => '123ABC!'])
+                ->assertSessionHasErrors($field);
+
+            $this->patch(route('employees.update', $employee), [$field => '123-456'])
+                ->assertSessionHasNoErrors();
+        }
     }
 
     public function test_employee_service_normalizes_names_and_only_updates_editable_fields(): void

@@ -45,10 +45,10 @@ class EmployeeRequest extends FormRequest
             'date_hired' => [$required, 'date', 'after_or_equal:today', 'before_or_equal:'.now()->endOfYear()->toDateString()],
             // max matches the decimal(10,2) column so it can't overflow
             'daily_rate' => [$required, 'numeric', 'regex:/^\d+(?:\.\d{1,2})?$/', 'min:0', 'max:99999999.99'],
-            'sss_no' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'sss_no')->ignore($employee)],
-            'philhealth_no' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'philhealth_no')->ignore($employee)],
-            'pagibig_no' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'pagibig_no')->ignore($employee)],
-            'tin_no' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'tin_no')->ignore($employee)],
+            'sss_no' => ['nullable', 'string', 'max:20', 'regex:/^[0-9-]+$/', Rule::unique('employees', 'sss_no')->ignore($employee)],
+            'philhealth_no' => ['nullable', 'string', 'max:20', 'regex:/^[0-9-]+$/', Rule::unique('employees', 'philhealth_no')->ignore($employee)],
+            'pagibig_no' => ['nullable', 'string', 'max:20', 'regex:/^[0-9-]+$/', Rule::unique('employees', 'pagibig_no')->ignore($employee)],
+            'tin_no' => ['nullable', 'string', 'max:20', 'regex:/^[0-9-]+$/', Rule::unique('employees', 'tin_no')->ignore($employee)],
             'status' => [$required, 'string', 'max:50', Rule::exists('employment_statuses', 'name')],
         ];
     }
@@ -66,6 +66,10 @@ class EmployeeRequest extends FormRequest
             'first_name.regex' => 'The first name may only contain letters and spaces.',
             'last_name.regex' => 'The last name may only contain letters and spaces.',
             'suffix.regex' => 'The suffix may only contain letters and spaces.',
+            'sss_no.regex' => 'The SSS number may only contain numbers and hyphens.',
+            'philhealth_no.regex' => 'The PhilHealth number may only contain numbers and hyphens.',
+            'pagibig_no.regex' => 'The Pag-IBIG number may only contain numbers and hyphens.',
+            'tin_no.regex' => 'The TIN may only contain numbers and hyphens.',
         ];
     }
 }

@@ -1,4 +1,4 @@
-import { Check, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Check, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -54,14 +54,16 @@ function OptionManager({
     deleteEndpoint: (id: number) => string;
 }) {
     const [newName, setNewName] = useState('');
+    const [search, setSearch] = useState('');
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editingName, setEditingName] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [page, setPage] = useState(1);
-    const pageCount = Math.max(1, Math.ceil(rows.length / OPTION_PAGE_SIZE));
+    const filteredRows = rows.filter((row) => row.label.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
+    const pageCount = Math.max(1, Math.ceil(filteredRows.length / OPTION_PAGE_SIZE));
     const currentPage = Math.min(page, pageCount);
-    const pageRows = rows.slice((currentPage - 1) * OPTION_PAGE_SIZE, currentPage * OPTION_PAGE_SIZE);
+    const pageRows = filteredRows.slice((currentPage - 1) * OPTION_PAGE_SIZE, currentPage * OPTION_PAGE_SIZE);
 
     // Sends the request, shows the server's error if there is one, and reloads the lists on success
     async function send(url: string, method: 'POST' | 'PATCH' | 'DELETE', name?: string): Promise<boolean> {
@@ -133,6 +135,22 @@ function OptionManager({
                 </Button>
             </form>
 
+            <div className="relative mb-3">
+                <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" aria-hidden="true" />
+                <Input
+                    type="search"
+                    value={search}
+                    onChange={(event) => {
+                        setSearch(filterOptionName(event.target.value).slice(0, 20));
+                        setPage(1);
+                    }}
+                    maxLength={20}
+                    placeholder={`Search ${title.toLowerCase()}...`}
+                    aria-label={`Search ${title}`}
+                    className="h-9 pl-9"
+                />
+            </div>
+
             {error && (
                 <p role="alert" className="mb-3 text-sm text-red-600 dark:text-red-400">
                     {error}
@@ -141,6 +159,8 @@ function OptionManager({
 
             {rows.length === 0 ? (
                 <p className="text-muted-foreground py-4 text-sm">Nothing here yet.</p>
+            ) : filteredRows.length === 0 ? (
+                <p className="text-muted-foreground py-4 text-sm">No matching {title.toLowerCase()} found.</p>
             ) : (
                 <ul className="divide-y">
                     {pageRows.map((row) => (
@@ -215,10 +235,11 @@ function OptionManager({
                 </ul>
             )}
 
-            {rows.length > OPTION_PAGE_SIZE && (
+            {filteredRows.length > OPTION_PAGE_SIZE && (
                 <nav aria-label={`${title} pagination`} className="mt-4 flex items-center justify-between gap-3 border-t pt-3">
                     <p className="text-muted-foreground text-xs">
-                        Showing {(currentPage - 1) * OPTION_PAGE_SIZE + 1}-{Math.min(currentPage * OPTION_PAGE_SIZE, rows.length)} of {rows.length}
+                        Showing {(currentPage - 1) * OPTION_PAGE_SIZE + 1}-{Math.min(currentPage * OPTION_PAGE_SIZE, filteredRows.length)} of{' '}
+                        {filteredRows.length}
                     </p>
                     <div className="flex items-center gap-2">
                         <Button

@@ -113,6 +113,7 @@ export default function EmployeeIndex({ employees, departments, positions, hireY
                             .join(' ')
                     }
                     searchPlaceholder="Search employees..."
+                    maxSearchLength={30}
                     emptyMessage="No employees found."
                     toolbar={
                         <div className="flex w-full flex-wrap gap-2 sm:w-auto">

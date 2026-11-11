@@ -2,8 +2,8 @@ import { router } from '@inertiajs/react';
 import { Calendar, FileText, HandCoins, LayoutGrid, Search, Settings, User, UserPlus, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { Button } from '@/components/ui/button';
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/command';
+import { Button } from '@/components/ui/button';
 
 type EmployeeResult = {
     id: number;
@@ -100,7 +100,12 @@ export function CommandPalette() {
             </Button>
 
             <CommandDialog open={open} onOpenChange={handleOpenChange} shouldFilter={false}>
-                <CommandInput value={query} onValueChange={setQuery} placeholder="Search pages or employees..." />
+                <CommandInput
+                    value={query}
+                    onValueChange={(value) => setQuery(value.slice(0, 30))}
+                    maxLength={30}
+                    placeholder="Search pages or employees..."
+                />
                 <CommandList>
                     {!hasResults && <CommandEmpty>No results found.</CommandEmpty>}
 
@@ -118,7 +123,11 @@ export function CommandPalette() {
                     {employees.length > 0 && (
                         <CommandGroup heading="Employees">
                             {employees.map((employee) => (
-                                <CommandItem key={employee.id} value={`employee-${employee.id}`} onSelect={() => go(route('employees.show', employee.id))}>
+                                <CommandItem
+                                    key={employee.id}
+                                    value={`employee-${employee.id}`}
+                                    onSelect={() => go(route('employees.show', employee.id))}
+                                >
                                     <User />
                                     <span>{employee.name}</span>
                                     <span className="text-muted-foreground ml-auto text-xs">
