@@ -1,8 +1,11 @@
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { Attendance } from '@/types/models';
 import { Link, useForm } from '@inertiajs/react';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 
 type EmployeeOption = {
@@ -18,6 +21,78 @@ type Props = {
 };
 
 export type AttendanceFormRecord = Pick<Attendance, 'id' | 'employee_id' | 'work_date' | 'time_in' | 'time_out' | 'hours_worked' | 'overtime_hours'>;
+
+function EmployeeCombobox({
+    value,
+    employees,
+    disabled,
+    invalid,
+    onValueChange,
+}: {
+    value: string;
+    employees: EmployeeOption[];
+    disabled: boolean;
+    invalid: boolean;
+    onValueChange: (value: string) => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const selectedEmployee = employees.find((employee) => String(employee.id) === value);
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    id="employee_id"
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    aria-required="true"
+                    aria-invalid={invalid}
+                    disabled={disabled}
+                    className="border-input bg-background h-10 w-full justify-between px-3 py-2 text-sm font-normal"
+                >
+                    <span className={selectedEmployee ? '' : 'text-muted-foreground'}>
+                        {selectedEmployee
+                            ? [selectedEmployee.first_name, selectedEmployee.last_name, selectedEmployee.suffix].filter(Boolean).join(' ')
+                            : 'Select an employee'}
+                    </span>
+                    <ChevronsUpDown className="text-muted-foreground ml-2 size-4 shrink-0" aria-hidden="true" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
+                <Command>
+                    <CommandInput placeholder="Search employees..." maxLength={30} />
+                    <CommandList>
+                        <CommandEmpty>No employees found.</CommandEmpty>
+                        <CommandGroup>
+                            {employees.map((employee) => {
+                                const label = [employee.first_name, employee.last_name, employee.suffix].filter(Boolean).join(' ');
+
+                                return (
+                                    <CommandItem
+                                        key={employee.id}
+                                        value={`${label} ${employee.id}`}
+                                        onSelect={() => {
+                                            onValueChange(String(employee.id));
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={`size-4 ${value === String(employee.id) ? 'opacity-100' : 'opacity-0'}`}
+                                            aria-hidden="true"
+                                        />
+                                        {label}
+                                    </CommandItem>
+                                );
+                            })}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    );
+}
 
 type TimeParts = {
     hour: string;
@@ -195,24 +270,13 @@ export default function AttendanceForm({ attendance, employees }: Props) {
             <div className="grid min-w-0 gap-5 lg:grid-cols-2">
                 <div className="space-y-2 lg:col-span-2">
                     <Label htmlFor="employee_id">Employee</Label>
-                    <select
-                        id="employee_id"
+                    <EmployeeCombobox
                         value={form.data.employee_id}
-                        onChange={(event) => form.setData('employee_id', event.target.value)}
-                        required
+                        employees={employees}
                         disabled={form.processing}
-                        aria-invalid={Boolean(form.errors.employee_id)}
-                        className="border-input bg-background flex h-10 w-full rounded-md border px-3 py-2 text-sm"
-                    >
-                        <option value="" disabled>
-                            Select an employee
-                        </option>
-                        {employees.map((employee) => (
-                            <option key={employee.id} value={employee.id}>
-                                {[employee.first_name, employee.last_name, employee.suffix].filter(Boolean).join(' ')}
-                            </option>
-                        ))}
-                    </select>
+                        invalid={Boolean(form.errors.employee_id)}
+                        onValueChange={(value) => form.setData('employee_id', value)}
+                    />
                     {fieldError('employee_id')}
                 </div>
 
