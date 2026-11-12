@@ -41,5 +41,5 @@ class PayslipService
         );
     }
 
-    // diri
+    // diriiiiiiiiiiiiiiiiiiiii sugpon if may ano sa controller na logic
 }

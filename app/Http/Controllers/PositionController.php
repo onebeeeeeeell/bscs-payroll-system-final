@@ -2,74 +2,57 @@
 
 namespace App\Http\Controllers;
 
-use Inertia\Inertia;
-use App\Models\Position;
 use App\Http\Requests\Position\PositionRequest;
+use App\Models\Position;
+use App\Services\PositionService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PositionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(
+        private PositionService $positionService,
+    ) {}
+
+    public function index(Request $request): Response
     {
-        $positions = Position::select(['id', 'title'])->with([
-            'employees:id,first_name,last_name,suffix,position_id,department_id,date_hired,daily_rate,sss_no,philhealth_no,pagibig_no,tin_no,status',
-            ])->get();
-            
-            return Inertia::render('position/index', [
-                'positions' => $positions,
-            ]);
-        //
+        return Inertia::render('position/index', [
+            'positions' => $this->positionService->paginate($request->query('search')),
+        ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function create(): Response
     {
-        //
+        return Inertia::render('position/create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(PositionRequest $request)
+    public function store(PositionRequest $request): RedirectResponse
     {
-        //
+        $this->positionService->create($request->validated());
+
+        return to_route('positions.index')->with('success', 'Position created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Position $position)
+    public function edit(Position $position): Response
     {
-        //
+        return Inertia::render('position/edit', [
+            'position' => $position,
+        ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Position $position)
+    public function update(PositionRequest $request, Position $position): RedirectResponse
     {
-        //
+        $this->positionService->update($position, $request->validated());
+
+        return to_route('positions.index')->with('success', 'Position updated successfully.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(PositionRequest $request, Position $position)
+    public function destroy(Position $position): RedirectResponse
     {
-        //
-    }
+        $this->positionService->delete($position);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Position $position)
-    {
-        //
+        return to_route('positions.index')->with('success', 'Position deleted successfully.');
     }
-
-    // diri SAYLO ang halin sa controller tas callout nalang sa controller
 }

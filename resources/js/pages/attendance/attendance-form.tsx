@@ -145,7 +145,8 @@ function toMinutes(time: string): number | null {
 
 export default function AttendanceForm({ attendance, employees }: Props) {
     const now = new Date();
-    const maxWorkDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const minWorkDate = `${now.getFullYear()}-01-01`;
+    const maxWorkDate = `${now.getFullYear()}-12-31`;
     const form = useForm({
         employee_id: attendance ? String(attendance.employee_id) : '',
         work_date: attendance?.work_date ?? '',
@@ -220,7 +221,7 @@ export default function AttendanceForm({ attendance, employees }: Props) {
                     <Input
                         id="work_date"
                         type="date"
-                        min="1900-01-01"
+                        min={minWorkDate}
                         max={maxWorkDate}
                         value={form.data.work_date}
                         onChange={(event) => form.setData('work_date', event.target.value)}

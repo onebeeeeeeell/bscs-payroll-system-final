@@ -2,76 +2,57 @@
 
 namespace App\Http\Controllers;
 
-use Inertia\Inertia;
-use App\Models\ContributionType;
 use App\Http\Requests\ContributionType\ContributionTypeRequest;
+use App\Models\ContributionType;
+use App\Services\ContributionTypeService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ContributionTypeController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        $contributionTypes = ContributionType::select(['id', 'name'])->with([
-            'contributionRates:id,contribution_type_id,rate',
-        ])->get();
-        
-        dd ($contributionTypes);
+    public function __construct(
+        private \App\Services\ContributionTypeService $contributionTypeService,
+    ) {}
 
+    public function index(Request $request): Response
+    {
         return Inertia::render('contribution-type/index', [
-            'contributionTypes' => $contributionTypes,
+            'contributionTypes' => $this->contributionTypeService->paginate($request->query('search')),
         ]);
-        //
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function create(): Response
     {
-        //
+        return Inertia::render('contribution-type/create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(ContributionTypeRequest $request)
+    public function store(ContributionTypeRequest $request): RedirectResponse
     {
-        //
+        $this->contributionTypeService->create($request->validated());
+
+        return to_route('contribution_types.index')->with('success', 'Contribution type created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(ContributionType $contributionType)
+    public function edit(ContributionType $contributionType): Response
     {
-        //
+        return Inertia::render('contribution-type/edit', [
+            'contributionType' => $contributionType,
+        ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(ContributionType $contributionType)
+    public function update(ContributionTypeRequest $request, ContributionType $contributionType): RedirectResponse
     {
-        //
+        $this->contributionTypeService->update($contributionType, $request->validated());
+
+        return to_route('contribution_types.index')->with('success', 'Contribution type updated successfully.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(ContributionTypeRequest $request, ContributionType $contributionType)
+    public function destroy(ContributionType $contributionType): RedirectResponse
     {
-        //
-    }
+        $this->contributionTypeService->delete($contributionType);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(ContributionType $contributionType)
-    {
-        //
+        return to_route('contribution_types.index')->with('success', 'Contribution type deleted successfully.');
     }
-
-    // diri SAYLO ang halin sa controller tas callout nalang sa controller
 }

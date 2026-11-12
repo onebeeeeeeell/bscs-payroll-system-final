@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SearchRequest;
 use App\Services\SearchService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class SearchController extends Controller
 {
@@ -12,15 +12,10 @@ class SearchController extends Controller
         private SearchService $searchService,
     ) {}
 
-    // JSON search used by the Ctrl+K command palette
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(SearchRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'q' => ['nullable', 'string', 'max:100'],
-        ]);
-
         return response()->json([
-            'employees' => $this->searchService->employees($validated['q'] ?? ''),
+            'employees' => $this->searchService->employees($request->validated('q') ?? ''),
         ]);
     }
 }

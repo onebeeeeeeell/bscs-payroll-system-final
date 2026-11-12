@@ -71,7 +71,7 @@ export interface SharedData {
     quote: { message: string; author: string };
     flash: { success?: string | null };
     auth: Auth;
-    navCounts?: { attendance: number; payrolls: number } | null;
+    navCounts?: { attendance: number } | null;
     [key: string]: unknown;
 }
 

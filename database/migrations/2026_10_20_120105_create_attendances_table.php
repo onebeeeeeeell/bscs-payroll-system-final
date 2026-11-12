@@ -20,6 +20,7 @@ return new class extends Migration
             $table->time('time_out');
             $table->decimal('hours_worked', 5, 2)->default(0);
             $table->decimal('overtime_hours', 5, 2)->default(0);
+            $table->softDeletes();
             $table->timestamps();
         });
     }

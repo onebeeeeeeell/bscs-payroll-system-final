@@ -2,76 +2,57 @@
 
 namespace App\Http\Controllers;
 
-use Inertia\Inertia;
-use App\Models\Payslip;
 use App\Http\Requests\Payslip\PayslipRequest;
+use App\Models\Payslip;
+use App\Services\PayslipService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PayslipController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(
+        private PayslipService $payslipService,
+    ) {}
+
+    public function index(Request $request): Response
     {
-        $payslips = Payslip::select(['id', 'payroll_id', 'date_generated'])->with([
-            'payroll:id,employee_id,payroll_period_id,user_id,gross_pay,total_deductions,net_pay,date_processed',
-            'payroll.employee:id,first_name,last_name,suffix',
-            ])->get();
-
-            dd($payslips);
-
         return Inertia::render('payslip/index', [
-            'payslips' => $payslips,
+            'payslips' => $this->payslipService->paginate(),
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function create(): Response
     {
-        //
+        return Inertia::render('payslip/create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(PayslipRequest $request)
+    public function store(PayslipRequest $request): RedirectResponse
     {
-        //
+        $this->payslipService->create($request->validated());
+
+        return to_route('payslips.index')->with('success', 'Payslip created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Payslip $payslip)
+    public function edit(Payslip $payslip): Response
     {
-        //
+        return Inertia::render('payslip/edit', [
+            'payslip' => $payslip->load('payroll.employee'),
+        ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Payslip $payslip)
+    public function update(PayslipRequest $request, Payslip $payslip): RedirectResponse
     {
-        //
+        $this->payslipService->update($payslip, $request->validated());
+
+        return to_route('payslips.index')->with('success', 'Payslip updated successfully.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(PayslipRequest $request, Payslip $payslip)
+    public function destroy(Payslip $payslip): RedirectResponse
     {
-        //
-    }
+        $this->payslipService->delete($payslip);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Payslip $payslip)
-    {
-        //
+        return to_route('payslips.index')->with('success', 'Payslip deleted successfully.');
     }
-
-    // diri SAYLO ang halin sa controller tas callout nalang sa controller
 }

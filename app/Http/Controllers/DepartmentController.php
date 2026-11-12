@@ -2,74 +2,57 @@
 
 namespace App\Http\Controllers;
 
-use Inertia\Inertia;
-use App\Models\Department;
 use App\Http\Requests\Department\DepartmentRequest;
+use App\Models\Department;
+use App\Services\DepartmentService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class DepartmentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        $departments = Department::select(['id', 'department_name'])->with([
-            'employees:id,first_name,last_name,suffix,position_id,department_id,date_hired,daily_rate,sss_no,philhealth_no,pagibig_no,tin_no,status',
-        ])->get();
+    public function __construct(
+        private DepartmentService $departmentService,
+    ) {}
 
+    public function index(Request $request): Response
+    {
         return Inertia::render('department/index', [
-            'departments' => $departments,
+            'departments' => $this->departmentService->paginate($request->query('search')),
         ]);
-            //
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function create(): Response
     {
-        //
+        return Inertia::render('department/create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(DepartmentRequest $request)
+    public function store(DepartmentRequest $request): RedirectResponse
     {
-        //
+        $this->departmentService->create($request->validated());
+
+        return to_route('departments.index')->with('success', 'Department created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Department $department)
+    public function edit(Department $department): Response
     {
-        //
+        return Inertia::render('department/edit', [
+            'department' => $department,
+        ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Department $department)
+    public function update(DepartmentRequest $request, Department $department): RedirectResponse
     {
-        //
+        $this->departmentService->update($department, $request->validated());
+
+        return to_route('departments.index')->with('success', 'Department updated successfully.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(DepartmentRequest $request, Department $department)
+    public function destroy(Department $department): RedirectResponse
     {
-        //
-    }
+        $this->departmentService->delete($department);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Department $department)
-    {
-        //
+        return to_route('departments.index')->with('success', 'Department deleted successfully.');
     }
-
-    // diri SAYLO ang halin sa controller tas callout nalang sa controller
 }

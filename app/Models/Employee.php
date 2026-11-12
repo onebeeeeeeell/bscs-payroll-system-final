@@ -9,31 +9,29 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 #[Fillable([
-        'first_name',
-        'last_name',
-        'suffix',
-        'position_id',
-        'department_id',
-        'date_hired',
-        'daily_rate',
-        'sss_no',
-        'philhealth_no',
-        'pagibig_no',
-        'tin_no',
-        'status',
-        'archived_at',
-        ])]
+    'first_name',
+    'last_name',
+    'suffix',
+    'position_id',
+    'department_id',
+    'date_hired',
+    'daily_rate',
+    'sss_no',
+    'philhealth_no',
+    'pagibig_no',
+    'tin_no',
+    'status',
+    'archived_at',
+    'pin',
+])]
 
 class Employee extends Model
 {
-        use HasFactory;
+    use HasFactory;
 
-    protected function casts(): array
-    {
-        return [
-            'archived_at' => 'datetime',
-        ];
-    }
+    protected $casts = [
+        'archived_at' => 'datetime',
+    ];
 
     public function position(): BelongsTo
     {
@@ -54,5 +52,4 @@ class Employee extends Model
     {
         return $this->hasMany(Payroll::class, 'employee_id', 'id');
     }
-
 }

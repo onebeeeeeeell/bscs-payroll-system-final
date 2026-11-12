@@ -41,5 +41,5 @@ class DeductionService
         );
     }
 
-    // diri
+    // diriiiiiiiiiiiiiiiii sugpon if may ano sa controller na logic
 }

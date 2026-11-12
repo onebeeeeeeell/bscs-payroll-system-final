@@ -2,74 +2,57 @@
 
 namespace App\Http\Controllers;
 
-use Inertia\Inertia;
-use App\Models\Deduction;
 use App\Http\Requests\Deduction\DeductionRequest;
+use App\Models\Deduction;
+use App\Services\DeductionService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class DeductionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        $deductions = Deduction::select(['id', 'payroll_id', 'contribution_rate_id', 'amount',])->with([
-            'payroll:id,employee_id,payroll_period_id,user_id,gross_pay,total_deductions,net_pay,date_processed',
-            'contributionRate:id,contribution_type_id,rate',
-        ])->get();
+    public function __construct(
+        private DeductionService $deductionService,
+    ) {}
 
+    public function index(Request $request): Response
+    {
         return Inertia::render('deduction/index', [
-            'deductions' => $deductions,
+            'deductions' => $this->deductionService->paginate(),
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function create(): Response
     {
-        //
+        return Inertia::render('deduction/create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(DeductionRequest $request)
+    public function store(DeductionRequest $request): RedirectResponse
     {
-        //
+        $this->deductionService->create($request->validated());
+
+        return to_route('deductions.index')->with('success', 'Deduction created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Deduction $deduction)
+    public function edit(Deduction $deduction): Response
     {
-        //
+        return Inertia::render('deduction/edit', [
+            'deduction' => $deduction->load(['payroll', 'contributionRate']),
+        ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Deduction $deduction)
+    public function update(DeductionRequest $request, Deduction $deduction): RedirectResponse
     {
-        //
+        $this->deductionService->update($deduction, $request->validated());
+
+        return to_route('deductions.index')->with('success', 'Deduction updated successfully.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(DeductionRequest $request, Deduction $deduction)
+    public function destroy(Deduction $deduction): RedirectResponse
     {
-        //
-    }
+        $this->deductionService->delete($deduction);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Deduction $deduction)
-    {
-        //
+        return to_route('deductions.index')->with('success', 'Deduction deleted successfully.');
     }
-
-    // diri SAYLO ang halin sa controller tas callout nalang sa controller
 }

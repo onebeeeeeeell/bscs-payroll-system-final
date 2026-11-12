@@ -31,7 +31,6 @@ export function AppSidebar() {
             title: 'Payrolls',
             url: '/payrolls',
             icon: HandCoins,
-            badge: navCounts?.payrolls, // pay periods waiting to be processed or failed
         },
         {
             title: 'Payslips',

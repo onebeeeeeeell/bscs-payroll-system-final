@@ -2,16 +2,36 @@
 
 namespace App\Services;
 
-use App\Models\Employee;
-use App\Models\Position;
 use App\Models\Department;
+use App\Models\Employee;
 use App\Models\EmploymentStatus;
-use Illuminate\Support\Facades\DB;
+use App\Models\Position;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class EmployeeService
 {
+    /**
+     * @param array{department_id?: int|null, position_id?: int|null, hire_year?: int|null, hire_month?: int|null, status?: 'active'|'archived'} $filters
+     */
+    public function indexData(array $validated, array $filters): array
+    {
+        $firstHireDate = Employee::query()->min('date_hired');
+        $lastHireDate = Employee::query()->max('date_hired');
+        $firstYear = $firstHireDate ? Carbon::parse($firstHireDate)->year : now()->year;
+        $lastYear = $lastHireDate ? max((int) now()->year, (int) Carbon::parse($lastHireDate)->year) : now()->year;
+
+        return [
+            'employees' => $this->paginate($validated),
+            'departments' => $this->departmentOptions(),
+            'positions' => $this->positionOptions(),
+            'hireYears' => range($lastYear, $firstYear),
+            'filters' => $filters,
+        ];
+    }
+
     /**
      * @param array{department_id?: int|null, position_id?: int|null, hire_year?: int|null, hire_month?: int|null, status?: 'active'|'archived'} $filters
      */
@@ -31,6 +51,25 @@ class EmployeeService
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
+    }
+
+    public function departmentOptions(): Collection
+    {
+        return Department::query()->orderBy('department_name')->get(['id', 'department_name']);
+    }
+
+    public function positionOptions(): Collection
+    {
+        return Position::query()->orderBy('title')->get(['id', 'title']);
+    }
+
+    public function employeeEditOptions(): array
+    {
+        return [
+            'positions' => $this->positionOptions(),
+            'departments' => $this->departmentOptions(),
+            'statuses' => EmploymentStatus::query()->orderBy('name')->get(['id', 'name']),
+        ];
     }
 
     public function create(array $data): Employee
@@ -98,6 +137,9 @@ class EmployeeService
     {
         DB::transaction(function () use ($employee) {
             $employee->update(['archived_at' => now()]);
+            $employee->attendances()
+                ->whereNull('deleted_at')
+                ->update(['deleted_at' => now()]);
         });
     }
 
@@ -105,22 +147,10 @@ class EmployeeService
     {
         DB::transaction(function () use ($employee) {
             $employee->update(['archived_at' => null]);
+            $employee->attendances()
+                ->onlyTrashed()
+                ->restore();
         });
-    }
-
-    // diri saylo ang sa controller part na method
-    public function kuhaSangPosition(): Collection
-    {
-       return Position::query()->orderBy('title')->get(['id', 'title']);
-    }
-
-    public function kuhaSangDepartment(): Collection
-    {
-       return Department::query()->orderBy('department_name')->get(['id', 'department_name']);
-    }
-    public function kuhaSangStatus(): Collection
-    {
-       return EmploymentStatus::query()->orderBy('name')->get(['id', 'name']);
     }
 
 }

@@ -21,7 +21,12 @@ class AttendanceRequest extends FormRequest
     {
         return [
             'employee_id' => ['required', 'integer', Rule::exists('employees', 'id')->whereNull('archived_at')],
-            'work_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:1900-01-01', 'before_or_equal:today'],
+            'work_date' => [
+                'required',
+                'date_format:Y-m-d',
+                'after_or_equal:' . now()->startOfYear()->toDateString(),
+                'before_or_equal:' . now()->endOfYear()->toDateString(),
+            ],
             'time_in' => ['required', 'date_format:H:i'],
             'time_out' => ['required', 'date_format:H:i'],
         ];

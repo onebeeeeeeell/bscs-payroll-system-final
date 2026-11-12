@@ -48,6 +48,23 @@ class EmployeeArchiveWorkflowsTest extends TestCase
             ->assertJsonValidationErrors('employee_id');
     }
 
+    public function test_deleted_attendance_for_archived_employee_is_visible_in_deleted_view(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $employee = Employee::factory()->create();
+        $attendance = Attendance::factory()->create(['employee_id' => $employee->id]);
+        $employee->update(['archived_at' => now()]);
+        $attendance->delete();
+
+        $this->get(route('attendance.index', ['status' => 'deleted']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('attendances.data', 1)
+                ->where('attendances.data.0.id', $attendance->id)
+            );
+    }
+
     public function test_archived_employees_cannot_be_added_to_new_payroll_records(): void
     {
         $archivedEmployee = Employee::factory()->create();

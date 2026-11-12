@@ -2,79 +2,66 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Department\DepartmentRequest;
+use App\Http\Requests\EmploymentStatus\EmploymentStatusRequest;
+use App\Http\Requests\Position\PositionRequest;
 use App\Models\Department;
 use App\Models\EmploymentStatus;
 use App\Models\Position;
+use App\Services\DepartmentService;
+use App\Services\EmploymentStatusService;
+use App\Services\PositionService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 class EmployeeOptionController extends Controller
 {
-    public function storeDepartment(Request $request): JsonResponse
+    public function __construct(
+        private DepartmentService $departmentService,
+        private PositionService $positionService,
+        private EmploymentStatusService $employmentStatusService,
+    ) {}
+
+    public function storeDepartment(DepartmentRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'department_name' => ['required', 'string', 'max:30', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', 'unique:departments,department_name'],
-        ]);
-        $department = Department::create($validated);
+        $department = $this->departmentService->create($request->validated());
 
         return response()->json(['id' => $department->id, 'label' => $department->department_name], 201);
     }
 
-    public function storePosition(Request $request): JsonResponse
+    public function storePosition(PositionRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:30', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', 'unique:positions,title'],
-        ]);
-        $position = Position::create($validated);
+        $position = $this->positionService->create($request->validated());
 
         return response()->json(['id' => $position->id, 'label' => $position->title], 201);
     }
 
-    public function storeStatus(Request $request): JsonResponse
+    public function storeStatus(EmploymentStatusRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:30', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', Rule::unique('employment_statuses', 'name')],
-        ]);
-        $status = EmploymentStatus::create($validated);
+        $status = $this->employmentStatusService->create($request->validated());
 
         return response()->json(['id' => $status->id, 'label' => $status->name], 201);
     }
 
-    public function updateDepartment(Request $request, Department $department): JsonResponse
+    public function updateDepartment(DepartmentRequest $request, Department $department): JsonResponse
     {
-        $validated = $request->validate([
-            'department_name' => ['required', 'string', 'max:30', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', Rule::unique('departments', 'department_name')->ignore($department)],
-        ]);
-        $department->update($validated);
+        $this->departmentService->update($department, $request->validated());
 
         return response()->json(['id' => $department->id, 'label' => $department->department_name]);
     }
 
-    public function updatePosition(Request $request, Position $position): JsonResponse
+    public function updatePosition(PositionRequest $request, Position $position): JsonResponse
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:30', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', Rule::unique('positions', 'title')->ignore($position)],
-        ]);
-        $position->update($validated);
+        $this->positionService->update($position, $request->validated());
 
         return response()->json(['id' => $position->id, 'label' => $position->title]);
     }
 
-    public function updateStatus(Request $request, EmploymentStatus $status): JsonResponse
+    public function updateStatus(EmploymentStatusRequest $request, EmploymentStatus $status): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:30', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u', Rule::unique('employment_statuses', 'name')->ignore($status)],
-        ]);
-
-        DB::transaction(function () use ($status, $validated) {
-            $oldName = $status->name;
-            $status->update($validated);
-            DB::table('employees')->where('status', $oldName)->update(['status' => $status->name]);
-        });
+        $this->employmentStatusService->update($status, $request->validated());
 
         return response()->json(['id' => $status->id, 'label' => $status->name]);
     }

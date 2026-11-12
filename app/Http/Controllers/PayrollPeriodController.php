@@ -2,71 +2,57 @@
 
 namespace App\Http\Controllers;
 
-use Inertia\Inertia;
-use App\Models\PayrollPeriod;
 use App\Http\Requests\PayrollPeriod\PayrollPeriodRequest;
+use App\Models\PayrollPeriod;
+use App\Services\PayrollPeriodService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PayrollPeriodController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(
+        private PayrollPeriodService $payrollPeriodService,
+    ) {}
+
+    public function index(Request $request): Response
     {
-        $payrollPeriods = PayrollPeriod::select(['id', 'start_date', 'end_date', 'pay_date', 'status'])->with([
-           'payrolls:id,employee_id,payroll_period_id,user_id,gross_pay,total_deductions,net_pay,date_processed',
-           ])->get();
-           
-           return Inertia::render('payroll-period/index', [
-            'payrollPeriods' => $payrollPeriods,
-           ]);
+        return Inertia::render('payroll-period/index', [
+            'payrollPeriods' => $this->payrollPeriodService->paginate($request->query('search')),
+        ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function create(): Response
     {
-        //
+        return Inertia::render('payroll-period/create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(PayrollPeriodRequest $request)
+    public function store(PayrollPeriodRequest $request): RedirectResponse
     {
-        //
+        $this->payrollPeriodService->create($request->validated());
+
+        return to_route('payroll_periods.index')->with('success', 'Payroll period created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(PayrollPeriod $payrollPeriod)
+    public function edit(PayrollPeriod $payrollPeriod): Response
     {
-        //
+        return Inertia::render('payroll-period/edit', [
+            'payrollPeriod' => $payrollPeriod,
+        ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(PayrollPeriod $payrollPeriod)
+    public function update(PayrollPeriodRequest $request, PayrollPeriod $payrollPeriod): RedirectResponse
     {
-        //
+        $this->payrollPeriodService->update($payrollPeriod, $request->validated());
+
+        return to_route('payroll_periods.index')->with('success', 'Payroll period updated successfully.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(PayrollPeriodRequest $request, PayrollPeriod $payrollPeriod)
+    public function destroy(PayrollPeriod $payrollPeriod): RedirectResponse
     {
-        //
-    }
+        $this->payrollPeriodService->delete($payrollPeriod);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(PayrollPeriod $payrollPeriod)
-    {
-        // diri SAYLO ang halin sa controller tas callout nalang sa controller
+        return to_route('payroll_periods.index')->with('success', 'Payroll period deleted successfully.');
     }
 }

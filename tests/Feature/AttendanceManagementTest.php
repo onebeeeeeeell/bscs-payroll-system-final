@@ -68,7 +68,7 @@ class AttendanceManagementTest extends TestCase
         $this->assertDatabaseCount('attendances', 0);
     }
 
-    public function test_attendance_rejects_future_work_dates(): void
+    public function test_attendance_rejects_work_dates_before_the_current_year(): void
     {
         $employee = Employee::factory()->create();
 
@@ -76,7 +76,44 @@ class AttendanceManagementTest extends TestCase
             ->from(route('attendance.create'))
             ->post(route('attendance.store'), [
                 'employee_id' => $employee->id,
-                'work_date' => today()->addDay()->toDateString(),
+                'work_date' => today()->startOfYear()->subDay()->toDateString(),
+                'time_in' => '08:00',
+                'time_out' => '17:00',
+            ]);
+
+        $response->assertRedirect(route('attendance.create'));
+        $response->assertSessionHasErrors('work_date');
+        $this->assertDatabaseCount('attendances', 0);
+    }
+
+    public function test_attendance_accepts_december_work_dates_in_the_current_year(): void
+    {
+        $employee = Employee::factory()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->post(route('attendance.store'), [
+                'employee_id' => $employee->id,
+                'work_date' => today()->endOfYear()->toDateString(),
+                'time_in' => '08:00',
+                'time_out' => '17:00',
+            ])
+            ->assertRedirect(route('attendance.index'));
+
+        $this->assertDatabaseHas('attendances', [
+            'employee_id' => $employee->id,
+            'work_date' => today()->endOfYear()->toDateString(),
+        ]);
+    }
+
+    public function test_attendance_rejects_work_dates_after_the_current_year(): void
+    {
+        $employee = Employee::factory()->create();
+
+        $response = $this->actingAs(User::factory()->create())
+            ->from(route('attendance.create'))
+            ->post(route('attendance.store'), [
+                'employee_id' => $employee->id,
+                'work_date' => today()->endOfYear()->addDay()->toDateString(),
                 'time_in' => '08:00',
                 'time_out' => '17:00',
             ]);
@@ -104,5 +141,36 @@ class AttendanceManagementTest extends TestCase
             'hours_worked' => '7.50',
             'overtime_hours' => '0.00',
         ]);
+    }
+
+    public function test_attendance_stats_aggregate_records_employees_and_overtime(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $employee = Employee::factory()->create();
+        $otherEmployee = Employee::factory()->create();
+
+        Attendance::factory()->create([
+            'employee_id' => $employee->id,
+            'overtime_hours' => 1.5,
+        ]);
+        Attendance::factory()->create([
+            'employee_id' => $employee->id,
+            'work_date' => today()->subDay()->toDateString(),
+            'overtime_hours' => 0,
+        ]);
+        Attendance::factory()->create([
+            'employee_id' => $otherEmployee->id,
+            'overtime_hours' => 2,
+        ]);
+
+        $this->get(route('attendance.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('stats.records', 3)
+                ->where('stats.employees', 2)
+                ->where('stats.with_overtime', 2)
+                ->where('stats.today', 2)
+            );
     }
 }

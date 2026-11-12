@@ -4,6 +4,7 @@ namespace App\Http\Requests\Department;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class DepartmentRequest extends FormRequest
 {
@@ -20,7 +21,13 @@ class DepartmentRequest extends FormRequest
         $required = $this->isMethod('PATCH') ? 'sometimes' : 'required';
 
         return [
-            'department_name' => [$required, 'string', 'max:30', 'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u'],
+            'department_name' => [
+                $required,
+                'string',
+                'max:30',
+                'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u',
+                Rule::unique('departments', 'department_name')->ignore($this->route('department')),
+            ],
         ];
     }
 }

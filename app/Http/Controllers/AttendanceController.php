@@ -2,125 +2,93 @@
 
 namespace App\Http\Controllers;
 
-use Inertia\Inertia;
-use App\Models\Attendance;
-use App\Models\Employee;
-use Illuminate\Http\RedirectResponse;
+use App\Http\Requests\Attendance\AttendanceIndexRequest;
 use App\Http\Requests\Attendance\AttendanceRequest;
+use App\Models\Attendance;
+use App\Models\Department;
+use App\Models\Employee;
+use App\Models\Position;
+use App\Services\AttendanceService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Response;
 
 class AttendanceController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(
+        private AttendanceService $attendanceService,
+    ) {}
+
+    public function index(AttendanceIndexRequest $request): Response
     {
-        $attendances = Attendance::query()
-            ->with('employee:id,first_name,last_name,suffix')
-            ->whereHas('employee', fn ($query) => $query->whereNull('archived_at'))
-            ->latest('work_date')
-            ->latest('time_in')
-            ->paginate(10)
-            ->withQueryString();
+        $validated = $request->validated();
+        $filters = $request->filters();
 
-            dd($attendances);
-
-        return Inertia::render('attendance/index', [
-            'attendances' => $attendances,
-        ]);
+        return Inertia::render('attendance/index', $this->attendanceService->indexData($validated, $filters));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create(): Response
     {
         return Inertia::render('attendance/create', [
-            'employees' => Employee::query()
-                ->whereNull('archived_at')
-                ->orderBy('last_name')
-                ->orderBy('first_name')
-                ->get(['id', 'first_name', 'last_name', 'suffix']),
+            'employees' => $this->attendanceService->activeEmployeesForSelection(),
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(AttendanceRequest $request): RedirectResponse
     {
-        $data = $request->validated();
-        Attendance::create([...$data, ...$this->calculateHours($data['time_in'], $data['time_out'])]);
+        $this->attendanceService->create($request->validated());
 
-        return to_route('attendance.index')->with('success', 'Attendance record created successfully.');
+        return to_route('attendance.index')->with('success', 'Attendance recorded successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Attendance $attendance)
+    public function show(Attendance $attendance): Response
     {
-        //
-    }
+        $attendance->load('employee');
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Attendance $attendance): Response
-    {
-        return Inertia::render('attendance/edit', [
-            'attendance' => $attendance->only([
-                'id',
-                'employee_id',
-                'work_date',
-                'time_in',
-                'time_out',
-                'hours_worked',
-                'overtime_hours',
-            ]),
-            'employees' => Employee::query()
-                ->whereNull('archived_at')
-                ->orderBy('last_name')
-                ->orderBy('first_name')
-                ->get(['id', 'first_name', 'last_name', 'suffix']),
+        return Inertia::render('attendance/show', [
+            'attendance' => $attendance,
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
+    public function edit(Attendance $attendance): Response
+    {
+        $attendance->load('employee');
+
+        return Inertia::render('attendance/edit', [
+            'attendance' => $attendance,
+            'employees' => $this->attendanceService->activeEmployeesForSelection(),
+        ]);
+    }
+
     public function update(AttendanceRequest $request, Attendance $attendance): RedirectResponse
     {
-        $data = $request->validated();
-        $attendance->update([...$data, ...$this->calculateHours($data['time_in'], $data['time_out'])]);
+        $this->attendanceService->update($attendance, $request->validated());
 
-        return to_route('attendance.index')->with('success', 'Attendance record updated successfully.');
+        return to_route('attendance.index')->with('success', 'Attendance updated successfully.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Attendance $attendance)
+    public function destroy(Request $request, Attendance $attendance): RedirectResponse
     {
-        //
+        $this->attendanceService->delete($attendance);
+
+        return to_route('attendance.index', $request->only([
+            'status',
+            'department_id',
+            'position_id',
+            'date',
+        ]))->with('success', 'Attendance deleted successfully.');
     }
 
-    /**
-     * @return array{hours_worked: string, overtime_hours: string}
-     */
-    private function calculateHours(string $timeIn, string $timeOut): array
+    public function restore(Request $request, Attendance $attendance): RedirectResponse
     {
-        [$inHours, $inMinutes] = array_map('intval', explode(':', $timeIn));
-        [$outHours, $outMinutes] = array_map('intval', explode(':', $timeOut));
-        $workedMinutes = ($outHours * 60 + $outMinutes) - ($inHours * 60 + $inMinutes);
-        $overtimeMinutes = max(0, $workedMinutes - 8 * 60);
+        $this->attendanceService->restore($attendance);
 
-        return [
-            'hours_worked' => number_format($workedMinutes / 60, 2, '.', ''),
-            'overtime_hours' => number_format($overtimeMinutes / 60, 2, '.', ''),
-        ];
+        return to_route('attendance.index', $request->only([
+            'status',
+            'department_id',
+            'position_id',
+            'date',
+        ]))->with('success', 'Attendance restored successfully.');
     }
-
-    // diri SAYLO ang halin sa controller tas callout nalang sa controller
 }

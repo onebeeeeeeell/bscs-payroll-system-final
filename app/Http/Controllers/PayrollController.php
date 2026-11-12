@@ -2,78 +2,57 @@
 
 namespace App\Http\Controllers;
 
-use Inertia\Inertia;
-use App\Models\Payroll;
 use App\Http\Requests\Payroll\PayrollRequest;
+use App\Models\Payroll;
+use App\Services\PayrollService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PayrollController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(
+        private PayrollService $payrollService,
+    ) {}
+
+    public function index(Request $request): Response
     {
-        $payrolls = Payroll::select(['id', 'employee_id', 'payroll_period_id', 'user_id', 'gross_pay', 'total_deductions', 'net_pay', 'date_processed'])->with([
-            'employee:id,first_name,last_name,suffix,position_id,department_id,date_hired,daily_rate,sss_no,philhealth_no,pagibig_no,tin_no,status',
-            'payrollPeriod:id,start_date,end_date,pay_date,status',
-            'user:id,name,email',
-        ])->get();
-
-        dd($payrolls);
-
         return Inertia::render('payroll/index', [
-            'payrolls' => $payrolls,
+            'payrolls' => $this->payrollService->paginate($request->query('search')),
         ]);
-        //
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function create(): Response
     {
-        //
+        return Inertia::render('payroll/create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(PayrollRequest $request)
+    public function store(PayrollRequest $request): RedirectResponse
     {
-        //
+        $this->payrollService->create($request->validated());
+
+        return to_route('payrolls.index')->with('success', 'Payroll created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Payroll $payroll)
+    public function edit(Payroll $payroll): Response
     {
-        //
+        return Inertia::render('payroll/edit', [
+            'payroll' => $payroll->load(['employee', 'payrollPeriod', 'user']),
+        ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Payroll $payroll)
+    public function update(PayrollRequest $request, Payroll $payroll): RedirectResponse
     {
-        //
+        $this->payrollService->update($payroll, $request->validated());
+
+        return to_route('payrolls.index')->with('success', 'Payroll updated successfully.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(PayrollRequest $request, Payroll $payroll)
+    public function destroy(Payroll $payroll): RedirectResponse
     {
-        //
-    }
+        $this->payrollService->delete($payroll);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Payroll $payroll)
-    {
-        //
+        return to_route('payrolls.index')->with('success', 'Payroll deleted successfully.');
     }
-
-    // diri SAYLO ang halin sa controller tas callout nalang sa controller
 }

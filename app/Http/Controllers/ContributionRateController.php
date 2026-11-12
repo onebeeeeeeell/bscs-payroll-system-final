@@ -2,75 +2,57 @@
 
 namespace App\Http\Controllers;
 
-use Inertia\Inertia;
-use App\Models\ContributionRate;
 use App\Http\Requests\ContributionRate\ContributionRateRequest;
+use App\Models\ContributionRate;
+use App\Services\ContributionRateService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ContributionRateController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        $contributionRates = ContributionRate::select(['id', 'contribution_type_id', 'rate'])->with([
-            'contributionType:id,name',
-            'deductions:id,payroll_id,contribution_rate_id,amount',
-        ])->get();
+    public function __construct(
+        private ContributionRateService $contributionRateService,
+    ) {}
 
+    public function index(Request $request): Response
+    {
         return Inertia::render('contribution-rate/index', [
-            'contributionRates' => $contributionRates,
+            'contributionRates' => $this->contributionRateService->paginate($request->query('search')),
         ]);
-        //
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function create(): Response
     {
-        //
+        return Inertia::render('contribution-rate/create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(ContributionRateRequest $request)
+    public function store(ContributionRateRequest $request): RedirectResponse
     {
-        //
+        $this->contributionRateService->create($request->validated());
+
+        return to_route('contribution_rates.index')->with('success', 'Contribution rate created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(ContributionRate $contributionRate)
+    public function edit(ContributionRate $contributionRate): Response
     {
-        //
+        return Inertia::render('contribution-rate/edit', [
+            'contributionRate' => $contributionRate->load('contributionType'),
+        ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(ContributionRate $contributionRate)
+    public function update(ContributionRateRequest $request, ContributionRate $contributionRate): RedirectResponse
     {
-        //
+        $this->contributionRateService->update($contributionRate, $request->validated());
+
+        return to_route('contribution_rates.index')->with('success', 'Contribution rate updated successfully.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(ContributionRateRequest $request, ContributionRate $contributionRate)
+    public function destroy(ContributionRate $contributionRate): RedirectResponse
     {
-        //
-    }
+        $this->contributionRateService->delete($contributionRate);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(ContributionRate $contributionRate)
-    {
-        //
+        return to_route('contribution_rates.index')->with('success', 'Contribution rate deleted successfully.');
     }
-
-    // diri SAYLO ang halin sa controller tas callout nalang sa controller
 }
