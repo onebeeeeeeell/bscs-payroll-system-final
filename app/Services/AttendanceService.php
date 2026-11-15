@@ -132,21 +132,14 @@ class AttendanceService
             // "deleted" shows only the soft deleted records, anything else shows the active ones
             ->when($status === 'deleted', fn ($query) => $query->onlyTrashed());
 
-        // Keep archived employees hidden from the normal active list, but allow deleted attendance
-        // records to remain visible in the deleted filter even when the employee has been archived.
-        if ($status !== 'deleted') {
-            $query->whereHas('employee', fn ($query) => $query
-                ->whereNull('archived_at')
-                ->when($filters['department_id'] ?? null, fn ($employee, $departmentId) => $employee->where('department_id', $departmentId))
-                ->when($filters['position_id'] ?? null, fn ($employee, $positionId) => $employee->where('position_id', $positionId)));
-        } else {
-            $query->whereHas('employee', fn ($query) => $query
-                ->when($filters['department_id'] ?? null, fn ($employee, $departmentId) => $employee->where('department_id', $departmentId))
-                ->when($filters['position_id'] ?? null, fn ($employee, $positionId) => $employee->where('position_id', $positionId)));
-        }
+        // Archived employees are hidden from active records but remain available in the deleted view.
+        $query->whereHas('employee', fn ($employee) => $employee
+            ->when($status !== 'deleted', fn ($employee) => $employee->whereNull('archived_at'))
+            ->when($filters['department_id'] ?? null, fn ($employee, $departmentId) => $employee->where('department_id', $departmentId))
+            ->when($filters['position_id'] ?? null, fn ($employee, $positionId) => $employee->where('position_id', $positionId)));
 
-        // one calendar date: show only the records of that day
-        return $query->when($filters['date'] ?? null, fn ($query, $date) => $query->whereDate('work_date', $date));
+        // work_date is a DATE column, so direct equality keeps the predicate index-friendly.
+        return $query->when($filters['date'] ?? null, fn ($query, $date) => $query->where('work_date', $date));
     }
 
     private function calculateWorkedHours(array $data): array

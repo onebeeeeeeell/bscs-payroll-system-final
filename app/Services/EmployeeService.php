@@ -18,10 +18,15 @@ class EmployeeService
      */
     public function indexData(array $validated, array $filters): array
     {
-        $firstHireDate = Employee::query()->min('date_hired');
-        $lastHireDate = Employee::query()->max('date_hired');
-        $firstYear = $firstHireDate ? Carbon::parse($firstHireDate)->year : now()->year;
-        $lastYear = $lastHireDate ? max((int) now()->year, (int) Carbon::parse($lastHireDate)->year) : now()->year;
+        $hireDates = Employee::query()
+            ->selectRaw('MIN(date_hired) AS first_hire_date, MAX(date_hired) AS last_hire_date')
+            ->first();
+        $firstYear = $hireDates->first_hire_date
+            ? Carbon::parse($hireDates->first_hire_date)->year
+            : now()->year;
+        $lastYear = $hireDates->last_hire_date
+            ? max((int) now()->year, (int) Carbon::parse($hireDates->last_hire_date)->year)
+            : now()->year;
 
         return [
             'employees' => $this->paginate($validated),
@@ -37,7 +42,7 @@ class EmployeeService
      */
     public function paginate(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
-        return Employee::query()
+        $query = Employee::query()
             ->with(['position:id,title', 'department:id,department_name'])
             ->when(
                 ($filters['status'] ?? 'active') === 'archived',
@@ -45,12 +50,26 @@ class EmployeeService
                 fn ($query) => $query->whereNull('archived_at'),
             )
             ->when($filters['department_id'] ?? null, fn ($query, $departmentId) => $query->where('department_id', $departmentId))
-            ->when($filters['position_id'] ?? null, fn ($query, $positionId) => $query->where('position_id', $positionId))
-            ->when($filters['hire_year'] ?? null, fn ($query, $year) => $query->whereYear('date_hired', $year))
-            ->when($filters['hire_month'] ?? null, fn ($query, $month) => $query->whereMonth('date_hired', $month))
-            ->latest()
-            ->paginate($perPage)
-            ->withQueryString();
+            ->when($filters['position_id'] ?? null, fn ($query, $positionId) => $query->where('position_id', $positionId));
+
+        $hireYear = $filters['hire_year'] ?? null;
+        $hireMonth = $filters['hire_month'] ?? null;
+
+        if ($hireYear !== null) {
+            $startDate = Carbon::create((int) $hireYear, (int) ($hireMonth ?? 1), 1);
+            $endDate = $hireMonth !== null
+                ? $startDate->copy()->endOfMonth()
+                : $startDate->copy()->endOfYear();
+
+            $query->whereBetween('date_hired', [
+                $startDate->toDateString(),
+                $endDate->toDateString(),
+            ]);
+        } elseif ($hireMonth !== null) {
+            $query->whereMonth('date_hired', $hireMonth);
+        }
+
+        return $query->latest()->paginate($perPage)->withQueryString();
     }
 
     public function departmentOptions(): Collection
@@ -117,11 +136,19 @@ class EmployeeService
 
         foreach (['first_name', 'last_name', 'suffix'] as $field) {
             if (isset($sanitizedData[$field]) && is_string($sanitizedData[$field])) {
-                $sanitizedData[$field] = trim(preg_replace('/\s+/u', ' ', trim($sanitizedData[$field])) ?? '');
+                $normalized = preg_replace('/\s+/u', ' ', trim($sanitizedData[$field]));
+                if ($normalized === null) {
+                    throw new \InvalidArgumentException("The employee {$field} contains invalid text encoding.");
+                }
+
+                $sanitizedData[$field] = trim($normalized);
+                if ($field === 'suffix' && $sanitizedData[$field] === '') {
+                    $sanitizedData[$field] = null;
+                }
             }
         }
 
-        foreach (['suffix', 'sss_no', 'philhealth_no', 'pagibig_no', 'tin_no'] as $field) {
+        foreach (['sss_no', 'philhealth_no', 'pagibig_no', 'tin_no'] as $field) {
             if (isset($sanitizedData[$field]) && is_string($sanitizedData[$field])) {
                 $sanitizedData[$field] = trim($sanitizedData[$field]);
                 if ($sanitizedData[$field] === '') {

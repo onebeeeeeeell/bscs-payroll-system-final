@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Position;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,6 +15,8 @@ class EmployeeFiltersTest extends TestCase
 
     public function test_employee_index_filters_by_department_position_hire_year_and_month(): void
     {
+        $this->actingAs(User::factory()->create());
+
         $department = Department::factory()->create();
         $otherDepartment = Department::factory()->create();
         $position = Position::factory()->create();
