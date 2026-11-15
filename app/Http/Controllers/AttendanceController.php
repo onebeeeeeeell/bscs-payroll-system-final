@@ -42,8 +42,9 @@ class AttendanceController extends Controller
         return to_route('attendance.index')->with('success', 'Attendance recorded successfully.');
     }
 
-    public function show(Attendance $attendance): Response
+    public function show(int $attendanceId): Response
     {
+        $attendance = Attendance::withTrashed()->findOrFail($attendanceId);
         $attendance->load('employee');
 
         return Inertia::render('attendance/show', [
@@ -51,8 +52,10 @@ class AttendanceController extends Controller
         ]);
     }
 
-    public function edit(Attendance $attendance): Response
+    public function edit(int $attendanceId): Response
     {
+        $attendance = Attendance::withTrashed()->findOrFail($attendanceId);
+        abort_if($attendance->trashed(), 404);
         $attendance->load('employee');
 
         return Inertia::render('attendance/edit', [
@@ -61,8 +64,11 @@ class AttendanceController extends Controller
         ]);
     }
 
-    public function update(AttendanceRequest $request, Attendance $attendance): RedirectResponse
+    public function update(AttendanceRequest $request, int $attendanceId): RedirectResponse
     {
+        $attendance = Attendance::withTrashed()->findOrFail($attendanceId);
+        abort_if($attendance->trashed(), 404);
+
         $this->attendanceService->update($attendance, $request->validated());
 
         return to_route('attendance.index')->with('success', 'Attendance updated successfully.');
@@ -80,8 +86,9 @@ class AttendanceController extends Controller
         ]))->with('success', 'Attendance deleted successfully.');
     }
 
-    public function restore(Request $request, Attendance $attendance): RedirectResponse
+    public function restore(Request $request, int $attendanceId): RedirectResponse
     {
+        $attendance = Attendance::withTrashed()->findOrFail($attendanceId);
         $this->attendanceService->restore($attendance);
 
         return to_route('attendance.index', $request->only([

@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\Position;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 
@@ -86,6 +87,8 @@ class AttendanceService
 
     public function create(array $data): Attendance
     {
+        $data = $this->calculateWorkedHours($data);
+
         // transaction so nothing is saved if something fails in the middle
         return DB::transaction(
             fn () => Attendance::create($data)
@@ -94,6 +97,8 @@ class AttendanceService
 
     public function update(Attendance $attendance, array $data): Attendance
     {
+        $data = $this->calculateWorkedHours($data);
+
         return DB::transaction(function () use ($attendance, $data) {
             $attendance->update($data);
 
@@ -144,5 +149,21 @@ class AttendanceService
         return $query->when($filters['date'] ?? null, fn ($query, $date) => $query->whereDate('work_date', $date));
     }
 
-    // diri SAYLO ang halin sa controller tas callout nalang 
+    private function calculateWorkedHours(array $data): array
+    {
+        if (! isset($data['time_in'], $data['time_out'])) {
+            return $data;
+        }
+
+        $timeIn = Carbon::parse($data['time_in']);
+        $timeOut = Carbon::parse($data['time_out']);
+
+        $hoursWorked = round($timeIn->diffInMinutes($timeOut, false) / 60, 2);
+        $overtimeHours = max(0, round($hoursWorked - 8, 2));
+
+        $data['hours_worked'] = number_format($hoursWorked, 2, '.', '');
+        $data['overtime_hours'] = number_format($overtimeHours, 2, '.', '');
+
+        return $data;
+    }
 }

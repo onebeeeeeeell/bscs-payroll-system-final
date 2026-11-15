@@ -173,4 +173,29 @@ class AttendanceManagementTest extends TestCase
                 ->where('stats.today', 2)
             );
     }
+
+    public function test_archived_attendance_can_be_viewed_and_restored(): void
+    {
+        $attendance = Attendance::factory()->create();
+        $attendance->delete();
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('attendance.show', $attendance))
+            ->assertOk();
+
+        $this->actingAs(User::factory()->create())
+            ->from(route('attendance.index', ['status' => 'deleted']))
+            ->patch(route('attendance.restore', $attendance), [
+                'status' => 'deleted',
+                'department_id' => '',
+                'position_id' => '',
+                'date' => '',
+            ])
+            ->assertRedirect(route('attendance.index', ['status' => 'deleted']));
+
+        $this->assertDatabaseHas('attendances', [
+            'id' => $attendance->id,
+            'deleted_at' => null,
+        ]);
+    }
 }

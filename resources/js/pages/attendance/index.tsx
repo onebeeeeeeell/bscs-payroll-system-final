@@ -115,23 +115,23 @@ export default function AttendanceIndex({ attendances, stats, departments, posit
     }
 
     function restoreAttendance(attendance: Attendance) {
-    setRestoringId(attendance.id);
+        setRestoringId(attendance.id);
 
-    router.patch(route('attendance.restore', attendance.id), {}, {
-        preserveScroll: true,
-        preserveState: false,
-        replace: true,
-        onSuccess: () => {
-            setRestoringId(null);
-        },
-        onError: () => {
-            setRestoringId(null);
-        },
-        onFinish: () => {
-            setRestoringId(null);
-        },
-    });
-}
+        router.patch(route('attendance.restore', attendance.id), filters, {
+            preserveScroll: true,
+            preserveState: false,
+            replace: true,
+            onSuccess: () => {
+                setRestoringId(null);
+            },
+            onError: () => {
+                setRestoringId(null);
+            },
+            onFinish: () => {
+                setRestoringId(null);
+            },
+        });
+    }
 
     return (
         <AppLayout>
