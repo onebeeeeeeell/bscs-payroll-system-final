@@ -7,6 +7,8 @@ use Illuminate\Support\Collection;
 
 class SearchService
 {
+    private const SANITIZED_TEXT_FIELDS = ['term'];
+
     /**
      * Search active (not archived) employees by first name, last name, or full name.
      *
@@ -14,7 +16,7 @@ class SearchService
      */
     public function employees(string $term, int $limit = 8): Collection
     {
-        $term = mb_strtolower(trim($term));
+        $term = mb_strtolower($this->sanitizeSearchTerm($term));
 
         if ($term === '') {
             return collect();
@@ -41,5 +43,21 @@ class SearchService
                 'position' => $employee->position?->title,
                 'department' => $employee->department?->department_name,
             ]);
+    }
+
+    private function sanitizeSearchTerm(string $term): string
+    {
+        return $this->sanitizeTextFields(['term' => $term])['term'];
+    }
+
+    private function sanitizeTextFields(array $data): array
+    {
+        foreach (self::SANITIZED_TEXT_FIELDS as $field) {
+            if (isset($data[$field]) && is_string($data[$field])) {
+                $data[$field] = trim(strip_tags($data[$field]));
+            }
+        }
+
+        return $data;
     }
 }

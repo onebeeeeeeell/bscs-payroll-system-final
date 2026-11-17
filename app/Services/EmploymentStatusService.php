@@ -9,8 +9,12 @@ use Illuminate\Validation\ValidationException;
 
 class EmploymentStatusService
 {
+    private const SANITIZED_TEXT_FIELDS = ['name'];
+
     public function create(array $data): EmploymentStatus
     {
+        $data = $this->sanitizeTextFields($data);
+
         return DB::transaction(
             fn () => EmploymentStatus::create($data)
         );
@@ -18,6 +22,8 @@ class EmploymentStatusService
 
     public function update(EmploymentStatus $status, array $data): EmploymentStatus
     {
+        $data = $this->sanitizeTextFields($data);
+
         return DB::transaction(function () use ($status, $data) {
             $oldName = $status->name;
             $status->update($data);
@@ -41,5 +47,16 @@ class EmploymentStatusService
 
             $model->delete();
         });
+    }
+
+    private function sanitizeTextFields(array $data): array
+    {
+        foreach (self::SANITIZED_TEXT_FIELDS as $field) {
+            if (isset($data[$field]) && is_string($data[$field])) {
+                $data[$field] = trim(strip_tags($data[$field]));
+            }
+        }
+
+        return $data;
     }
 }

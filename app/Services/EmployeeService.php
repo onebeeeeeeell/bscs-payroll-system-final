@@ -13,6 +13,17 @@ use Illuminate\Support\Facades\DB;
 
 class EmployeeService
 {
+    private const SANITIZED_TEXT_FIELDS = [
+        'first_name',
+        'last_name',
+        'suffix',
+        'sss_no',
+        'philhealth_no',
+        'pagibig_no',
+        'tin_no',
+        'status',
+    ];
+
     /**
      * @param array{department_id?: int|null, position_id?: int|null, hire_year?: int|null, hire_month?: int|null, status?: 'active'|'archived'} $filters
      */
@@ -133,31 +144,41 @@ class EmployeeService
             'status',
         ];
         $sanitizedData = array_intersect_key($data, array_flip($allowedFields));
+        $sanitizedData = $this->sanitizeTextFields($sanitizedData);
 
         foreach (['first_name', 'last_name', 'suffix'] as $field) {
             if (isset($sanitizedData[$field]) && is_string($sanitizedData[$field])) {
-                $normalized = preg_replace('/\s+/u', ' ', trim($sanitizedData[$field]));
+                $normalized = preg_replace('/\s+/u', ' ', $sanitizedData[$field]);
                 if ($normalized === null) {
                     throw new \InvalidArgumentException("The employee {$field} contains invalid text encoding.");
                 }
 
                 $sanitizedData[$field] = trim($normalized);
-                if ($field === 'suffix' && $sanitizedData[$field] === '') {
-                    $sanitizedData[$field] = null;
-                }
             }
         }
 
+        if (($sanitizedData['suffix'] ?? null) === '') {
+            $sanitizedData['suffix'] = null;
+        }
+
         foreach (['sss_no', 'philhealth_no', 'pagibig_no', 'tin_no'] as $field) {
-            if (isset($sanitizedData[$field]) && is_string($sanitizedData[$field])) {
-                $sanitizedData[$field] = trim($sanitizedData[$field]);
-                if ($sanitizedData[$field] === '') {
-                    $sanitizedData[$field] = null;
-                }
+            if (($sanitizedData[$field] ?? null) === '') {
+                $sanitizedData[$field] = null;
             }
         }
 
         return $sanitizedData;
+    }
+
+    private function sanitizeTextFields(array $data): array
+    {
+        foreach (self::SANITIZED_TEXT_FIELDS as $field) {
+            if (isset($data[$field]) && is_string($data[$field])) {
+                $data[$field] = trim(strip_tags($data[$field]));
+            }
+        }
+
+        return $data;
     }
 
     public function archive(Employee $employee): void

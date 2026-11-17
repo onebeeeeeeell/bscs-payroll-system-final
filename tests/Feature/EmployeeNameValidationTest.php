@@ -153,7 +153,7 @@ class EmployeeNameValidationTest extends TestCase
         ]);
 
         app(EmployeeService::class)->update($employee, [
-            'first_name' => "  Alex   Marie \t",
+            'first_name' => "  <strong>Alex</strong>   Marie \t",
             'suffix' => '   ',
             'archived_at' => now(),
         ]);

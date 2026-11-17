@@ -10,8 +10,12 @@ use Illuminate\Validation\ValidationException;
 
 class PayrollService
 {
+    private const SANITIZED_TEXT_FIELDS = ['search'];
+
     public function paginate(?string $search = null, int $perPage = 10): LengthAwarePaginator
     {
+        $search = $this->sanitizeSearchTerm($search);
+
         return Payroll::query()
             ->with(['employee:id,first_name,last_name,suffix', 'payrollPeriod:id,start_date,end_date,pay_date,status', 'user:id,name'])
             // only filter when something was typed in the search box (ilike = case-insensitive in PostgreSQL)
@@ -58,6 +62,22 @@ class PayrollService
         DB::transaction(
             fn () => $payroll->delete()
         );
+    }
+
+    private function sanitizeSearchTerm(?string $search): ?string
+    {
+        return $search === null ? null : $this->sanitizeTextFields(['search' => $search])['search'];
+    }
+
+    private function sanitizeTextFields(array $data): array
+    {
+        foreach (self::SANITIZED_TEXT_FIELDS as $field) {
+            if (isset($data[$field]) && is_string($data[$field])) {
+                $data[$field] = trim(strip_tags($data[$field]));
+            }
+        }
+
+        return $data;
     }
 
     // diriiiiiiiiiiiiiiiiiiii sugpon if may ano sa controller na logic

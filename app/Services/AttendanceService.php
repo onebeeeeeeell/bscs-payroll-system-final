@@ -14,6 +14,12 @@ use Illuminate\Support\Collection;
 
 class AttendanceService
 {
+    private const SANITIZED_TEXT_FIELDS = [
+        'work_date',
+        'time_in',
+        'time_out'
+        ];
+
     /**
      * @param array{status?: 'active'|'deleted', department_id?: int|null, position_id?: int|null, date?: string|null} $filters
      */
@@ -87,6 +93,7 @@ class AttendanceService
 
     public function create(array $data): Attendance
     {
+        $data = $this->sanitizeAttendanceData($data);
         $data = $this->calculateWorkedHours($data);
 
         // transaction so nothing is saved if something fails in the middle
@@ -97,6 +104,7 @@ class AttendanceService
 
     public function update(Attendance $attendance, array $data): Attendance
     {
+        $data = $this->sanitizeAttendanceData($data);
         $data = $this->calculateWorkedHours($data);
 
         return DB::transaction(function () use ($attendance, $data) {
@@ -156,6 +164,28 @@ class AttendanceService
 
         $data['hours_worked'] = number_format($hoursWorked, 2, '.', '');
         $data['overtime_hours'] = number_format($overtimeHours, 2, '.', '');
+
+        return $data;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function sanitizeAttendanceData(array $data): array
+    {
+        $data = array_intersect_key($data, array_flip(['employee_id', 'work_date', 'time_in', 'time_out']));
+
+        return $this->sanitizeTextFields($data);
+    }
+
+    private function sanitizeTextFields(array $data): array
+    {
+        foreach (self::SANITIZED_TEXT_FIELDS as $field) {
+            if (isset($data[$field]) && is_string($data[$field])) {
+                $data[$field] = trim(strip_tags($data[$field]));
+            }
+        }
 
         return $data;
     }
