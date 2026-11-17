@@ -1,29 +1,35 @@
 <?php
 
+
 namespace App\Services;
+
 
 use App\Models\ContributionRate;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 
+
 class ContributionRateService
 {
     private const SANITIZED_TEXT_FIELDS = ['search'];
+
 
     public function paginate(?string $search = null, int $perPage = 10): LengthAwarePaginator
     {
         $search = $this->sanitizeSearchTerm($search);
 
+
         return ContributionRate::query()
             ->with(['contributionType:id,name'])
-            // only filter when something was typed in the search box (ilike = case-insensitive in PostgreSQL)
+            // only filter when something was typed in the search box (like is case-insensitive for plain text in SQLite and MySQL)
             ->when($search, fn ($query) => $query->where(function ($query) use ($search) {
-                $query->whereHas('contributionType', fn ($type) => $type->where('name', 'ilike', "%{$search}%"));
+                $query->whereHas('contributionType', fn ($type) => $type->where('name', 'like', "%{$search}%"));
             }))
             ->latest()
             ->paginate($perPage)
             ->withQueryString(); // keep ?search= when changing pages
     }
+
 
     public function create(array $data): ContributionRate
     {
@@ -33,14 +39,17 @@ class ContributionRateService
         );
     }
 
+
     public function update(ContributionRate $contributionRate, array $data): ContributionRate
     {
         return DB::transaction(function () use ($contributionRate, $data) {
             $contributionRate->update($data);
 
+
             return $contributionRate;
         });
     }
+
 
     public function delete(ContributionRate $contributionRate): void
     {
@@ -49,10 +58,12 @@ class ContributionRateService
         );
     }
 
+
     private function sanitizeSearchTerm(?string $search): ?string
     {
         return $search === null ? null : $this->sanitizeTextFields(['search' => $search])['search'];
     }
+
 
     private function sanitizeTextFields(array $data): array
     {
@@ -62,8 +73,10 @@ class ContributionRateService
             }
         }
 
+
         return $data;
     }
+
 
     // diriiiiiiiiiiiiiiiiiiiii sugpon if may ano sa controller na logic
 }
