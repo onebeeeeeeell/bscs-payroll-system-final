@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -10,18 +11,39 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 #[Fillable([
-        'employee_id',
-        'payroll_period_id',
-        'user_id',
-        'gross_pay',
-        'total_deductions',
-        'net_pay',
-        'date_processed'
-        ])]
+    'employee_id',
+    'payroll_period_id',
+    'user_id',
+    'gross_pay',
+    'total_deductions',
+    'net_pay',
+    'date_processed'
+])]
 
 class Payroll extends Model
 {
-        use HasFactory;
+    use HasFactory;
+
+    /*
+     * LABEL: Eager load details
+     * Purpose: I-load na agad ang employee, payrollPeriod, at user
+     * (iwas N+1 problem). Piling columns lang para magaan ang query.
+     */
+    public function scopeWithDetails(Builder $query): void
+    {
+        $query->with([
+            'employee:id,first_name,last_name,suffix',
+            'payrollPeriod:id,start_date,end_date,pay_date,status',
+            'user:id,name',
+        ]);
+    }
+
+    public function scopeSearch(Builder $query, ?string $search): void
+    {
+        if ($search) {
+            $query->whereHas('employee', fn (Builder $employee) => $employee->matchingFirstOrLastName($search));
+        }
+    }
 
     public function employee(): BelongsTo
     {

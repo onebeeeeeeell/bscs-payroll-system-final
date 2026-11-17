@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class EmployeeService
 {
@@ -29,9 +30,16 @@ class EmployeeService
      */
     public function indexData(array $validated, array $filters): array
     {
+        /*
+         * LABEL: Hire date range query
+         */
         $hireDates = Employee::query()
-            ->selectRaw('MIN(date_hired) AS first_hire_date, MAX(date_hired) AS last_hire_date')
+            ->hireDateBounds()
             ->first();
+
+        /*
+         * LABEL: Year range computation
+         */
         $firstYear = $hireDates->first_hire_date
             ? Carbon::parse($hireDates->first_hire_date)->year
             : now()->year;
@@ -39,6 +47,9 @@ class EmployeeService
             ? max((int) now()->year, (int) Carbon::parse($hireDates->last_hire_date)->year)
             : now()->year;
 
+        /*
+         * LABEL: Returned payload
+         */
         return [
             'employees' => $this->paginate($validated),
             'departments' => $this->departmentOptions(),
@@ -53,144 +64,140 @@ class EmployeeService
      */
     public function paginate(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
-        $query = Employee::query()
-            ->with(['position:id,title', 'department:id,department_name'])
-            ->when(
-                ($filters['status'] ?? 'active') === 'archived',
-                fn ($query) => $query->whereNotNull('archived_at'),
-                fn ($query) => $query->whereNull('archived_at'),
-            )
-            ->when($filters['department_id'] ?? null, fn ($query, $departmentId) => $query->where('department_id', $departmentId))
-            ->when($filters['position_id'] ?? null, fn ($query, $positionId) => $query->where('position_id', $positionId));
-
-        $hireYear = $filters['hire_year'] ?? null;
-        $hireMonth = $filters['hire_month'] ?? null;
-
-        if ($hireYear !== null) {
-            $startDate = Carbon::create((int) $hireYear, (int) ($hireMonth ?? 1), 1);
-            $endDate = $hireMonth !== null
-                ? $startDate->copy()->endOfMonth()
-                : $startDate->copy()->endOfYear();
-
-            $query->whereBetween('date_hired', [
-                $startDate->toDateString(),
-                $endDate->toDateString(),
-            ]);
-        } elseif ($hireMonth !== null) {
-            $query->whereMonth('date_hired', $hireMonth);
-        }
-
-        return $query->latest()->paginate($perPage)->withQueryString();
+        /*
+         * LABEL: Employee list
+         * Purpose: Nasa Employee model na ang logic (filters at eager load).
+         * Dito, tinatawag na lang ang mga scopes.
+         * - latest(): ORDER BY created_at DESC
+         * - withQueryString(): ini-keep ang filters sa pagination links
+         *   para hindi mag-reset pag nag-page 2.
+         */
+        return Employee::query()
+            ->forFilters($filters)
+            ->withListRelations()
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
+    /*
+     * LABEL: Department options
+     * Purpose: id at department_name lang, alphabetical, para sa dropdown.
+     */
     public function departmentOptions(): Collection
     {
-        return Department::query()->orderBy('department_name')->get(['id', 'department_name']);
+        return Department::query()->alphabetical()->get(['id', 'department_name']);
     }
 
+    /*
+     * LABEL: Position options
+     * Purpose: id at title lang, alphabetical, para sa dropdown.
+     */
     public function positionOptions(): Collection
     {
-        return Position::query()->orderBy('title')->get(['id', 'title']);
+        return Position::query()->alphabetical()->get(['id', 'title']);
     }
 
+    /*
+     * LABEL: Edit/create form options
+     * Purpose: Isang bundle ng positions, departments, at employment statuses
+     * para sa create/edit form.
+     */
     public function employeeEditOptions(): array
     {
         return [
             'positions' => $this->positionOptions(),
             'departments' => $this->departmentOptions(),
-            'statuses' => EmploymentStatus::query()->orderBy('name')->get(['id', 'name']),
+            'statuses' => EmploymentStatus::query()->alphabetical()->get(['id', 'name']),
         ];
     }
 
+    /*
+     * LABEL: Create employee
+     * Purpose: I-sanitize muna ang fields, tapos insert sa loob ng
+     * transaction (atomic: kapag may pumalpak, rollback).
+     */
     public function create(array $data): Employee
     {
-        $sanitizedData = $this->sanitizeEmployeeData($data);
+        $fields = $this->sanitizeFields($data);
+
 
         return DB::transaction(
-            fn () => Employee::create($sanitizedData)
+            fn () => Employee::create($fields)
         );
     }
 
+    /*
+     * LABEL: Update employee
+     * Purpose: Same sa create: sanitize muna, tapos update sa loob ng
+     * transaction. Ibinabalik ang updated na $employee.
+     */
     public function update(Employee $employee, array $data): Employee
     {
-        $sanitizedData = $this->sanitizeEmployeeData($data);
+        $fields = $this->sanitizeFields($data);
 
-        return DB::transaction(function () use ($employee, $sanitizedData) {
-            $employee->update($sanitizedData);
+
+        return DB::transaction(function () use ($employee, $fields) {
+            $employee->update($fields);
             return $employee;
         });
     }
 
     /**
-     * Normalize validated employee input and keep only editable employee fields.
+     * Sanitize text fields and store blank optional values as null.
      *
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
-    private function sanitizeEmployeeData(array $data): array
+    private function sanitizeFields(array $data): array
     {
-        $allowedFields = [
-            'first_name',
-            'last_name',
-            'suffix',
-            'position_id',
-            'department_id',
-            'date_hired',
-            'daily_rate',
-            'sss_no',
-            'philhealth_no',
-            'pagibig_no',
-            'tin_no',
-            'status',
-        ];
-        $sanitizedData = array_intersect_key($data, array_flip($allowedFields));
-        $sanitizedData = $this->sanitizeTextFields($sanitizedData);
-
-        foreach (['first_name', 'last_name', 'suffix'] as $field) {
-            if (isset($sanitizedData[$field]) && is_string($sanitizedData[$field])) {
-                $normalized = preg_replace('/\s+/u', ' ', $sanitizedData[$field]);
-                if ($normalized === null) {
-                    throw new \InvalidArgumentException("The employee {$field} contains invalid text encoding.");
-                }
-
-                $sanitizedData[$field] = trim($normalized);
-            }
-        }
-
-        if (($sanitizedData['suffix'] ?? null) === '') {
-            $sanitizedData['suffix'] = null;
-        }
-
-        foreach (['sss_no', 'philhealth_no', 'pagibig_no', 'tin_no'] as $field) {
-            if (($sanitizedData[$field] ?? null) === '') {
-                $sanitizedData[$field] = null;
-            }
-        }
-
-        return $sanitizedData;
-    }
-
-    private function sanitizeTextFields(array $data): array
-    {
+        /*
+         * LABEL: Text sanitization
+         * Purpose: strip_tags() para tanggalin ang HTML tags, squish() para
+         * i-trim at gawing isang space lang ang sunod-sunod na spaces,
+         * toString() para bumalik sa plain string. String lang ang dadaan,
+         * kaya hindi masisira ang null o numbers.
+         */
         foreach (self::SANITIZED_TEXT_FIELDS as $field) {
             if (isset($data[$field]) && is_string($data[$field])) {
-                $data[$field] = trim(strip_tags($data[$field]));
+                $data[$field] = Str::of(strip_tags($data[$field]))
+                    ->squish()
+                    ->toString();
+            }
+        }
+
+        /*
+         * LABEL: Empty optional fields -> NULL
+         * Purpose: NULL ang i-save at hindi ''. Mahalaga sa unique index ng
+         * government IDs, kasi puwedeng maraming NULL pero isang '' lang.
+         */
+        foreach (['suffix', 'sss_no', 'philhealth_no', 'pagibig_no', 'tin_no'] as $field) {
+            if (($data[$field] ?? null) === '') {
+                $data[$field] = null;
             }
         }
 
         return $data;
     }
 
+    /*
+     * LABEL: Archive employee
+     * Purpose: Soft archive. Sine-set ang archived_at ng employee, tapos
+     * sino-soft delete ang active attendance records niya sa isang bulk UPDATE.
+     */
     public function archive(Employee $employee): void
     {
         DB::transaction(function () use ($employee) {
             $employee->update(['archived_at' => now()]);
-            $employee->attendances()
-                ->whereNull('deleted_at')
-                ->update(['deleted_at' => now()]);
+            $employee->attendances()->delete();
         });
     }
 
+    /*
+     * LABEL: Restore employee
+     * Purpose: Ibalik ang employee (archived_at = null) at i-restore
+     * ang soft-deleted attendance records niya.
+     */
     public function restore(Employee $employee): void
     {
         DB::transaction(function () use ($employee) {

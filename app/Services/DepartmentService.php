@@ -3,31 +3,30 @@
 namespace App\Services;
 
 use App\Models\Department;
+use App\Services\Concerns\SanitizesText;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class DepartmentService
 {
-    private const SANITIZED_TEXT_FIELDS = ['department_name'];
+    use SanitizesText;
+
+    private const SANITIZED_FIELDS = ['department_name'];
 
     public function paginate(?string $search = null, int $perPage = 10): LengthAwarePaginator
     {
-        $search = $this->sanitizeSearchTerm($search);
-
         return Department::query()
-            ->withCount('employees')
-            // only filter when something was typed in the search box (ilike = case-insensitive in PostgreSQL)
-            ->when($search, fn ($query) => $query->where(function ($query) use ($search) {
-                $query->where('department_name', 'ilike', "%{$search}%");
-            }))
+            ->withEmployeesCount()
+            ->search($search)
             ->latest()
             ->paginate($perPage)
             ->withQueryString(); // keep ?search= when changing pages
     }
 
+
     public function create(array $data): Department
     {
-        $data = $this->sanitizeTextFields($data);
+        $data = $this->sanitizeFields($data);
 
         // transaction so nothing is saved if something fails in the middle
         return DB::transaction(
@@ -35,9 +34,10 @@ class DepartmentService
         );
     }
 
+
     public function update(Department $department, array $data): Department
     {
-        $data = $this->sanitizeTextFields($data);
+        $data = $this->sanitizeFields($data);
 
         return DB::transaction(function () use ($department, $data) {
             $department->update($data);
@@ -46,6 +46,7 @@ class DepartmentService
         });
     }
 
+
     public function delete(Department $department): void
     {
         DB::transaction(
@@ -53,21 +54,16 @@ class DepartmentService
         );
     }
 
-    private function sanitizeSearchTerm(?string $search): ?string
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function sanitizeFields(array $data): array
     {
-        return $search === null ? null : $this->sanitizeTextFields(['department_name' => $search])['department_name'];
+        return $this->sanitizeStringFields($data, self::SANITIZED_FIELDS);
     }
 
-    private function sanitizeTextFields(array $data): array
-    {
-        foreach (self::SANITIZED_TEXT_FIELDS as $field) {
-            if (isset($data[$field]) && is_string($data[$field])) {
-                $data[$field] = trim(strip_tags($data[$field]));
-            }
-        }
-
-        return $data;
-    }
 
     // diriiiiiiiiiiiiiiiiii sugpon if may ano sa controller na logic
 }

@@ -3,41 +3,52 @@
 namespace App\Services;
 
 use App\Models\EmploymentStatus;
+use App\Models\Employee;
+use App\Services\Concerns\SanitizesText;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class EmploymentStatusService
 {
-    private const SANITIZED_TEXT_FIELDS = ['name'];
+    use SanitizesText;
+
+    private const SANITIZED_FIELDS = ['name'];
 
     public function create(array $data): EmploymentStatus
     {
-        $data = $this->sanitizeTextFields($data);
+        $data = $this->sanitizeFields($data);
 
         return DB::transaction(
             fn () => EmploymentStatus::create($data)
         );
     }
 
+
     public function update(EmploymentStatus $status, array $data): EmploymentStatus
     {
-        $data = $this->sanitizeTextFields($data);
+        $data = $this->sanitizeFields($data);
 
         return DB::transaction(function () use ($status, $data) {
             $oldName = $status->name;
             $status->update($data);
 
-            DB::table('employees')->where('status', $oldName)->update(['status' => $status->name]);
+
+            Employee::query()
+                ->withStatus($oldName)
+                ->update(['status' => $status->name]);
+
 
             return $status;
         });
     }
 
+
     public function deleteIfUnused(Model $model, callable $isInUse, string $label): void
     {
         DB::transaction(function () use ($model, $isInUse, $label) {
             $model->newQuery()->whereKey($model->getKey())->lockForUpdate()->firstOrFail();
+
 
             if ($isInUse()) {
                 throw ValidationException::withMessages([
@@ -45,18 +56,19 @@ class EmploymentStatusService
                 ]);
             }
 
+
             $model->delete();
         });
     }
 
-    private function sanitizeTextFields(array $data): array
-    {
-        foreach (self::SANITIZED_TEXT_FIELDS as $field) {
-            if (isset($data[$field]) && is_string($data[$field])) {
-                $data[$field] = trim(strip_tags($data[$field]));
-            }
-        }
 
-        return $data;
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function sanitizeFields(array $data): array
+    {
+        return $this->sanitizeStringFields($data, self::SANITIZED_FIELDS);
     }
+
 }

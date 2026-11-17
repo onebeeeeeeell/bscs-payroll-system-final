@@ -8,10 +8,8 @@ class NotificationService
 {
     private function missingAttendanceCount(): int
     {
-        $today = today();
-
-        return Employee::whereNull('archived_at')
-            ->whereDoesntHave('attendances', fn ($query) => $query->whereDate('work_date', $today))
+        return Employee::active()
+            ->missingAttendanceOn(today()->toDateString())
             ->count();
     }
 

@@ -1,34 +1,33 @@
 <?php
 
-
 namespace App\Services;
-
 
 use App\Models\Payroll;
 use App\Models\Employee;
+use App\Services\Concerns\SanitizesText;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 
-
 class PayrollService
 {
-    private const SANITIZED_TEXT_FIELDS = ['search'];
+    use SanitizesText;
 
+    private const SANITIZED_FIELDS = [
+        'employee_id',
+        'payroll_period_id',
+        'user_id',
+        'gross_pay',
+        'total_deductions',
+        'net_pay',
+        'date_processed',
+    ];
 
     public function paginate(?string $search = null, int $perPage = 10): LengthAwarePaginator
     {
-        $search = $this->sanitizeSearchTerm($search);
-
-
         return Payroll::query()
-            ->with(['employee:id,first_name,last_name,suffix', 'payrollPeriod:id,start_date,end_date,pay_date,status', 'user:id,name'])
-            // only filter when something was typed in the search box (like is case-insensitive for plain text in SQLite and MySQL)
-            ->when($search, fn ($query) => $query->where(function ($query) use ($search) {
-                $query->whereHas('employee', fn ($employee) => $employee
-                    ->where('first_name', 'like', "%{$search}%")
-                    ->orWhere('last_name', 'like', "%{$search}%"));
-            }))
+            ->withDetails()
+            ->search($search)
             ->latest('date_processed')
             ->paginate($perPage)
             ->withQueryString(); // keep ?search= when changing pages
@@ -37,10 +36,12 @@ class PayrollService
 
     public function create(array $data): Payroll
     {
+        $data = $this->sanitizeFields($data);
+
         return DB::transaction(function () use ($data) {
             $employeeIsActive = Employee::query()
                 ->whereKey($data['employee_id'])
-                ->whereNull('archived_at')
+                ->active()
                 ->lockForUpdate()
                 ->exists();
 
@@ -59,9 +60,10 @@ class PayrollService
 
     public function update(Payroll $payroll, array $data): Payroll
     {
+        $data = $this->sanitizeFields($data);
+
         return DB::transaction(function () use ($payroll, $data) {
             $payroll->update($data);
-
 
             return $payroll;
         });
@@ -76,22 +78,13 @@ class PayrollService
     }
 
 
-    private function sanitizeSearchTerm(?string $search): ?string
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function sanitizeFields(array $data): array
     {
-        return $search === null ? null : $this->sanitizeTextFields(['search' => $search])['search'];
-    }
-
-
-    private function sanitizeTextFields(array $data): array
-    {
-        foreach (self::SANITIZED_TEXT_FIELDS as $field) {
-            if (isset($data[$field]) && is_string($data[$field])) {
-                $data[$field] = trim(strip_tags($data[$field]));
-            }
-        }
-
-
-        return $data;
+        return $this->sanitizeStringFields($data, self::SANITIZED_FIELDS, false);
     }
 
 

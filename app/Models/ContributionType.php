@@ -3,17 +3,35 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 #[Fillable([
-        'name'
-        ])]
+    'name'
+])]
 
 class ContributionType extends Model
 {
-        use HasFactory;
+    use HasFactory;
+
+    /*
+     * LABEL: Eager load rates
+     * Purpose: with() para i-load na agad ang contributionRates (iwas N+1 problem).
+     * Piling columns lang ang kukunin para magaan ang query.
+     */
+    public function scopeWithRates(Builder $query): void
+    {
+        $query->with(['contributionRates:id,contribution_type_id,rate']);
+    }
+
+    public function scopeSearch(Builder $query, ?string $search): void
+    {
+        if ($search) {
+            $query->where('name', 'ilike', "%{$search}%");
+        }
+    }
 
     public function contributionRates(): HasMany
     {

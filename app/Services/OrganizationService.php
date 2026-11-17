@@ -4,9 +4,10 @@ namespace App\Services;
 
 use App\Models\ContributionRate;
 use App\Models\Department;
+use App\Models\Employee;
 use App\Models\EmploymentStatus;
 use App\Models\Position;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 
 class OrganizationService
 {
@@ -16,23 +17,28 @@ class OrganizationService
     public function settings(): array
     {
         return [
-            'departments' => Department::withCount('employees')->orderBy('department_name')->get(['id', 'department_name']),
-            'positions' => Position::withCount('employees')->orderBy('title')->get(['id', 'title']),
+            'departments' => Department::query()
+                ->withEmployeesCount()
+                ->alphabetical()
+                ->get(['id', 'department_name']),
+            'positions' => Position::query()
+                ->withEmployeesCount()
+                ->alphabetical()
+                ->get(['id', 'title']),
             'statuses' => $this->statuses(),
-            'contributionRates' => ContributionRate::with('contributionType:id,name')
+            'contributionRates' => ContributionRate::query()
+                ->withType()
                 ->get(['id', 'contribution_type_id', 'rate']),
         ];
     }
 
-    private function statuses()
+    private function statuses(): Collection
     {
-        
-        $counts = DB::table('employees')
-            ->select('status', DB::raw('count(*) as total'))
-            ->groupBy('status')
+        $counts = Employee::query()
+            ->countsByStatus()
             ->pluck('total', 'status');
 
-        return EmploymentStatus::orderBy('name')
+        return EmploymentStatus::alphabetical()
             ->get(['id', 'name'])
             ->map(fn ($status) => [
                 'id' => $status->id,
