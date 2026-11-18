@@ -145,6 +145,24 @@ class EmployeeNameValidationTest extends TestCase
         }
     }
 
+    public function test_identification_numbers_enforce_their_maximum_lengths(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $employee = Employee::factory()->create();
+        $maximumLengths = [
+            'sss_no' => 10,
+            'philhealth_no' => 12,
+            'pagibig_no' => 12,
+            'tin_no' => 9,
+        ];
+
+        foreach ($maximumLengths as $field => $maximumLength) {
+            $this->patch(route('employees.update', $employee), [
+                $field => str_repeat('1', $maximumLength + 1),
+            ])->assertSessionHasErrors($field);
+        }
+    }
+
     public function test_employee_service_normalizes_names_and_only_updates_editable_fields(): void
     {
         $employee = Employee::factory()->create([
@@ -311,5 +329,25 @@ class EmployeeNameValidationTest extends TestCase
 
         $response->assertRedirect(route('employees.index'));
         $this->assertDatabaseHas('employees', ['daily_rate' => '500.50']);
+    }
+
+    public function test_daily_rate_must_be_between_100_and_550(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $employee = Employee::factory()->create();
+
+        foreach (['99.99', '550.01'] as $dailyRate) {
+            $this->patch(route('employees.update', $employee), [
+                'daily_rate' => $dailyRate,
+            ])->assertSessionHasErrors('daily_rate');
+        }
+
+        $this->patch(route('employees.update', $employee), [
+            'daily_rate' => '100',
+        ])->assertSessionHasNoErrors();
+
+        $this->patch(route('employees.update', $employee), [
+            'daily_rate' => '550',
+        ])->assertSessionHasNoErrors();
     }
 }

@@ -26,6 +26,17 @@ class EmployeeRequest extends FormRequest
                 ]);
             }
         }
+
+        foreach (['sss_no', 'philhealth_no', 'pagibig_no', 'tin_no'] as $field) {
+            $value = $this->input($field);
+
+            if (is_string($value)) {
+                $digits = preg_replace('/\D/', '', $value);
+                $this->merge([
+                    $field => $digits === '' ? null : $digits,
+                ]);
+            }
+        }
     }
 
     /**
@@ -35,21 +46,28 @@ class EmployeeRequest extends FormRequest
     {
         $required = $this->isMethod('PATCH') ? 'sometimes' : 'required';
         $employee = $this->route('employee');
+        $dateHiredRules = [$required, 'date'];
+
+        if ($this->isMethod('POST')) {
+            $dateHiredRules[] = 'after_or_equal:today';
+        }
+
+        $dateHiredRules[] = 'before_or_equal:'.now()->endOfYear()->toDateString();
 
         return [
-            'first_name' => [$required, 'string', 'max:50', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
-            'last_name' => [$required, 'string', 'max:20', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
-            'suffix' => ['nullable', 'string', 'max:3', 'regex:/^[\p{L}]+(?:\s+[\p{L}]+)*$/u'],
+            'first_name' => [$required, 'string', 'max:50', 'regex:/^[\p{L}\p{M}.\'-]+(?:\s+[\p{L}\p{M}.\'-]+)*$/u'],
+            'last_name' => [$required, 'string', 'max:50', 'regex:/^[\p{L}\p{M}.\'-]+(?:\s+[\p{L}\p{M}.\'-]+)*$/u'],
+            'suffix' => ['nullable', 'string', 'max:5', 'regex:/^[\p{L}\p{M}.\'-]+(?:\s+[\p{L}\p{M}.\'-]+)*$/u'],
             'position_id' => [$required, 'integer', 'exists:positions,id'],
             'department_id' => [$required, 'integer', 'exists:departments,id'],
-            'date_hired' => [$required, 'date', 'after_or_equal:today', 'before_or_equal:'.now()->endOfYear()->toDateString()],
-            // max matches the decimal(10,2) column so it can't overflow
-            'daily_rate' => [$required, 'numeric', 'regex:/^\d+(?:\.\d{1,2})?$/', 'min:0', 'max:99999999.99'],
-            'sss_no' => ['nullable', 'string', 'max:20', 'regex:/^[0-9-]+$/', Rule::unique('employees', 'sss_no')->ignore($employee)],
-            'philhealth_no' => ['nullable', 'string', 'max:20', 'regex:/^[0-9-]+$/', Rule::unique('employees', 'philhealth_no')->ignore($employee)],
-            'pagibig_no' => ['nullable', 'string', 'max:20', 'regex:/^[0-9-]+$/', Rule::unique('employees', 'pagibig_no')->ignore($employee)],
-            'tin_no' => ['nullable', 'string', 'max:20', 'regex:/^[0-9-]+$/', Rule::unique('employees', 'tin_no')->ignore($employee)],
-            'status' => [$required, 'string', 'max:50', Rule::exists('employment_statuses', 'name')],
+            'date_hired' => $dateHiredRules,
+            'daily_rate' => [$required, 'numeric', 'regex:/^\d+(?:\.\d{1,2})?$/', 'min:100', 'max:550'],
+            'sss_no' => ['nullable', 'digits:10', Rule::unique('employees', 'sss_no')->ignore($employee)],
+            'philhealth_no' => ['nullable', 'digits:12', Rule::unique('employees', 'philhealth_no')->ignore($employee)],
+            'pagibig_no' => ['nullable', 'digits:12', Rule::unique('employees', 'pagibig_no')->ignore($employee)],
+            'tin_no' => ['nullable', 'digits_between:9,12', Rule::unique('employees', 'tin_no')->ignore($employee)],
+            'pin' => [$this->isMethod('POST') ? 'required' : 'sometimes', 'nullable', 'digits:6'],
+            'status' => [$required, Rule::exists('employment_statuses', 'name')],
         ];
     }
 
@@ -59,17 +77,18 @@ class EmployeeRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'daily_rate.max' => 'The daily rate is too large.',
+            'daily_rate.min' => 'The daily rate must be at least 100.',
+            'daily_rate.max' => 'The daily rate cannot exceed 550.',
             'daily_rate.regex' => 'The daily rate must contain only numbers and an optional decimal point with up to two decimal places.',
             'date_hired.after_or_equal' => 'The hire date must be today or a future date.',
             'date_hired.before_or_equal' => 'The hire date must be within the current year.',
-            'first_name.regex' => 'The first name may only contain letters and spaces.',
-            'last_name.regex' => 'The last name may only contain letters and spaces.',
-            'suffix.regex' => 'The suffix may only contain letters and spaces.',
-            'sss_no.regex' => 'The SSS number may only contain numbers and hyphens.',
-            'philhealth_no.regex' => 'The PhilHealth number may only contain numbers and hyphens.',
-            'pagibig_no.regex' => 'The Pag-IBIG number may only contain numbers and hyphens.',
-            'tin_no.regex' => 'The TIN may only contain numbers and hyphens.',
+            'first_name.regex' => 'The first name may only contain letters, spaces, hyphens, apostrophes, and periods.',
+            'last_name.regex' => 'The last name may only contain letters, spaces, hyphens, apostrophes, and periods.',
+            'suffix.regex' => 'The suffix may only contain letters, spaces, hyphens, apostrophes, and periods.',
+            'sss_no.digits' => 'The SSS number must be 10 digits.',
+            'philhealth_no.digits' => 'The PhilHealth number must be 12 digits.',
+            'pagibig_no.digits' => 'The Pag-IBIG number must be 12 digits.',
+            'tin_no.digits_between' => 'The TIN must be 9 to 12 digits.',
         ];
     }
 }

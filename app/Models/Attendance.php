@@ -72,18 +72,6 @@ class Attendance extends Model
     }
 
     /*
-     * LABEL: Selection scope
-     * Purpose: Para sa dropdowns. Active employees lang, sorted by first_name,
-     * piling columns lang ang kukunin.
-     */
-    public function scopeForSelection(Builder $query): void
-    {
-        $query->active()
-            ->orderBy('first_name')
-            ->select(['id', 'first_name', 'last_name', 'suffix']);
-    }
-
-    /*
      * LABEL: Summary scope
      * Purpose: Aggregates para sa status cards, ISANG query lang:
      * records (total), employees (distinct), with_overtime (may OT).

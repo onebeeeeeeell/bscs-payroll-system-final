@@ -19,12 +19,6 @@ const features = [
     { icon: FileText, title: 'Payroll & Payslips', text: 'Process payroll, calculate deductions, and generate payslips with ease.' },
 ];
 
-const steps = [
-    { title: 'Add your people', text: 'Create employee records with position, department, rate and government numbers.' },
-    { title: 'Record attendance', text: 'Log time in, time out and overtime for every work day.' },
-    { title: 'Process payroll', text: 'Compute pay and deductions, then generate payslips in pesos.' },
-];
-
 function HighlightIcon({ type }: { type: string }) {
     if (type === 'shield') return <ShieldCheck className="size-9 stroke-[1.5]" />;
     if (type === 'file') return <FileText className="size-9 stroke-[1.5]" />;
@@ -57,9 +51,9 @@ export default function Welcome() {
                             Platform
                             <span className="absolute inset-x-0 bottom-0 h-[3px] rounded-full bg-[#1fe0a0]" />
                         </a>
-                        <a href="#how" className="text-muted-foreground hover:text-foreground flex h-full items-center px-5">
-                            How It Works
-                        </a>
+                        <Link href="/time-clock" className="text-muted-foreground hover:text-foreground flex h-full items-center px-5">
+                            Employee Clock-In
+                        </Link>
                     </nav>
 
                     <div className="flex w-full items-center justify-end gap-2 sm:gap-3 md:w-auto">
@@ -201,30 +195,18 @@ export default function Welcome() {
             </section>
 
             {}
-            <section id="how" className="relative mx-auto max-w-6xl px-6 pb-20">
+            <section id="clock-in" className="relative mx-auto max-w-6xl px-6 pb-20">
                 <div className="flex items-center justify-center gap-4 text-xs font-medium tracking-[0.2em] text-slate-600 dark:text-white/80">
                     <span className="h-px w-8 bg-[#1fe0a0]" />
-                    HOW IT WORKS
+                    EMPLOYEE CLOCK-IN
                     <span className="h-px w-8 bg-[#1fe0a0]" />
                 </div>
                 <h2 className="mt-5 text-center text-3xl font-bold sm:text-4xl">
-                    Three steps to <span className={GREEN}>payday.</span>
+                    Record your workday with <span className={GREEN}>Employee Clock-In.</span>
                 </h2>
-
-                <div className="mt-12 grid gap-5 md:grid-cols-3">
-                    {steps.map((step, index) => (
-                        <div
-                            key={step.title}
-                            className="rounded-xl border border-emerald-800/15 bg-emerald-50/70 p-6 dark:border-[#1fe0a0]/30 dark:bg-[#041a13]/60"
-                        >
-                            <div className="flex size-10 items-center justify-center rounded-full bg-[#0a3b2c] text-lg font-semibold text-[#1fe0a0]">
-                                {index + 1}
-                            </div>
-                            <h3 className="mt-4 text-lg font-semibold">{step.title}</h3>
-                            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{step.text}</p>
-                        </div>
-                    ))}
-                </div>
+                <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-center text-sm leading-relaxed">
+                    Clock in and out using your employee ID and six-digit PIN. Each employee can record one time-in and one time-out per workday.
+                </p>
             </section>
 
             {}

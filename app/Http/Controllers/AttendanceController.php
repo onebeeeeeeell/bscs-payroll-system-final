@@ -45,7 +45,10 @@ class AttendanceController extends Controller
     public function show(int $attendanceId): Response
     {
         $attendance = Attendance::withTrashed()->findOrFail($attendanceId);
-        $attendance->load('employee');
+        $attendance->load([
+            'employee.position:id,title',
+            'employee.department:id,department_name',
+        ]);
 
         return Inertia::render('attendance/show', [
             'attendance' => $attendance,

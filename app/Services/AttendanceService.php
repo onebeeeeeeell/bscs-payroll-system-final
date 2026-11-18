@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 
 class AttendanceService
@@ -120,6 +122,96 @@ class AttendanceService
         );
     }
 
+    public function punch(string $fullName, string $pin, string $action): Attendance
+    {
+        $fullName = $this->sanitizeFullName($fullName);
+
+        return DB::transaction(function () use ($fullName, $pin, $action) {
+            $employees = Employee::query()
+                ->active()
+                ->matchingFullName($fullName)
+                ->lockForUpdate()
+                ->get();
+
+            if ($employees->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'full_name' => 'No employee matches the entered name.',
+                ]);
+            }
+
+            $matchingEmployees = $employees->filter(
+                fn (Employee $employee) => $employee->pin && Hash::check($pin, $employee->pin),
+            );
+
+            if ($matchingEmployees->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'pin' => 'The PIN is incorrect.',
+                ]);
+            }
+
+            if ($matchingEmployees->count() > 1) {
+                throw ValidationException::withMessages([
+                    'pin' => 'The name and PIN do not uniquely identify one employee. Contact an administrator.',
+                ]);
+            }
+
+            $employee = $matchingEmployees->first();
+
+            $attendance = Attendance::withTrashed()
+                ->where('employee_id', $employee->id)
+                ->whereDate('work_date', today()->toDateString())
+                ->lockForUpdate()
+                ->first();
+
+            if ($action === 'time_in') {
+                if ($attendance) {
+                    throw ValidationException::withMessages([
+                        'action' => 'A time-in has already been recorded for today.',
+                    ]);
+                }
+
+                return Attendance::create([
+                    'employee_id' => $employee->id,
+                    'work_date' => today()->toDateString(),
+                    'time_in' => now()->format('H:i:s'),
+                    'time_out' => null,
+                ]);
+            }
+
+            if (! $attendance || $attendance->trashed()) {
+                throw ValidationException::withMessages([
+                    'action' => 'Record your time-in before recording time-out.',
+                ]);
+            }
+
+            if ($attendance->time_out !== null) {
+                throw ValidationException::withMessages([
+                    'action' => 'A time-out has already been recorded for today.',
+                ]);
+            }
+
+            $timeOut = now()->format('H:i:s');
+            $workedTime = $this->calculateWorkedHours([
+                'time_in' => $attendance->time_in,
+                'time_out' => $timeOut,
+            ]);
+
+            if ((float) $workedTime['hours_worked'] <= 0) {
+                throw ValidationException::withMessages([
+                    'action' => 'Time-out must be later than time-in.',
+                ]);
+            }
+
+            $attendance->update([
+                'time_out' => $timeOut,
+                'hours_worked' => $workedTime['hours_worked'],
+                'overtime_hours' => $workedTime['overtime_hours'],
+            ]);
+
+            return $attendance;
+        });
+    }
+
 
     public function update(Attendance $attendance, array $data): Attendance
     {
@@ -186,5 +278,15 @@ class AttendanceService
     private function sanitizeFields(array $data): array
     {
         return $this->sanitizeStringFields($data, self::SANITIZED_FIELDS, false);
+    }
+
+    private function sanitizeFullName(string $fullName): string
+    {
+        $data = $this->sanitizeStringFields(
+            ['full_name' => $fullName],
+            ['full_name'],
+        );
+
+        return preg_replace('/\s+/u', ' ', $data['full_name']) ?? '';
     }
 }

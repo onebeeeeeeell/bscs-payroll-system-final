@@ -23,13 +23,16 @@ use Illuminate\Support\Carbon;
     'pagibig_no',
     'tin_no',
     'status',
-    'archived_at',
     'pin',
 ])]
 
 class Employee extends Model
 {
     use HasFactory;
+
+    protected $hidden = [
+        'pin',
+    ];
 
     /*
      * LABEL: Active scope
@@ -121,6 +124,13 @@ class Employee extends Model
         $query->with(['position:id,title', 'department:id,department_name']);
     }
 
+    public function scopeForSelection(Builder $query): void
+    {
+        $query->active()
+            ->orderBy('first_name')
+            ->select(['id', 'first_name', 'last_name', 'suffix']);
+    }
+
     /*
      * LABEL: Filters scope
      * Purpose: Lahat ng index filters sa iisang scope.
@@ -132,8 +142,8 @@ class Employee extends Model
      */
     public function scopeForFilters(Builder $query, array $filters): void
     {
-        $hireYear = $filters['hire_year'] ?? null;
-        $hireMonth = $filters['hire_month'] ?? null;
+        $hireYear = filled($filters['hire_year'] ?? null) ? (int) $filters['hire_year'] : null;
+        $hireMonth = filled($filters['hire_month'] ?? null) ? (int) $filters['hire_month'] : null;
 
         $query
             ->when(
@@ -143,10 +153,7 @@ class Employee extends Model
             )
             ->when($filters['department_id'] ?? null, fn (Builder $query, $departmentId) => $query->inDepartment($departmentId))
             ->when($filters['position_id'] ?? null, fn (Builder $query, $positionId) => $query->inPosition($positionId))
-            ->hiredIn(
-                $hireYear !== null ? (int) $hireYear : null,
-                $hireMonth !== null ? (int) $hireMonth : null,
-            );
+            ->hiredIn($hireYear, $hireMonth);
     }
 
     public function scopeMatchingFirstOrLastName(Builder $query, string $search): void
@@ -157,10 +164,18 @@ class Employee extends Model
         });
     }
 
+    public function scopeMatchingFullName(Builder $query, string $fullName): void
+    {
+        $query->whereRaw(
+            "lower(trim(concat(first_name, ' ', last_name, ' ', coalesce(suffix, '')))) = ?",
+            [mb_strtolower(trim($fullName))],
+        );
+    }
+
     public function scopeMatchingSearchTerm(Builder $query, string $term): void
     {
         $term = mb_strtolower(trim($term));
-        $like = '%'.str_replace(['\\', '%', ''], ['\\\\', '\\%', '\\'], $term).'%';
+        $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term).'%';
 
         $query->where(function (Builder $query) use ($like) {
             $query->whereRaw('lower(first_name) like ?', [$like])

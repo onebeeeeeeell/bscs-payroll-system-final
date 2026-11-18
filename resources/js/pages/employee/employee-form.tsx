@@ -131,6 +131,7 @@ export default function EmployeeForm({ employee, positions, departments, statuse
         philhealth_no: employee?.philhealth_no ?? '',
         pagibig_no: employee?.pagibig_no ?? '',
         tin_no: employee?.tin_no ?? '',
+        pin: '',
         status: employee?.status ?? statuses[0]?.name ?? '',
     });
 
@@ -309,11 +310,12 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                         </span>
                         <Input
                             id="daily_rate"
-                            type="text"
+                            type="number"
                             inputMode="decimal"
-                            min="0"
-                            pattern="\d+(\.\d{1,2})?"
-                            title="Enter numbers only, with up to two decimal places."
+                            min="100"
+                            max="550"
+                            step="0.01"
+                            title="Enter a daily rate between 100 and 550, with up to two decimal places."
                             value={form.data.daily_rate}
                             onChange={(event) => form.setData('daily_rate', filterDailyRate(event.target.value))}
                             className="h-10 pl-8"
@@ -345,22 +347,22 @@ export default function EmployeeForm({ employee, positions, departments, statuse
 
                 {(
                     [
-                        ['sss_no', 'SSS number'],
-                        ['philhealth_no', 'PhilHealth number'],
-                        ['pagibig_no', 'Pag-IBIG number'],
-                        ['tin_no', 'TIN'],
+                        ['sss_no', 'SSS number', 10],
+                        ['philhealth_no', 'PhilHealth number', 12],
+                        ['pagibig_no', 'Pag-IBIG number', 12],
+                        ['tin_no', 'TIN', 9],
                     ] as const
-                ).map(([name, label]) => (
+                ).map(([name, label, maxLength]) => (
                     <div key={name} className="space-y-2">
                         <Label htmlFor={name}>{label}</Label>
                         <Input
                             id={name}
                             value={form.data[name]}
-                            onChange={(event) => form.setData(name, filterIdentificationNumber(event.target.value))}
+                            onChange={(event) => form.setData(name, filterIdentificationNumber(event.target.value).slice(0, maxLength))}
                             inputMode="numeric"
                             pattern="[0-9-]*"
                             title="Use numbers and hyphens only."
-                            maxLength={20}
+                            maxLength={maxLength}
                             className="h-10"
                             disabled={form.processing}
                             aria-invalid={Boolean(form.errors[name])}
@@ -368,6 +370,27 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                         {fieldError(name)}
                     </div>
                 ))}
+                <div className="space-y-2">
+                    <Label htmlFor="pin">Time-clock PIN</Label>
+                    <Input
+                        id="pin"
+                        type="password"
+                        inputMode="numeric"
+                        pattern="[0-9]{6}"
+                        maxLength={6}
+                        autoComplete="new-password"
+                        value={form.data.pin}
+                        onChange={(event) => form.setData('pin', event.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="h-10"
+                        required={!editing}
+                        disabled={form.processing}
+                        aria-invalid={Boolean(form.errors.pin)}
+                    />
+                    <p className="text-muted-foreground text-xs">
+                        {editing ? 'Enter a new six-digit PIN to change it; leave blank to keep the current PIN.' : 'Set a six-digit PIN for the public time-clock page.'}
+                    </p>
+                    {fieldError('pin')}
+                </div>
             </div>
 
             <div className="flex flex-col-reverse gap-2 lg:flex-row lg:items-center">

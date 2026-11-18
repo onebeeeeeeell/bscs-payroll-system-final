@@ -226,7 +226,7 @@ export default function AttendanceForm({ attendance, employees }: Props) {
         employee_id: attendance ? String(attendance.employee_id) : '',
         work_date: attendance?.work_date ?? '',
         time_in: attendance?.time_in.slice(0, 5) ?? '',
-        time_out: attendance?.time_out.slice(0, 5) ?? '',
+        time_out: attendance?.time_out?.slice(0, 5) ?? '',
     });
 
     const timeInMinutes = toMinutes(form.data.time_in);

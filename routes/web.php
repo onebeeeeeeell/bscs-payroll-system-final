@@ -17,11 +17,15 @@ use App\Http\Controllers\EmployeeOptionController;
 use App\Http\Controllers\ContributionRateController;
 use App\Http\Controllers\ContributionTypeController;
 use App\Http\Controllers\OrganizationSettingsController;
+use App\Http\Controllers\TimeClockController;
 
 
 Route::get('/', function () {
     return Inertia::render('welcome');
 })->name('home');
+
+Route::get('time-clock', [TimeClockController::class, 'index'])->name('time-clock.index');
+Route::post('time-clock', [TimeClockController::class, 'store'])->middleware('throttle:5,1')->name('time-clock.store');
 
 
 Route::middleware(['auth'])->group(function () {

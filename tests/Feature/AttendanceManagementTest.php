@@ -198,4 +198,38 @@ class AttendanceManagementTest extends TestCase
             'deleted_at' => null,
         ]);
     }
+
+    public function test_attendance_show_includes_employee_position_and_department(): void
+    {
+        $employee = Employee::factory()->create();
+        $attendance = Attendance::factory()->create([
+            'employee_id' => $employee->id,
+        ]);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('attendance.show', $attendance))
+            ->assertInertia(fn ($page) => $page
+                ->where('attendance.employee.position.id', $employee->position_id)
+                ->where('attendance.employee.department.id', $employee->department_id)
+                ->has('attendance.employee.position.title')
+                ->has('attendance.employee.department.department_name')
+            );
+    }
+
+    public function test_attendance_edit_loads_active_employees_for_selection(): void
+    {
+        $employee = Employee::factory()->create();
+        $attendance = Attendance::factory()->create([
+            'employee_id' => $employee->id,
+        ]);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('attendance.edit', $attendance))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('attendance/edit')
+                ->has('employees', 1)
+                ->where('employees.0.id', $employee->id)
+            );
+    }
 }

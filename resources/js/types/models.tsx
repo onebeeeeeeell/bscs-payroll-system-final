@@ -58,7 +58,7 @@ export interface Attendance {
     employee_id: number;
     work_date: string;
     time_in: string;
-    time_out: string;
+    time_out: string | null;
     hours_worked: string;
     overtime_hours: string;
     employee?: Employee;

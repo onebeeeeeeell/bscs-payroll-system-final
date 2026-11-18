@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class EmployeeService
@@ -28,7 +29,7 @@ class EmployeeService
     /**
      * @param array{department_id?: int|null, position_id?: int|null, hire_year?: int|null, hire_month?: int|null, status?: 'active'|'archived'} $filters
      */
-    public function indexData(array $validated, array $filters): array
+    public function indexData(array $filters): array
     {
         /*
          * LABEL: Hire date range query
@@ -51,7 +52,7 @@ class EmployeeService
          * LABEL: Returned payload
          */
         return [
-            'employees' => $this->paginate($validated),
+            'employees' => $this->paginate($filters),
             'departments' => $this->departmentOptions(),
             'positions' => $this->positionOptions(),
             'hireYears' => range($lastYear, $firstYear),
@@ -68,7 +69,7 @@ class EmployeeService
          * LABEL: Employee list
          * Purpose: Nasa Employee model na ang logic (filters at eager load).
          * Dito, tinatawag na lang ang mga scopes.
-         * - latest(): ORDER BY created_at DESC
+         * - latest()->latest('id'): ORDER BY created_at DESC, with id as a tiebreaker
          * - withQueryString(): ini-keep ang filters sa pagination links
          *   para hindi mag-reset pag nag-page 2.
          */
@@ -76,6 +77,7 @@ class EmployeeService
             ->forFilters($filters)
             ->withListRelations()
             ->latest()
+            ->latest('id')
             ->paginate($perPage)
             ->withQueryString();
     }
@@ -121,7 +123,7 @@ class EmployeeService
     {
         $fields = $this->sanitizeFields($data);
 
-
+        // LABEL: Transaction; puwedeng tanggalin kung walang idadagdag na related writes sa susunod.
         return DB::transaction(
             fn () => Employee::create($fields)
         );
@@ -136,13 +138,14 @@ class EmployeeService
     {
         $fields = $this->sanitizeFields($data);
 
-
+        // LABEL: Transaction; puwedeng tanggalin kung walang idadagdag na related writes sa susunod.
         return DB::transaction(function () use ($employee, $fields) {
             $employee->update($fields);
             return $employee;
         });
     }
 
+    // LABEL: Main sanitization point; dito nililinis ang fields bago i-save.
     /**
      * Sanitize text fields and store blank optional values as null.
      *
@@ -167,6 +170,17 @@ class EmployeeService
         }
 
         /*
+         * LABEL: Government ID cleanup
+         * Purpose: Tanggalin hyphens at spaces para 3412345678 at 34-1234567-8
+         * ay pareho ang bilang para sa unique index.
+         */
+        foreach (['sss_no', 'philhealth_no', 'pagibig_no', 'tin_no'] as $field) {
+            if (isset($data[$field]) && is_string($data[$field]) && $data[$field] !== '') {
+                $data[$field] = preg_replace('/\D/', '', $data[$field]);
+            }
+        }
+
+        /*
          * LABEL: Empty optional fields -> NULL
          * Purpose: NULL ang i-save at hindi ''. Mahalaga sa unique index ng
          * government IDs, kasi puwedeng maraming NULL pero isang '' lang.
@@ -175,6 +189,12 @@ class EmployeeService
             if (($data[$field] ?? null) === '') {
                 $data[$field] = null;
             }
+        }
+
+        if (! empty($data['pin'])) {
+            $data['pin'] = Hash::make($data['pin']);
+        } else {
+            unset($data['pin']);
         }
 
         return $data;
