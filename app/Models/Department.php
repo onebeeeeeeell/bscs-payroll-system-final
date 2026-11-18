@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSearchScope;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,13 +16,23 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Department extends Model
 {
-    use HasFactory;
+    use HasFactory, HasSearchScope;
 
-    public function scopeSearch(Builder $query, ?string $search): void
+    protected function searchColumn(): string
     {
-        if ($search) {
-            $query->where('department_name', 'ilike', "%{$search}%");
-        }
+        return 'department_name';
+    }
+
+    public const OPTION_COLUMNS = ['id', 'department_name'];
+
+    /*
+     * LABEL: Dropdown options
+     * Purpose: id at department_name lang, alphabetical. Isang lugar na lang
+     * para sa EmployeeService at AttendanceService.
+     */
+    public static function options(): Collection
+    {
+        return static::query()->alphabetical()->get(static::OPTION_COLUMNS);
     }
 
     public function scopeAlphabetical(Builder $query): void

@@ -3,19 +3,11 @@
 namespace App\Services;
 
 use App\Models\ContributionRate;
-use App\Services\Concerns\SanitizesText;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class ContributionRateService
 {
-    use SanitizesText;
-
-    private const SANITIZED_FIELDS = [
-        'contribution_type_id',
-        'rate',
-    ];
-
     /*
      * LABEL: Contribution rate list
      * Purpose: Nasa ContributionRate model na ang logic (eager load, search).
@@ -35,8 +27,6 @@ class ContributionRateService
 
     public function create(array $data): ContributionRate
     {
-        $data = $this->sanitizeFields($data);
-
         // transaction so nothing is saved if something fails in the middle
         return DB::transaction(
             fn () => ContributionRate::create($data)
@@ -46,8 +36,6 @@ class ContributionRateService
 
     public function update(ContributionRate $contributionRate, array $data): ContributionRate
     {
-        $data = $this->sanitizeFields($data);
-
         return DB::transaction(function () use ($contributionRate, $data) {
             $contributionRate->update($data);
 
@@ -63,13 +51,4 @@ class ContributionRateService
         );
     }
 
-
-    /**
-     * @param array<string, mixed> $data
-     * @return array<string, mixed>
-     */
-    private function sanitizeFields(array $data): array
-    {
-        return $this->sanitizeStringFields($data, self::SANITIZED_FIELDS, false);
-    }
 }

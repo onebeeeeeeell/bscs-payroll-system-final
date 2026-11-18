@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ListSearchRequest;
 use App\Http\Requests\ContributionType\ContributionTypeRequest;
 use App\Models\ContributionType;
 use App\Services\ContributionTypeService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,10 +16,10 @@ class ContributionTypeController extends Controller
         private \App\Services\ContributionTypeService $contributionTypeService,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(ListSearchRequest $request): Response
     {
         return Inertia::render('contribution-type/index', [
-            'contributionTypes' => $this->contributionTypeService->paginate($request->query('search')),
+            'contributionTypes' => $this->contributionTypeService->paginate($request->validated('search')),
         ]);
     }
 

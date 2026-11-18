@@ -19,13 +19,6 @@ class AttendanceService
 {
     use SanitizesText;
 
-    private const SANITIZED_FIELDS = [
-        'employee_id',
-        'work_date',
-        'time_in',
-        'time_out',
-    ];
-
     private const STANDARD_WORK_HOURS = 8;
 
     /**
@@ -36,8 +29,8 @@ class AttendanceService
         return [
             'attendances' => $this->paginate($validated),
             'stats' => $this->stats($validated),
-            'departments' => $this->departmentOptions(),
-            'positions' => $this->positionOptions(),
+            'departments' => Department::options(),
+            'positions' => Position::options(),
             'filters' => $filters,
         ];
     }
@@ -57,22 +50,6 @@ class AttendanceService
             ->latestFirst()
             ->paginate($perPage)
             ->withQueryString();
-    }
-
-
-    public function departmentOptions(): Collection
-    {
-        return Department::query()
-            ->alphabetical()
-            ->get(['id', 'department_name']);
-    }
-
-
-    public function positionOptions(): Collection
-    {
-        return Position::query()
-            ->alphabetical()
-            ->get(['id', 'title']);
     }
 
 
@@ -112,14 +89,17 @@ class AttendanceService
 
     public function create(array $data): Attendance
     {
-        $data = $this->sanitizeFields($data);
         $data = $this->calculateWorkedHours($data);
 
 
         // transaction so nothing is saved if something fails in the middle
-        return DB::transaction(
+        $attendance = DB::transaction(
             fn () => Attendance::create($data)
         );
+
+        NotificationService::flushMissingAttendanceCount();
+
+        return $attendance;
     }
 
     public function punch(string $fullName, string $pin, string $action): Attendance
@@ -159,7 +139,7 @@ class AttendanceService
 
             $attendance = Attendance::withTrashed()
                 ->where('employee_id', $employee->id)
-                ->whereDate('work_date', today()->toDateString())
+                ->forDate(today()->toDateString())
                 ->lockForUpdate()
                 ->first();
 
@@ -169,6 +149,8 @@ class AttendanceService
                         'action' => 'A time-in has already been recorded for today.',
                     ]);
                 }
+
+                DB::afterCommit(fn () => NotificationService::flushMissingAttendanceCount());
 
                 return Attendance::create([
                     'employee_id' => $employee->id,
@@ -215,16 +197,19 @@ class AttendanceService
 
     public function update(Attendance $attendance, array $data): Attendance
     {
-        $data = $this->sanitizeFields($data);
         $data = $this->calculateWorkedHours($data);
 
 
-        return DB::transaction(function () use ($attendance, $data) {
+        $attendance = DB::transaction(function () use ($attendance, $data) {
             $attendance->update($data);
 
 
             return $attendance;
         });
+
+        NotificationService::flushMissingAttendanceCount();
+
+        return $attendance;
     }
 
 
@@ -234,6 +219,8 @@ class AttendanceService
         DB::transaction(
             fn () => $attendance->delete()
         );
+
+        NotificationService::flushMissingAttendanceCount();
     }
 
 
@@ -242,6 +229,8 @@ class AttendanceService
         DB::transaction(
             fn () => $attendance->restore()
         );
+
+        NotificationService::flushMissingAttendanceCount();
     }
 
 
@@ -267,18 +256,6 @@ class AttendanceService
         return $data;
     }
 
-
-    /**
-     * Sanitize the text-like fields. No whitelist here: #[Fillable] on the
-     * model and $request->validated() already limit what can be saved.
-     *
-     * @param array<string, mixed> $data
-     * @return array<string, mixed>
-     */
-    private function sanitizeFields(array $data): array
-    {
-        return $this->sanitizeStringFields($data, self::SANITIZED_FIELDS, false);
-    }
 
     private function sanitizeFullName(string $fullName): string
     {

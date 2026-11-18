@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ListSearchRequest;
 use App\Http\Requests\PayrollPeriod\PayrollPeriodRequest;
 use App\Models\PayrollPeriod;
 use App\Services\PayrollPeriodService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,10 +16,10 @@ class PayrollPeriodController extends Controller
         private PayrollPeriodService $payrollPeriodService,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(ListSearchRequest $request): Response
     {
         return Inertia::render('payroll-period/index', [
-            'payrollPeriods' => $this->payrollPeriodService->paginate($request->query('search')),
+            'payrollPeriods' => $this->payrollPeriodService->paginate($request->validated('search')),
         ]);
     }
 

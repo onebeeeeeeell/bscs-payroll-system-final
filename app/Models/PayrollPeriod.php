@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSearchScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PayrollPeriod extends Model
 {
-    use HasFactory;
+    use HasFactory, HasSearchScope;
 
     /*
      * LABEL: Payrolls count scope
@@ -28,11 +29,9 @@ class PayrollPeriod extends Model
         $query->withCount('payrolls');
     }
 
-    public function scopeSearch(Builder $query, ?string $search): void
+    protected function searchColumn(): string
     {
-        if ($search) {
-            $query->where('status', 'ilike', "%{$search}%");
-        }
+        return 'status';
     }
 
     public function payrolls(): HasMany

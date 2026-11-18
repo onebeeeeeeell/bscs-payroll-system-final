@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ListSearchRequest;
 use App\Http\Requests\Payroll\PayrollRequest;
 use App\Models\Payroll;
 use App\Services\PayrollService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,10 +16,10 @@ class PayrollController extends Controller
         private PayrollService $payrollService,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(ListSearchRequest $request): Response
     {
         return Inertia::render('payroll/index', [
-            'payrolls' => $this->payrollService->paginate($request->query('search')),
+            'payrolls' => $this->payrollService->paginate($request->validated('search')),
         ]);
     }
 

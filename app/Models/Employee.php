@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Like;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -159,9 +160,11 @@ class Employee extends Model
 
     public function scopeMatchingFirstOrLastName(Builder $query, string $search): void
     {
-        $query->where(function (Builder $query) use ($search) {
-            $query->where('first_name', 'ilike', "%{$search}%")
-                ->orWhere('last_name', 'ilike', "%{$search}%");
+        $like = Like::contains(trim($search));
+
+        $query->where(function (Builder $query) use ($like) {
+            $query->where('first_name', 'ilike', $like)
+                ->orWhere('last_name', 'ilike', $like);
         });
     }
 
@@ -176,7 +179,7 @@ class Employee extends Model
     public function scopeMatchingSearchTerm(Builder $query, string $term): void
     {
         $term = mb_strtolower(trim($term));
-        $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term).'%';
+        $like = Like::contains($term);
 
         $query->where(function (Builder $query) use ($like) {
             $query->whereRaw('lower(first_name) like ?', [$like])

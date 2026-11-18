@@ -6,6 +6,7 @@ use App\Http\Requests\Department\DepartmentRequest;
 use App\Http\Requests\EmploymentStatus\EmploymentStatusRequest;
 use App\Http\Requests\Position\PositionRequest;
 use App\Models\Department;
+use App\Models\Employee;
 use App\Models\EmploymentStatus;
 use App\Models\Position;
 use App\Services\DepartmentService;
@@ -80,7 +81,7 @@ class EmployeeOptionController extends Controller
     {
         return $this->deleteIfUnused(
             $status,
-            fn () => DB::table('employees')->where('status', $status->name)->exists(),
+            fn () => Employee::withStatus($status->name)->exists(),
             'status',
         );
     }

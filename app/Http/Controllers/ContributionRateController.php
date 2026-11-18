@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ListSearchRequest;
 use App\Http\Requests\ContributionRate\ContributionRateRequest;
 use App\Models\ContributionRate;
 use App\Services\ContributionRateService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,10 +16,10 @@ class ContributionRateController extends Controller
         private ContributionRateService $contributionRateService,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(ListSearchRequest $request): Response
     {
         return Inertia::render('contribution-rate/index', [
-            'contributionRates' => $this->contributionRateService->paginate($request->query('search')),
+            'contributionRates' => $this->contributionRateService->paginate($request->validated('search')),
         ]);
     }
 

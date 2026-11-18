@@ -9,6 +9,9 @@ use Illuminate\Support\Str;
 trait SanitizesText
 {
     /**
+     * Text lang ang nililinis dito (strip tags + squish). Huwag nang isama ang
+     * IDs, amounts, at dates: validation sa FormRequest na ang bahala sa kanila.
+     *
      * @param array<string, mixed> $data
      * @param list<string> $fields
      * @return array<string, mixed>
@@ -25,7 +28,8 @@ trait SanitizesText
                 }
 
 
-                $data[$field] = $value->trim()->toString();
+                // squish() = trim + isang space na lang ang sunod-sunod na spaces
+                $data[$field] = $value->squish()->toString();
             }
         }
 

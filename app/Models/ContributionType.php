@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSearchScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class ContributionType extends Model
 {
-    use HasFactory;
+    use HasFactory, HasSearchScope;
 
     /*
      * LABEL: Eager load rates
@@ -26,11 +27,9 @@ class ContributionType extends Model
         $query->with(['contributionRates:id,contribution_type_id,rate']);
     }
 
-    public function scopeSearch(Builder $query, ?string $search): void
+    protected function searchColumn(): string
     {
-        if ($search) {
-            $query->where('name', 'ilike', "%{$search}%");
-        }
+        return 'name';
     }
 
     public function contributionRates(): HasMany

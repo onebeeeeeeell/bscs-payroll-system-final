@@ -6,15 +6,16 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\EmploymentStatus;
 use App\Models\Position;
-use Illuminate\Database\Eloquent\Collection;
+use App\Services\Concerns\SanitizesText;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class EmployeeService
 {
+    use SanitizesText;
+
     private const SANITIZED_TEXT_FIELDS = [
         'first_name',
         'last_name',
@@ -53,8 +54,8 @@ class EmployeeService
          */
         return [
             'employees' => $this->paginate($filters),
-            'departments' => $this->departmentOptions(),
-            'positions' => $this->positionOptions(),
+            'departments' => Department::options(),
+            'positions' => Position::options(),
             'hireYears' => range($lastYear, $firstYear),
             'filters' => $filters,
         ];
@@ -83,24 +84,6 @@ class EmployeeService
     }
 
     /*
-     * LABEL: Department options
-     * Purpose: id at department_name lang, alphabetical, para sa dropdown.
-     */
-    public function departmentOptions(): Collection
-    {
-        return Department::query()->alphabetical()->get(['id', 'department_name']);
-    }
-
-    /*
-     * LABEL: Position options
-     * Purpose: id at title lang, alphabetical, para sa dropdown.
-     */
-    public function positionOptions(): Collection
-    {
-        return Position::query()->alphabetical()->get(['id', 'title']);
-    }
-
-    /*
      * LABEL: Edit/create form options
      * Purpose: Isang bundle ng positions, departments, at employment statuses
      * para sa create/edit form.
@@ -108,8 +91,8 @@ class EmployeeService
     public function employeeEditOptions(): array
     {
         return [
-            'positions' => $this->positionOptions(),
-            'departments' => $this->departmentOptions(),
+            'positions' => Position::options(),
+            'departments' => Department::options(),
             'statuses' => EmploymentStatus::query()->alphabetical()->get(['id', 'name']),
         ];
     }
@@ -124,9 +107,13 @@ class EmployeeService
         $fields = $this->sanitizeFields($data);
 
         // LABEL: Transaction; puwedeng tanggalin kung walang idadagdag na related writes sa susunod.
-        return DB::transaction(
+        $employee = DB::transaction(
             fn () => Employee::create($fields)
         );
+
+        NotificationService::flushMissingAttendanceCount();
+
+        return $employee;
     }
 
     /*
@@ -156,18 +143,11 @@ class EmployeeService
     {
         /*
          * LABEL: Text sanitization
-         * Purpose: strip_tags() para tanggalin ang HTML tags, squish() para
-         * i-trim at gawing isang space lang ang sunod-sunod na spaces,
-         * toString() para bumalik sa plain string. String lang ang dadaan,
-         * kaya hindi masisira ang null o numbers.
+         * Purpose: Iisang sanitizer na lang (SanitizesText trait): strip_tags
+         * tapos squish. String lang ang dadaan, kaya hindi masisira ang null
+         * o numbers.
          */
-        foreach (self::SANITIZED_TEXT_FIELDS as $field) {
-            if (isset($data[$field]) && is_string($data[$field])) {
-                $data[$field] = Str::of(strip_tags($data[$field]))
-                    ->squish()
-                    ->toString();
-            }
-        }
+        $data = $this->sanitizeStringFields($data, self::SANITIZED_TEXT_FIELDS);
 
         /*
          * LABEL: Government ID cleanup
@@ -211,6 +191,8 @@ class EmployeeService
             $employee->update(['archived_at' => now()]);
             $employee->attendances()->delete();
         });
+
+        NotificationService::flushMissingAttendanceCount();
     }
 
     /*
@@ -226,6 +208,8 @@ class EmployeeService
                 ->onlyTrashed()
                 ->restore();
         });
+
+        NotificationService::flushMissingAttendanceCount();
     }
 
 }

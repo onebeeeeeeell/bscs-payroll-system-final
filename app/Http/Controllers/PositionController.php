@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ListSearchRequest;
 use App\Http\Requests\Position\PositionRequest;
 use App\Models\Position;
 use App\Services\PositionService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,10 +16,10 @@ class PositionController extends Controller
         private PositionService $positionService,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(ListSearchRequest $request): Response
     {
         return Inertia::render('position/index', [
-            'positions' => $this->positionService->paginate($request->query('search')),
+            'positions' => $this->positionService->paginate($request->validated('search')),
         ]);
     }
 

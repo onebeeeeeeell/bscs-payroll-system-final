@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ListSearchRequest;
 use App\Http\Requests\Department\DepartmentRequest;
 use App\Models\Department;
 use App\Services\DepartmentService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,10 +16,10 @@ class DepartmentController extends Controller
         private DepartmentService $departmentService,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(ListSearchRequest $request): Response
     {
         return Inertia::render('department/index', [
-            'departments' => $this->departmentService->paginate($request->query('search')),
+            'departments' => $this->departmentService->paginate($request->validated('search')),
         ]);
     }
 

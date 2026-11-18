@@ -11,13 +11,7 @@ class PayrollPeriodService
 {
     use SanitizesText;
 
-    private const SANITIZED_TEXT_FIELDS = ['status'];
-
-    private const SANITIZED_DATE_FIELDS = [
-        'start_date',
-        'end_date',
-        'pay_date',
-    ];
+    private const SANITIZED_FIELDS = ['status'];
 
     public function paginate(?string $search = null, int $perPage = 10): LengthAwarePaginator
     {
@@ -67,9 +61,7 @@ class PayrollPeriodService
      */
     private function sanitizeFields(array $data): array
     {
-        $data = $this->sanitizeStringFields($data, self::SANITIZED_TEXT_FIELDS);
-
-        return $this->sanitizeStringFields($data, self::SANITIZED_DATE_FIELDS, false);
+        return $this->sanitizeStringFields($data, self::SANITIZED_FIELDS);
     }
 
 

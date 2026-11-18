@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSearchScope;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -14,13 +16,23 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Position extends Model
 {
-    use HasFactory;
+    use HasFactory, HasSearchScope;
 
-    public function scopeSearch(Builder $query, ?string $search): void
+    protected function searchColumn(): string
     {
-        if ($search) {
-            $query->where('title', 'ilike', "%{$search}%");
-        }
+        return 'title';
+    }
+
+    public const OPTION_COLUMNS = ['id', 'title'];
+
+    /*
+     * LABEL: Dropdown options
+     * Purpose: id at title lang, alphabetical. Isang lugar na lang
+     * para sa EmployeeService at AttendanceService.
+     */
+    public static function options(): Collection
+    {
+        return static::query()->alphabetical()->get(static::OPTION_COLUMNS);
     }
 
     public function scopeAlphabetical(Builder $query): void

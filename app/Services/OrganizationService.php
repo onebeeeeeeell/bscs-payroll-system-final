@@ -20,11 +20,11 @@ class OrganizationService
             'departments' => Department::query()
                 ->withEmployeesCount()
                 ->alphabetical()
-                ->get(['id', 'department_name']),
+                ->get(Department::OPTION_COLUMNS),
             'positions' => Position::query()
                 ->withEmployeesCount()
                 ->alphabetical()
-                ->get(['id', 'title']),
+                ->get(Position::OPTION_COLUMNS),
             'statuses' => $this->statuses(),
             'contributionRates' => ContributionRate::query()
                 ->withType()
