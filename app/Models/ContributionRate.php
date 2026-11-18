@@ -28,6 +28,19 @@ class ContributionRate extends Model
         $query->with(['contributionType:id,name']);
     }
 
+    /*
+     * LABEL: Latest rate per type scope
+     * Purpose: Ang pinakabagong rate (pinakamataas na id) ng bawat contribution
+     * type, para sa payroll deductions. Isang query lang, may subquery.
+     */
+    public function scopeLatestPerType(Builder $query): void
+    {
+        $query->whereIn('id', fn ($latest) => $latest
+            ->from('contribution_rates')
+            ->selectRaw('MAX(id)')
+            ->groupBy('contribution_type_id'));
+    }
+
     public function scopeSearch(Builder $query, ?string $search): void
     {
         if ($search) {

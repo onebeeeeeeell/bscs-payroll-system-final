@@ -85,6 +85,37 @@ class Attendance extends Model
     }
 
     /*
+     * LABEL: Date range scope
+     * Purpose: I-filter by work_date na nasa pagitan ng start at end (kasama
+     * ang dalawa). Tinatawag bilang ->betweenDates($start, $end). Kaya nitong
+     * gumamit ng (employee_id, work_date) index.
+     */
+    public function scopeBetweenDates(Builder $query, string $startDate, string $endDate): void
+    {
+        $query->whereBetween('work_date', [$startDate, $endDate]);
+    }
+
+    /*
+     * LABEL: Totals per employee scope
+     * Purpose: Aggregates para sa payroll, ISANG query lang para sa lahat ng
+     * employee (GROUP BY employee_id):
+     * - paid_days: sum ng hours_worked (hanggang $standardHours lang bawat araw)
+     *   hinati sa $standardHours, kaya may half-day (hal. 10.5).
+     * - overtime_hours: kabuuang OT hours.
+     * - open_records: bilang ng records na wala pang time_out.
+     * Soft-deleted records ay hindi kasama (SoftDeletes na ang bahala).
+     */
+    public function scopeTotalsPerEmployee(Builder $query, int $standardHours = 8): void
+    {
+        $query
+            ->select('employee_id')
+            ->selectRaw('ROUND(COALESCE(SUM(LEAST(hours_worked, ?)), 0) / ?, 2) AS paid_days', [$standardHours, $standardHours])
+            ->selectRaw('COALESCE(SUM(overtime_hours), 0) AS overtime_hours')
+            ->selectRaw('COUNT(CASE WHEN time_out IS NULL THEN 1 END) AS open_records')
+            ->groupBy('employee_id');
+    }
+
+    /*
      * LABEL: Filters scope
      * Purpose: Lahat ng index filters sa iisang scope.
      * - status 'deleted': onlyTrashed() (soft-deleted records lang).

@@ -20,6 +20,8 @@ class PayrollPeriod extends Model
 {
     use HasFactory, HasSearchScope;
 
+    public const PROCESSABLE_STATUSES = ['Pending', 'Failed'];
+
     /*
      * LABEL: Payrolls count scope
      * Purpose: Idagdag ang payrolls_count sa bawat payroll period.
@@ -27,6 +29,23 @@ class PayrollPeriod extends Model
     public function scopeWithPayrollsCount(Builder $query): void
     {
         $query->withCount('payrolls');
+    }
+
+    /*
+     * LABEL: Processable scope
+     * Purpose: Mga period na pwede pang i-process (Pending o Failed), pinakabago
+     * muna. Piling columns lang para sa dropdown.
+     */
+    public function scopeProcessable(Builder $query): void
+    {
+        $query->whereIn('status', self::PROCESSABLE_STATUSES)
+            ->latest('start_date')
+            ->select(['id', 'start_date', 'end_date', 'pay_date', 'status']);
+    }
+
+    public function isProcessable(): bool
+    {
+        return in_array($this->status, self::PROCESSABLE_STATUSES, true);
     }
 
     protected function searchColumn(): string

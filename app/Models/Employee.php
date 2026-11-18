@@ -134,6 +134,19 @@ class Employee extends Model
     }
 
     /*
+     * LABEL: Payroll scope
+     * Purpose: Mga employee na isasama sa payroll run: active lang, at piling
+     * columns lang (kasama ang daily_rate) para magaan ang query.
+     */
+    public function scopeForPayroll(Builder $query): void
+    {
+        $query->active()
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->select(['id', 'first_name', 'last_name', 'suffix', 'daily_rate']);
+    }
+
+    /*
      * LABEL: Filters scope
      * Purpose: Lahat ng index filters sa iisang scope.
      * - status: 'archived' -> archived(), default 'active' -> active().

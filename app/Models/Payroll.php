@@ -38,6 +38,29 @@ class Payroll extends Model
         ]);
     }
 
+    /*
+     * LABEL: Period scope
+     * Purpose: I-filter by payroll_period_id. Tinatawag bilang ->forPeriod($id).
+     */
+    public function scopeForPeriod(Builder $query, int $payrollPeriodId): void
+    {
+        $query->where('payroll_period_id', $payrollPeriodId);
+    }
+
+    /*
+     * LABEL: Summary scope
+     * Purpose: Totals para sa status cards, ISANG query lang:
+     * records, gross_pay, total_deductions, net_pay.
+     */
+    public function scopeSummary(Builder $query): void
+    {
+        $query
+            ->selectRaw('COUNT(*) AS records')
+            ->selectRaw('COALESCE(SUM(gross_pay), 0) AS gross_pay')
+            ->selectRaw('COALESCE(SUM(total_deductions), 0) AS total_deductions')
+            ->selectRaw('COALESCE(SUM(net_pay), 0) AS net_pay');
+    }
+
     public function scopeSearch(Builder $query, ?string $search): void
     {
         if ($search) {
