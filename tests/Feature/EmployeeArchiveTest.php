@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Employee;
 use App\Models\Payroll;
 use App\Models\Payslip;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,6 +15,8 @@ class EmployeeArchiveTest extends TestCase
 
     public function test_archiving_and_restoring_an_employee_preserves_payroll_history(): void
     {
+        $this->actingAs(User::factory()->create());
+
         $payroll = Payroll::factory()->create();
         $employee = $payroll->employee;
         $payslip = Payslip::factory()->create(['payroll_id' => $payroll->id]);
@@ -58,6 +61,8 @@ class EmployeeArchiveTest extends TestCase
 
     public function test_archived_employee_keeps_their_department_and_position_in_use(): void
     {
+        $this->actingAs(User::factory()->create());
+
         $employee = Employee::factory()->create();
         $employee->update(['archived_at' => now()]);
 
@@ -74,6 +79,8 @@ class EmployeeArchiveTest extends TestCase
 
     public function test_other_employee_filters_also_apply_in_the_archived_view(): void
     {
+        $this->actingAs(User::factory()->create());
+
         $employee = Employee::factory()->create([
             'date_hired' => '2024-05-15',
         ]);

@@ -67,6 +67,8 @@ class EmployeeArchiveWorkflowsTest extends TestCase
 
     public function test_archived_employees_cannot_be_added_to_new_payroll_records(): void
     {
+        $this->actingAs(User::factory()->create());
+
         $archivedEmployee = Employee::factory()->create();
         $archivedEmployee->update(['archived_at' => now()]);
         $payrollPeriod = PayrollPeriod::factory()->create();
@@ -88,6 +90,8 @@ class EmployeeArchiveWorkflowsTest extends TestCase
 
     public function test_existing_payroll_and_payslip_history_remains_accessible_after_archiving(): void
     {
+        $this->actingAs(User::factory()->create());
+
         $payslip = Payslip::factory()->create();
         $employee = $payslip->payroll->employee;
         $employee->update(['archived_at' => now()]);
@@ -95,13 +99,13 @@ class EmployeeArchiveWorkflowsTest extends TestCase
         $this->get(route('payrolls.index'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('payrolls.0.employee.id', $employee->id)
+                ->where('payrolls.data.0.employee.id', $employee->id)
             );
 
         $this->get(route('payslips.index'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('payslips.0.payroll.employee.id', $employee->id)
+                ->where('payslips.data.0.payroll.employee.id', $employee->id)
             );
     }
 
