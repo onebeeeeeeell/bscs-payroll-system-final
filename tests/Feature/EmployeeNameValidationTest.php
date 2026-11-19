@@ -116,31 +116,40 @@ class EmployeeNameValidationTest extends TestCase
         $this->assertDatabaseHas('employees', ['suffix' => 'Jr']);
     }
 
-    public function test_identification_numbers_only_allow_numbers_and_hyphens_when_creating_or_editing(): void
+    public function test_identification_numbers_only_allow_digits_when_creating_or_editing(): void
     {
         $this->actingAs(User::factory()->create());
         $employee = Employee::factory()->create();
-        $fields = ['sss_no', 'philhealth_no', 'pagibig_no', 'tin_no'];
+        // valid na bilang ng digits kada field (SSS 10, PhilHealth 12, Pag-IBIG 12, TIN 9-12)
+        $validNumbers = [
+            'sss_no' => '1234567890',
+            'philhealth_no' => '123456789012',
+            'pagibig_no' => '123456789012',
+            'tin_no' => '123456789',
+        ];
 
-        foreach ($fields as $field) {
-            $this->from(route('employees.create'))
-                ->post(route('employees.store'), [
-                    'first_name' => 'Alex',
-                    'last_name' => 'Santos',
-                    'position_id' => $employee->position_id,
-                    'department_id' => $employee->department_id,
-                    'date_hired' => today()->toDateString(),
-                    'daily_rate' => 500,
-                    'status' => 'Regular',
-                    $field => '123ABC!',
-                ])
-                ->assertRedirect(route('employees.create'))
-                ->assertSessionHasErrors($field);
+        foreach ($validNumbers as $field => $validNumber) {
+            // letters, symbols, at hyphens ay dapat reject na (sa service na ang cleanup ng text, hindi ng IDs)
+            foreach (['123ABC!', '123-456'] as $invalidNumber) {
+                $this->from(route('employees.create'))
+                    ->post(route('employees.store'), [
+                        'first_name' => 'Alex',
+                        'last_name' => 'Santos',
+                        'position_id' => $employee->position_id,
+                        'department_id' => $employee->department_id,
+                        'date_hired' => today()->toDateString(),
+                        'daily_rate' => 500,
+                        'status' => 'Regular',
+                        $field => $invalidNumber,
+                    ])
+                    ->assertRedirect(route('employees.create'))
+                    ->assertSessionHasErrors($field);
 
-            $this->patch(route('employees.update', $employee), [$field => '123ABC!'])
-                ->assertSessionHasErrors($field);
+                $this->patch(route('employees.update', $employee), [$field => $invalidNumber])
+                    ->assertSessionHasErrors($field);
+            }
 
-            $this->patch(route('employees.update', $employee), [$field => '123-456'])
+            $this->patch(route('employees.update', $employee), [$field => $validNumber])
                 ->assertSessionHasNoErrors();
         }
     }
@@ -153,7 +162,7 @@ class EmployeeNameValidationTest extends TestCase
             'sss_no' => 10,
             'philhealth_no' => 12,
             'pagibig_no' => 12,
-            'tin_no' => 9,
+            'tin_no' => 12,
         ];
 
         foreach ($maximumLengths as $field => $maximumLength) {
@@ -197,7 +206,7 @@ class EmployeeNameValidationTest extends TestCase
             'department_id' => $department->id,
             'date_hired' => today()->toDateString(),
             'daily_rate' => 500,
-            'sss_no' => ' 123456 ',
+            'sss_no' => '1234567890',
             'status' => 'Regular',
         ]);
 
@@ -208,7 +217,7 @@ class EmployeeNameValidationTest extends TestCase
             'suffix' => 'Jr',
             'date_hired' => today()->toDateString(),
             'daily_rate' => 500,
-            'sss_no' => '123456',
+            'sss_no' => '1234567890',
         ]);
     }
 
