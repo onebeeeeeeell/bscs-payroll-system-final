@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ListSearchRequest;
 use App\Http\Requests\Payslip\PayslipRequest;
 use App\Models\Payslip;
 use App\Services\PayslipService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,10 +16,13 @@ class PayslipController extends Controller
         private PayslipService $payslipService,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(ListSearchRequest $request): Response
     {
+        $search = $request->validated('search');
+
         return Inertia::render('payslip/index', [
-            'payslips' => $this->payslipService->paginate(),
+            'payslips' => $this->payslipService->paginate($search),
+            'filters' => ['search' => $search ?? ''],
         ]);
     }
 

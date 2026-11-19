@@ -1,10 +1,13 @@
 import { DataTable, type DataTableColumn } from '@/components/data-table';
 import AppLayout from '@/layouts/app-layout';
-import type { Payslip } from '@/types/models';
-import { Head } from '@inertiajs/react';
+import type { PaginatedData, Payslip } from '@/types/models';
+import { Head, Link, router } from '@inertiajs/react';
 
 type Props = {
-    payslips: Payslip[];
+    payslips: PaginatedData<Payslip>;
+    filters: {
+        search: string;
+    };
 };
 
 function formatCurrency(value: string | undefined): string {
@@ -16,7 +19,17 @@ function formatCurrency(value: string | undefined): string {
     });
 }
 
-export default function PayslipIndex({ payslips }: Props) {
+export default function PayslipIndex({ payslips, filters }: Props) {
+    // Server search: bumabalik sa page 1 at ang payslips lang ang nire-reload
+    function search(term: string) {
+        router.get(route('payslips.index'), term ? { search: term } : {}, {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+            only: ['payslips', 'filters'],
+        });
+    }
+
     return (
         <AppLayout>
             <Head title="Payslips" />
@@ -26,7 +39,9 @@ export default function PayslipIndex({ payslips }: Props) {
                     <p className="text-muted-foreground text-sm">Generated payslips for processed payrolls.</p>
                 </div>
                 <DataTable
-                    data={payslips}
+                    data={payslips.data}
+                    onSearch={search}
+                    initialSearch={filters.search}
                     getRowId={(payslip) => payslip.id}
                     getSearchValue={(payslip) =>
                         [
@@ -54,6 +69,30 @@ export default function PayslipIndex({ payslips }: Props) {
                         ] satisfies DataTableColumn<Payslip>[]
                     }
                 />
+
+                <nav aria-label="Payslip pagination" className="flex flex-wrap justify-end gap-2">
+                    {payslips.links.map((link, index) => {
+                        const label = link.label.replace(/&laquo;|&raquo;/g, '').trim();
+
+                        return link.url ? (
+                            <Link
+                                key={`${link.label}-${index}`}
+                                href={link.url}
+                                preserveScroll
+                                className={`rounded-md border px-3 py-2 text-sm ${
+                                    link.active ? 'bg-primary text-primary-foreground' : 'bg-background'
+                                }`}
+                                aria-current={link.active ? 'page' : undefined}
+                            >
+                                {label}
+                            </Link>
+                        ) : (
+                            <span key={`${link.label}-${index}`} className="text-muted-foreground rounded-md border px-3 py-2 text-sm">
+                                {label}
+                            </span>
+                        );
+                    })}
+                </nav>
             </div>
         </AppLayout>
     );

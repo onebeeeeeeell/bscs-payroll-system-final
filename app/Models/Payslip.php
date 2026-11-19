@@ -30,6 +30,18 @@ class Payslip extends Model
         ]);
     }
 
+    /*
+     * LABEL: Search scope
+     * Purpose: Hanapin ayon sa first o last name ng employee ng payroll.
+     * Walang search = walang filter. Tinatawag bilang ->search($term).
+     */
+    public function scopeSearch(Builder $query, ?string $search): void
+    {
+        if ($search) {
+            $query->whereHas('payroll.employee', fn (Builder $employee) => $employee->matchingFirstOrLastName($search));
+        }
+    }
+
     public function payroll(): BelongsTo
     {
         return $this->belongsTo(Payroll::class, 'payroll_id', 'id');

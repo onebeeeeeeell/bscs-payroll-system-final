@@ -8,10 +8,11 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class PayslipService
 {
-    public function paginate(int $perPage = 10): LengthAwarePaginator
+    public function paginate(?string $search = null, int $perPage = 10): LengthAwarePaginator
     {
         return Payslip::query()
             ->withDetails()
+            ->search($search)
             ->latest('date_generated')
             ->paginate($perPage)
             ->withQueryString(); // to keep ?search= when changing pages
