@@ -23,18 +23,6 @@ class PayrollController extends Controller
         ]);
     }
 
-    public function create(): Response
-    {
-        return Inertia::render('payroll/create');
-    }
-
-    public function store(PayrollRequest $request): RedirectResponse
-    {
-        $this->payrollService->create($request->validated());
-
-        return to_route('payrolls.index')->with('success', 'Payroll created successfully.');
-    }
-
     public function edit(Payroll $payroll): Response
     {
         return Inertia::render('payroll/edit', [

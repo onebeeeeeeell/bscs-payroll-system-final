@@ -5,6 +5,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\PayrollProcessController;
 use App\Http\Controllers\PayslipController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\PositionController;
@@ -55,7 +56,10 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('contribution_types', ContributionTypeController::class);
     Route::resource('departments', DepartmentController::class);
     Route::resource('positions', PositionController::class);
-    Route::resource('payrolls', PayrollController::class);
+    // Dapat nasa taas ng payrolls resource para hindi mapagkamalang payrolls/{payroll}
+    Route::get('payrolls/process', [PayrollProcessController::class, 'create'])->name('payrolls.process.create');
+    Route::post('payrolls/process', [PayrollProcessController::class, 'store'])->name('payrolls.process.store');
+    Route::resource('payrolls', PayrollController::class)->except(['create', 'store']);
     Route::resource('deductions', DeductionController::class);
     Route::resource('payslips', PayslipController::class);
     Route::resource('payroll_periods', PayrollPeriodController::class);

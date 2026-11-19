@@ -101,3 +101,31 @@ export interface Deduction {
     contribution_rate?: ContributionRate;
     created_at: string;
 }
+
+export type PayrollRowStatus = 'ready' | 'no_attendance' | 'open_time_out' | 'deductions_exceed_gross';
+
+export interface PayrollPreviewRow {
+    employee_id: number;
+    name: string;
+    paid_days: number;
+    overtime_hours: number;
+    gross_pay: number;
+    total_deductions: number;
+    net_pay: number;
+    status: PayrollRowStatus;
+}
+
+export interface PayrollPreviewSummary {
+    employees: number;
+    ready: number;
+    no_attendance: number;
+    blocked: number;
+    gross_pay: number;
+    total_deductions: number;
+    net_pay: number;
+}
+
+export interface PayrollPreview {
+    rows: PayrollPreviewRow[];
+    summary: PayrollPreviewSummary;
+}

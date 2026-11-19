@@ -100,7 +100,9 @@ class Attendance extends Model
      * Purpose: Aggregates para sa payroll, ISANG query lang para sa lahat ng
      * employee (GROUP BY employee_id):
      * - paid_days: sum ng hours_worked (hanggang $standardHours lang bawat araw)
-     *   hinati sa $standardHours, kaya may half-day (hal. 10.5).
+     *   hinati sa $standardHours, kaya may half-day (hal. 10.5). CASE ang gamit
+     *   (hindi LEAST) para gumana sa SQLite at sa production DB; ang * 1.0 ay
+     *   para hindi mag-integer division sa SQLite.
      * - overtime_hours: kabuuang OT hours.
      * - open_records: bilang ng records na wala pang time_out.
      * Soft-deleted records ay hindi kasama (SoftDeletes na ang bahala).
@@ -109,7 +111,10 @@ class Attendance extends Model
     {
         $query
             ->select('employee_id')
-            ->selectRaw('ROUND(COALESCE(SUM(LEAST(hours_worked, ?)), 0) / ?, 2) AS paid_days', [$standardHours, $standardHours])
+            ->selectRaw(
+                'ROUND(COALESCE(SUM(CASE WHEN hours_worked > ? THEN ? ELSE hours_worked END), 0) * 1.0 / ?, 2) AS paid_days',
+                [$standardHours, $standardHours, $standardHours],
+            )
             ->selectRaw('COALESCE(SUM(overtime_hours), 0) AS overtime_hours')
             ->selectRaw('COUNT(CASE WHEN time_out IS NULL THEN 1 END) AS open_records')
             ->groupBy('employee_id');
