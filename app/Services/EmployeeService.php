@@ -8,12 +8,31 @@ use App\Models\EmploymentStatus;
 use App\Models\Position;
 use App\Services\Concerns\SanitizesText;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class EmployeeService
 {
     use SanitizesText;
+
+    // Ito lang ang fields na puwedeng pumasok galing sa labas. Hindi kasama ang
+    // archived_at: archive() at restore() lang ang puwedeng mag-set nito.
+    private const EDITABLE_FIELDS = [
+        'first_name',
+        'last_name',
+        'suffix',
+        'position_id',
+        'department_id',
+        'date_hired',
+        'daily_rate',
+        'sss_no',
+        'philhealth_no',
+        'pagibig_no',
+        'tin_no',
+        'status',
+        'pin',
+    ];
 
     // Free text lang ang nililinis dito. Ang status at government IDs ay
     // validated na sa EmployeeRequest (exists / digits), kaya wala nang gagawin.
@@ -137,6 +156,9 @@ class EmployeeService
      */
     private function sanitizeFields(array $data): array
     {
+        // Itapon muna ang fields na hindi dapat galing sa labas (hal. archived_at).
+        $data = Arr::only($data, self::EDITABLE_FIELDS);
+
         /*
          * LABEL: Text sanitization
          * Purpose: Iisang sanitizer na lang (SanitizesText trait): strip_tags

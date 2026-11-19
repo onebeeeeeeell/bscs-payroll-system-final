@@ -6,12 +6,21 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\EmploymentStatus;
 use App\Models\Position;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class EmployeeOptionCreationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // naka-auth na ang employee-options at employees routes, kaya naka-login na ang user sa lahat ng tests dito
+        $this->actingAs(User::factory()->create());
+    }
 
     public function test_department_can_be_created_from_employee_form(): void
     {

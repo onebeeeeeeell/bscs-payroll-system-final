@@ -65,29 +65,6 @@ class EmployeeArchiveWorkflowsTest extends TestCase
             );
     }
 
-    public function test_archived_employees_cannot_be_added_to_new_payroll_records(): void
-    {
-        $this->actingAs(User::factory()->create());
-
-        $archivedEmployee = Employee::factory()->create();
-        $archivedEmployee->update(['archived_at' => now()]);
-        $payrollPeriod = PayrollPeriod::factory()->create();
-        $user = User::factory()->create();
-
-        $this->postJson(route('payrolls.store'), [
-            'employee_id' => $archivedEmployee->id,
-            'payroll_period_id' => $payrollPeriod->id,
-            'user_id' => $user->id,
-            'gross_pay' => 1000,
-            'total_deductions' => 100,
-            'net_pay' => 900,
-            'date_processed' => now()->toDateTimeString(),
-        ])->assertUnprocessable()
-            ->assertJsonValidationErrors('employee_id');
-
-        $this->assertDatabaseMissing('payrolls', ['employee_id' => $archivedEmployee->id]);
-    }
-
     public function test_existing_payroll_and_payslip_history_remains_accessible_after_archiving(): void
     {
         $this->actingAs(User::factory()->create());

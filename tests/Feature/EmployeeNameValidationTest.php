@@ -14,6 +14,14 @@ class EmployeeNameValidationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // naka-auth na ang employees routes, kaya naka-login na ang user sa lahat ng tests dito
+        $this->actingAs(User::factory()->create());
+    }
+
     public function test_employee_names_cannot_contain_numbers_or_special_characters(): void
     {
         $position = Position::factory()->create();
@@ -31,8 +39,8 @@ class EmployeeNameValidationTest extends TestCase
 
         $response->assertRedirect(route('employees.create'));
         $response->assertSessionHasErrors([
-            'first_name' => 'The first name may only contain letters and spaces.',
-            'last_name' => 'The last name may only contain letters and spaces.',
+            'first_name' => 'The first name may only contain letters, spaces, hyphens, apostrophes, and periods.',
+            'last_name' => 'The last name may only contain letters, spaces, hyphens, apostrophes, and periods.',
         ]);
         $this->assertDatabaseCount('employees', 0);
     }
@@ -50,6 +58,7 @@ class EmployeeNameValidationTest extends TestCase
             'date_hired' => today()->toDateString(),
             'daily_rate' => 500,
             'status' => 'Regular',
+            'pin' => '123456',
         ]);
 
         $response->assertRedirect(route('employees.index'));
@@ -83,12 +92,12 @@ class EmployeeNameValidationTest extends TestCase
 
             $createResponse->assertRedirect(route('employees.create'))
                 ->assertSessionHasErrors([
-                    'suffix' => 'The suffix may only contain letters and spaces.',
+                    'suffix' => 'The suffix may only contain letters, spaces, hyphens, apostrophes, and periods.',
                 ]);
 
             $this->patch(route('employees.update', $employee), ['suffix' => $suffix])
                 ->assertSessionHasErrors([
-                    'suffix' => 'The suffix may only contain letters and spaces.',
+                    'suffix' => 'The suffix may only contain letters, spaces, hyphens, apostrophes, and periods.',
                 ]);
         }
 
@@ -96,7 +105,7 @@ class EmployeeNameValidationTest extends TestCase
         $this->assertDatabaseHas('employees', ['id' => $employee->id, 'suffix' => null]);
     }
 
-    public function test_suffix_accepts_letters_within_the_three_character_limit(): void
+    public function test_suffix_accepts_letters_within_the_five_character_limit(): void
     {
         $position = Position::factory()->create();
         $department = Department::factory()->create();
@@ -110,6 +119,7 @@ class EmployeeNameValidationTest extends TestCase
             'date_hired' => today()->toDateString(),
             'daily_rate' => 500,
             'status' => 'Regular',
+            'pin' => '123456',
         ]);
 
         $response->assertRedirect(route('employees.index'));
@@ -118,7 +128,6 @@ class EmployeeNameValidationTest extends TestCase
 
     public function test_identification_numbers_only_allow_digits_when_creating_or_editing(): void
     {
-        $this->actingAs(User::factory()->create());
         $employee = Employee::factory()->create();
         // valid na bilang ng digits kada field (SSS 10, PhilHealth 12, Pag-IBIG 12, TIN 9-12)
         $validNumbers = [
@@ -156,7 +165,6 @@ class EmployeeNameValidationTest extends TestCase
 
     public function test_identification_numbers_enforce_their_maximum_lengths(): void
     {
-        $this->actingAs(User::factory()->create());
         $employee = Employee::factory()->create();
         $maximumLengths = [
             'sss_no' => 10,
@@ -270,8 +278,8 @@ class EmployeeNameValidationTest extends TestCase
         ]);
         $overLimitValues = [
             'first_name' => str_repeat('A', 51),
-            'last_name' => str_repeat('B', 21),
-            'suffix' => 'IIII',
+            'last_name' => str_repeat('B', 51),
+            'suffix' => 'IIIIII',
         ];
 
         foreach ($overLimitValues as $field => $value) {
@@ -334,6 +342,7 @@ class EmployeeNameValidationTest extends TestCase
             'date_hired' => today()->toDateString(),
             'daily_rate' => '500.50',
             'status' => 'Regular',
+            'pin' => '123456',
         ]);
 
         $response->assertRedirect(route('employees.index'));
@@ -342,7 +351,6 @@ class EmployeeNameValidationTest extends TestCase
 
     public function test_daily_rate_must_be_between_100_and_550(): void
     {
-        $this->actingAs(User::factory()->create());
         $employee = Employee::factory()->create();
 
         foreach (['99.99', '550.01'] as $dailyRate) {
