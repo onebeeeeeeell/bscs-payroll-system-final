@@ -1,11 +1,14 @@
 import { DataTable, type DataTableColumn } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
-import type { Payroll } from '@/types/models';
-import { Head, Link } from '@inertiajs/react';
+import type { PaginatedData, Payroll } from '@/types/models';
+import { Head, Link, router } from '@inertiajs/react';
 
 type Props = {
-    payrolls: Payroll[];
+    payrolls: PaginatedData<Payroll>;
+    filters: {
+        search: string;
+    };
 };
 
 function formatCurrency(value: string): string {
@@ -15,7 +18,17 @@ function formatCurrency(value: string): string {
     });
 }
 
-export default function PayrollIndex({ payrolls }: Props) {
+export default function PayrollIndex({ payrolls, filters }: Props) {
+    // Server search: bumabalik sa page 1 at ang records lang ang nire-reload
+    function search(term: string) {
+        router.get(route('payrolls.index'), term ? { search: term } : {}, {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+            only: ['payrolls', 'filters'],
+        });
+    }
+
     return (
         <AppLayout>
             <Head title="Payrolls" />
@@ -33,7 +46,9 @@ export default function PayrollIndex({ payrolls }: Props) {
                     </Button>
                 </div>
                 <DataTable
-                    data={payrolls}
+                    data={payrolls.data}
+                    onSearch={search}
+                    initialSearch={filters.search}
                     getRowId={(payroll) => payroll.id}
                     getSearchValue={(payroll) =>
                         [
@@ -68,6 +83,30 @@ export default function PayrollIndex({ payrolls }: Props) {
                         ] satisfies DataTableColumn<Payroll>[]
                     }
                 />
+
+                <nav aria-label="Payroll pagination" className="flex flex-wrap justify-end gap-2">
+                    {payrolls.links.map((link, index) => {
+                        const label = link.label.replace(/&laquo;|&raquo;/g, '').trim();
+
+                        return link.url ? (
+                            <Link
+                                key={`${link.label}-${index}`}
+                                href={link.url}
+                                preserveScroll
+                                className={`rounded-md border px-3 py-2 text-sm ${
+                                    link.active ? 'bg-primary text-primary-foreground' : 'bg-background'
+                                }`}
+                                aria-current={link.active ? 'page' : undefined}
+                            >
+                                {label}
+                            </Link>
+                        ) : (
+                            <span key={`${link.label}-${index}`} className="text-muted-foreground rounded-md border px-3 py-2 text-sm">
+                                {label}
+                            </span>
+                        );
+                    })}
+                </nav>
             </div>
         </AppLayout>
     );

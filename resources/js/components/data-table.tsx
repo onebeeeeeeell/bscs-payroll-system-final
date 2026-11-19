@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -20,7 +20,18 @@ type DataTableProps<T> = {
     emptyMessage: string;
     maxSearchLength?: number;
     toolbar?: ReactNode;
+    /*
+     * Server search mode (optional). Kapag may onSearch, hindi na sa browser
+     * nagfi-filter ang table: tinatawag ang onSearch(term) pagkatapos tumigil
+     * mag-type (debounced), at ang server ang magpapadala ng na-filter na data.
+     * initialSearch = ang kasalukuyang ?search= para hindi blangko ang input
+     * pagka-reload. Kapag wala ang onSearch, browser search pa rin gaya ng dati.
+     */
+    onSearch?: (term: string) => void;
+    initialSearch?: string;
 };
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 export function DataTable<T>({
     data,
@@ -31,10 +42,33 @@ export function DataTable<T>({
     emptyMessage,
     maxSearchLength,
     toolbar,
+    onSearch,
+    initialSearch = '',
 }: DataTableProps<T>) {
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(initialSearch);
     const normalizedSearch = search.trim().toLocaleLowerCase();
-    const filteredData = normalizedSearch ? data.filter((row) => getSearchValue(row).toLocaleLowerCase().includes(normalizedSearch)) : data;
+    const isServerSearch = onSearch !== undefined;
+    const filteredData = !isServerSearch && normalizedSearch ? data.filter((row) => getSearchValue(row).toLocaleLowerCase().includes(normalizedSearch)) : data;
+
+    // Debounced na tawag sa server; hindi tinatawag sa unang render o kung
+    // pareho lang ang term sa kasalukuyang ?search=.
+    const lastSent = useRef(initialSearch.trim());
+    const onSearchRef = useRef(onSearch);
+    onSearchRef.current = onSearch;
+
+    useEffect(() => {
+        if (!isServerSearch) return;
+
+        const term = search.trim();
+        if (term === lastSent.current) return;
+
+        const timer = setTimeout(() => {
+            lastSent.current = term;
+            onSearchRef.current?.(term);
+        }, SEARCH_DEBOUNCE_MS);
+
+        return () => clearTimeout(timer);
+    }, [search, isServerSearch]);
 
     return (
         <div className="min-w-0 rounded-xl border border-emerald-800/10 bg-white p-4 shadow-sm dark:border-emerald-400/15 dark:bg-[#07130f]">

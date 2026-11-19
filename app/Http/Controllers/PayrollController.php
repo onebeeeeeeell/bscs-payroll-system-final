@@ -18,8 +18,11 @@ class PayrollController extends Controller
 
     public function index(ListSearchRequest $request): Response
     {
+        $search = $request->validated('search');
+
         return Inertia::render('payroll/index', [
-            'payrolls' => $this->payrollService->paginate($request->validated('search')),
+            'payrolls' => $this->payrollService->paginate($search),
+            'filters' => ['search' => $search ?? ''],
         ]);
     }
 
