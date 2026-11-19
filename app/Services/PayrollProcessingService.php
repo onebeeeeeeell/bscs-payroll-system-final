@@ -85,7 +85,7 @@ class PayrollProcessingService
     public function process(int $periodId, int $userId): PayrollPeriod
     {
         return DB::transaction(function () use ($periodId, $userId) {
-            $period = PayrollPeriod::query()->whereKey($periodId)->lockForUpdate()->first();
+            $period = PayrollPeriod::query()->lockById($periodId)->first();
 
             if (! $period || ! $period->isProcessable()) {
                 throw ValidationException::withMessages([

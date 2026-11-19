@@ -43,6 +43,17 @@ class PayrollPeriod extends Model
             ->select(['id', 'start_date', 'end_date', 'pay_date', 'status']);
     }
 
+    /*
+     * LABEL: Lock by id scope
+     * Purpose: Isang period lang, naka-lock (SELECT ... FOR UPDATE) habang nasa
+     * transaction, para hindi sabay ma-process ng dalawang user. Tinatawag
+     * bilang ->lockById($id)->first().
+     */
+    public function scopeLockById(Builder $query, int $periodId): void
+    {
+        $query->whereKey($periodId)->lockForUpdate();
+    }
+
     public function isProcessable(): bool
     {
         return in_array($this->status, self::PROCESSABLE_STATUSES, true);
