@@ -5,20 +5,27 @@ namespace App\Services;
 use App\Models\Payroll;
 use App\Models\Employee;
 use App\Models\PayrollPeriod;
+use App\Services\Concerns\SanitizesText;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 
 class PayrollService
 {
-    public function paginate(?string $search = null, int $perPage = 10): LengthAwarePaginator
+    use SanitizesText;
+
+    /**
+     * @param array<string, mixed> $filters search, status, year, month, day, department_id, position_id
+     */
+    public function paginate(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
         return Payroll::query()
             ->withDetails()
-            ->search($search)
+            ->forFilters([...$filters, 'search' => $this->sanitizeSearch($filters['search'] ?? null)])
             ->latest('date_processed')
+            ->latest('id')
             ->paginate($perPage)
-            ->withQueryString(); // keep ?search= when changing pages
+            ->withQueryString(); // keep the filters when changing pages
     }
 
 
@@ -70,13 +77,23 @@ class PayrollService
     }
 
 
-    public function delete(Payroll $payroll): void
+    /*
+     * LABEL: Archive payroll
+     * Purpose: Soft archive; walang binubura (kasama ang deductions at
+     * payslip), kaya pwede itong ibalik.
+     */
+    public function archive(Payroll $payroll): void
     {
         DB::transaction(function () use ($payroll) {
             $this->assertNotLocked($payroll, 'payroll');
 
-            $payroll->delete();
+            $payroll->archive();
         });
+    }
+
+    public function restore(Payroll $payroll): void
+    {
+        $payroll->restore();
     }
 
 
@@ -88,6 +105,11 @@ class PayrollService
      */
     private function assertNotLocked(Payroll $payroll, string $errorKey): void
     {
+        // Walang naka-lock na status = walang kailangang i-query
+        if (Payroll::LOCKED_PERIOD_STATUSES === []) {
+            return;
+        }
+
         $status = PayrollPeriod::query()
             ->whereKey($payroll->payroll_period_id)
             ->lockForUpdate()

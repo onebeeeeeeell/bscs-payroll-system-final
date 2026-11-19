@@ -3,20 +3,26 @@
 namespace App\Services;
 
 use App\Models\PayrollPeriod;
+use App\Services\Concerns\SanitizesText;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Validation\ValidationException;
 
 class PayrollPeriodService
 {
-    public function paginate(?string $search = null, int $perPage = 10): LengthAwarePaginator
+    use SanitizesText;
+
+    /**
+     * @param array<string, mixed> $filters search, status, year, month, day
+     */
+    public function paginate(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
         return PayrollPeriod::query()
             ->withPayrollsCount()
-            ->search($search)
+            ->forFilters([...$filters, 'search' => $this->sanitizeSearch($filters['search'] ?? null)])
             ->latest('start_date')
+            ->latest('id')
             ->paginate($perPage)
-            ->withQueryString(); // keep ?search= when changing pages
+            ->withQueryString(); // keep the filters when changing pages
     }
 
 
@@ -39,21 +45,20 @@ class PayrollPeriodService
     }
 
 
-    public function delete(PayrollPeriod $payrollPeriod): void
+    /*
+     * LABEL: Archive period
+     * Purpose: Soft archive. Walang binubura (kasama ang payrolls ng period),
+     * kaya pwedeng i-archive kahit may payroll records na. Hindi na lalabas
+     * sa Process payroll dropdown habang naka-archive.
+     */
+    public function archive(PayrollPeriod $payrollPeriod): void
     {
-        DB::transaction(function () use ($payrollPeriod) {
-            // Naka-cascade ang FK: ang pagbura ng period ay buburahin din ang lahat
-            // ng payrolls (at payslips) nito. Kaya empty na period lang ang pwedeng i-delete.
-            $hasPayrolls = $payrollPeriod->payrolls()->lockForUpdate()->exists();
+        $payrollPeriod->archive();
+    }
 
-            if ($hasPayrolls) {
-                throw ValidationException::withMessages([
-                    'payroll_period' => 'This period already has payroll records and cannot be deleted.',
-                ]);
-            }
-
-            $payrollPeriod->delete();
-        });
+    public function restore(PayrollPeriod $payrollPeriod): void
+    {
+        $payrollPeriod->restore();
     }
 
 

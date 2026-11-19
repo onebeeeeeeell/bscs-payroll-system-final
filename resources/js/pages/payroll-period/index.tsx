@@ -1,4 +1,5 @@
 import { DataTable, type DataTableColumn } from '@/components/data-table';
+import { ArchiveStatusFilter, DateFilters, cleanFilters } from '@/components/list-filters';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -6,14 +7,23 @@ import AppLayout from '@/layouts/app-layout';
 import type { SharedData } from '@/types';
 import type { PaginatedData, PayrollPeriod } from '@/types/models';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { MoreHorizontal, Trash2 } from 'lucide-react';
+import { Archive, MoreHorizontal, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 
 // Ang controller ay may withPayrollsCount()
 type PeriodRow = PayrollPeriod & { payrolls_count: number };
 
+type Filters = {
+    search: string;
+    status: 'active' | 'archived';
+    year: string;
+    month: string;
+    day: string;
+};
+
 type Props = {
     payrollPeriods: PaginatedData<PeriodRow>;
+    filters: Filters;
 };
 
 const PROCESSABLE = ['Pending', 'Failed'];
@@ -29,32 +39,40 @@ function periodLabel(period: PayrollPeriod): string {
     return `${period.start_date.slice(0, 10)} – ${period.end_date.slice(0, 10)}`;
 }
 
-export default function PayrollPeriodIndex({ payrollPeriods }: Props) {
+export default function PayrollPeriodIndex({ payrollPeriods, filters }: Props) {
     const { flash } = usePage<SharedData>().props;
-    const { url } = usePage();
-    const [deleteCandidate, setDeleteCandidate] = useState<PeriodRow | null>(null);
-    const [isDeleting, setIsDeleting] = useState(false);
+    const [archiveCandidate, setArchiveCandidate] = useState<PeriodRow | null>(null);
+    const [isArchiving, setIsArchiving] = useState(false);
+    const [restoringId, setRestoringId] = useState<number | null>(null);
+    const isArchivedView = filters.status === 'archived';
 
-    // Hindi ipinapasa ng controller ang filters, kaya binabasa ang ?search= sa URL
-    const initialSearch = new URL(url, 'http://localhost').searchParams.get('search') ?? '';
-
-    function deletePeriod() {
-        if (!deleteCandidate) return;
-
-        setIsDeleting(true);
-        router.delete(route('payroll_periods.destroy', deleteCandidate.id), {
-            preserveScroll: true,
-            onSuccess: () => setDeleteCandidate(null),
-            onFinish: () => setIsDeleting(false),
-        });
-    }
-
-    function search(term: string) {
-        router.get(route('payroll_periods.index'), term ? { search: term } : {}, {
+    // Every filter change goes back to the server (page 1); only the periods are reloaded
+    function applyFilters(next: Partial<Filters>) {
+        router.get(route('payroll_periods.index'), cleanFilters({ ...filters, ...next }), {
             preserveScroll: true,
             preserveState: true,
             replace: true,
-            only: ['payrollPeriods'],
+            only: ['payrollPeriods', 'filters'],
+        });
+    }
+
+    function archivePeriod() {
+        if (!archiveCandidate) return;
+
+        setIsArchiving(true);
+        router.delete(route('payroll_periods.destroy', archiveCandidate.id), {
+            data: cleanFilters({ ...filters }),
+            preserveScroll: true,
+            onSuccess: () => setArchiveCandidate(null),
+            onFinish: () => setIsArchiving(false),
+        });
+    }
+
+    function restorePeriod(period: PeriodRow) {
+        setRestoringId(period.id);
+        router.patch(route('payroll_periods.restore', period.id), cleanFilters({ ...filters }), {
+            preserveScroll: true,
+            onFinish: () => setRestoringId(null),
         });
     }
 
@@ -86,12 +104,28 @@ export default function PayrollPeriodIndex({ payrollPeriods }: Props) {
 
                 <DataTable
                     data={payrollPeriods.data}
-                    onSearch={search}
-                    initialSearch={initialSearch}
+                    onSearch={(term) => applyFilters({ search: term })}
+                    initialSearch={filters.search}
+                    toolbar={
+                        <div className="flex w-full flex-wrap gap-2">
+                            <DateFilters
+                                labelPrefix="Filter by period date"
+                                year={filters.year}
+                                month={filters.month}
+                                day={filters.day}
+                                onChange={(name, value) => applyFilters({ [name]: value })}
+                            />
+                            <ArchiveStatusFilter
+                                label="Filter by archive status"
+                                value={filters.status}
+                                onChange={(value) => applyFilters({ status: value })}
+                            />
+                        </div>
+                    }
                     getRowId={(period) => period.id}
                     getSearchValue={(period) => period.status}
                     searchPlaceholder="Search by status..."
-                    emptyMessage="No payroll periods yet. Create one to get started."
+                    emptyMessage={isArchivedView ? 'No archived payroll periods.' : 'No payroll periods yet. Create one to get started.'}
                     columns={
                         [
                             { header: 'Period', cell: periodLabel },
@@ -117,25 +151,38 @@ export default function PayrollPeriodIndex({ payrollPeriods }: Props) {
                                         </DropdownMenuTrigger>
 
                                         <DropdownMenuContent align="end">
-                                            {PROCESSABLE.includes(period.status) && (
-                                                <DropdownMenuItem asChild>
-                                                    <Link href={route('payrolls.process.create', { payroll_period_id: period.id })}>Process payroll</Link>
+                                            {isArchivedView ? (
+                                                <DropdownMenuItem disabled={restoringId === period.id} onSelect={() => restorePeriod(period)}>
+                                                    <RotateCcw aria-hidden="true" />
+                                                    {restoringId === period.id ? 'Restoring...' : 'Restore'}
                                                 </DropdownMenuItem>
-                                            )}
+                                            ) : (
+                                                <>
+                                                    {/* Same menu for every status. Only Pending/Failed periods can be processed; the others show why it is off. */}
+                                                    {PROCESSABLE.includes(period.status) ? (
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={route('payrolls.process.create', { payroll_period_id: period.id })}>
+                                                                Process payroll
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                    ) : (
+                                                        <DropdownMenuItem disabled title="Only Pending or Failed periods can be processed">
+                                                            Process payroll ({period.status})
+                                                        </DropdownMenuItem>
+                                                    )}
 
-                                            <DropdownMenuItem asChild>
-                                                <Link href={route('payroll_periods.edit', period.id)}>Edit</Link>
-                                            </DropdownMenuItem>
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={route('payroll_periods.edit', period.id)}>Edit</Link>
+                                                    </DropdownMenuItem>
 
-                                            {/* Cascade ang FK: buburahin ang payrolls ng period, kaya empty lang ang pwedeng i-delete */}
-                                            {period.payrolls_count === 0 && (
-                                                <DropdownMenuItem
-                                                    className="text-destructive focus:text-destructive"
-                                                    onSelect={() => setDeleteCandidate(period)}
-                                                >
-                                                    <Trash2 aria-hidden="true" />
-                                                    Delete
-                                                </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        className="text-destructive focus:text-destructive"
+                                                        onSelect={() => setArchiveCandidate(period)}
+                                                    >
+                                                        <Archive aria-hidden="true" />
+                                                        Archive
+                                                    </DropdownMenuItem>
+                                                </>
                                             )}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
@@ -170,22 +217,24 @@ export default function PayrollPeriodIndex({ payrollPeriods }: Props) {
                 </nav>
 
                 <Dialog
-                    open={deleteCandidate !== null}
+                    open={archiveCandidate !== null}
                     onOpenChange={(open) => {
-                        if (!open && !isDeleting) setDeleteCandidate(null);
+                        if (!open && !isArchiving) setArchiveCandidate(null);
                     }}
                 >
                     <DialogContent>
-                        <DialogTitle>Delete payroll period?</DialogTitle>
+                        <DialogTitle>Archive payroll period?</DialogTitle>
                         <DialogDescription>
-                            {deleteCandidate ? `The period ${periodLabel(deleteCandidate)} will be permanently deleted. This cannot be undone.` : ''}
+                            {archiveCandidate
+                                ? `The period ${periodLabel(archiveCandidate)} will be moved to the archive. Its payroll records are kept, and you can restore it anytime.`
+                                : ''}
                         </DialogDescription>
                         <DialogFooter>
-                            <Button variant="outline" disabled={isDeleting} onClick={() => setDeleteCandidate(null)}>
+                            <Button variant="outline" disabled={isArchiving} onClick={() => setArchiveCandidate(null)}>
                                 Cancel
                             </Button>
-                            <Button variant="destructive" disabled={isDeleting} onClick={deletePeriod}>
-                                {isDeleting ? 'Deleting...' : 'Delete period'}
+                            <Button variant="destructive" disabled={isArchiving} onClick={archivePeriod}>
+                                {isArchiving ? 'Archiving...' : 'Archive period'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>

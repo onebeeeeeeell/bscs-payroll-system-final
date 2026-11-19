@@ -36,4 +36,13 @@ trait SanitizesText
 
         return $data;
     }
+
+    /*
+     * Para sa ?search= ng mga index page: strip tags + squish. Ang % at _ ay
+     * ine-escape naman ng Like::contains() sa model.
+     */
+    protected function sanitizeSearch(?string $search): string
+    {
+        return $this->sanitizeStringFields(['search' => $search], ['search'])['search'] ?? '';
+    }
 }

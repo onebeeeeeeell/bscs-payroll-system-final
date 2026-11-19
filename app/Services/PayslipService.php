@@ -3,19 +3,26 @@
 namespace App\Services;
 
 use App\Models\Payslip;
+use App\Services\Concerns\SanitizesText;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class PayslipService
 {
-    public function paginate(?string $search = null, int $perPage = 10): LengthAwarePaginator
+    use SanitizesText;
+
+    /**
+     * @param array<string, mixed> $filters search, status
+     */
+    public function paginate(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
         return Payslip::query()
             ->withDetails()
-            ->search($search)
+            ->forFilters([...$filters, 'search' => $this->sanitizeSearch($filters['search'] ?? null)])
             ->latest('date_generated')
+            ->latest('id')
             ->paginate($perPage)
-            ->withQueryString(); // to keep ?search= when changing pages
+            ->withQueryString(); // keep the filters when changing pages
     }
 
     public function create(array $data): Payslip
@@ -35,11 +42,18 @@ class PayslipService
         });
     }
 
-    public function delete(Payslip $payslip): void
+    /*
+     * LABEL: Archive payslip
+     * Purpose: Soft archive; ang payroll at ang payslip row ay hindi binubura.
+     */
+    public function archive(Payslip $payslip): void
     {
-        DB::transaction(
-            fn () => $payslip->delete()
-        );
+        $payslip->archive();
+    }
+
+    public function restore(Payslip $payslip): void
+    {
+        $payslip->restore();
     }
 
     // diriiiiiiiiiiiiiiiiiiiii sugpon if may ano sa controller na logic

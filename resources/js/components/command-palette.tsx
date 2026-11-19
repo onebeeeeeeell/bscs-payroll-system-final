@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Calendar, FileText, HandCoins, LayoutGrid, Search, Settings, User, UserPlus, Users } from 'lucide-react';
+import { Calendar, FileText, HandCoins, LayoutGrid, Search, User, UserPlus, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/command';
@@ -20,7 +20,6 @@ const pages = [
     { title: 'Attendance', href: '/attendance', icon: Calendar },
     { title: 'Payrolls', href: '/payrolls', icon: HandCoins },
     { title: 'Payslips', href: '/payslips', icon: FileText },
-    { title: 'Organization settings', href: '/settings/organization', icon: Settings },
     { title: 'Account settings', href: '/settings/profile', icon: User },
 ];
 

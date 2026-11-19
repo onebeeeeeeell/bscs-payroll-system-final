@@ -33,6 +33,7 @@ export interface PayrollPeriod {
     end_date: string;
     pay_date: string;
     status: 'Pending' | 'Processing' | 'Paid' | 'Failed';
+    archived_at?: string | null;
 }
 export interface Employee {
     id: number;
@@ -73,6 +74,7 @@ export interface Payroll {
     total_deductions: string;
     net_pay: string;
     date_processed: string;
+    archived_at?: string | null;
     employee?: Employee;
     payroll_period?: PayrollPeriod;
     user?: User;
@@ -82,6 +84,7 @@ export interface Payslip {
     id: number;
     payroll_id: number;
     date_generated: string;
+    archived_at?: string | null;
     payroll?: Payroll;
     created_at: string;
 }

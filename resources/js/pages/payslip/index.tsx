@@ -1,4 +1,5 @@
 import { DataTable, type DataTableColumn } from '@/components/data-table';
+import { ArchiveStatusFilter, cleanFilters } from '@/components/list-filters';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -6,14 +7,17 @@ import AppLayout from '@/layouts/app-layout';
 import type { SharedData } from '@/types';
 import type { PaginatedData, Payslip } from '@/types/models';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { MoreHorizontal, Trash2 } from 'lucide-react';
+import { Archive, MoreHorizontal, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
+
+type Filters = {
+    search: string;
+    status: 'active' | 'archived';
+};
 
 type Props = {
     payslips: PaginatedData<Payslip>;
-    filters: {
-        search: string;
-    };
+    filters: Filters;
 };
 
 function formatCurrency(value: string | undefined): string {
@@ -26,32 +30,46 @@ function formatCurrency(value: string | undefined): string {
 }
 
 function employeeName(payslip: Payslip): string {
-    return [payslip.payroll?.employee?.first_name, payslip.payroll?.employee?.last_name, payslip.payroll?.employee?.suffix].filter(Boolean).join(' ') || '—';
+    return (
+        [payslip.payroll?.employee?.first_name, payslip.payroll?.employee?.last_name, payslip.payroll?.employee?.suffix].filter(Boolean).join(' ') ||
+        '—'
+    );
 }
 
 export default function PayslipIndex({ payslips, filters }: Props) {
     const { flash } = usePage<SharedData>().props;
-    const [deleteCandidate, setDeleteCandidate] = useState<Payslip | null>(null);
-    const [isDeleting, setIsDeleting] = useState(false);
+    const [archiveCandidate, setArchiveCandidate] = useState<Payslip | null>(null);
+    const [isArchiving, setIsArchiving] = useState(false);
+    const [restoringId, setRestoringId] = useState<number | null>(null);
+    const isArchivedView = filters.status === 'archived';
 
-    function deletePayslip() {
-        if (!deleteCandidate) return;
-
-        setIsDeleting(true);
-        router.delete(route('payslips.destroy', deleteCandidate.id), {
-            preserveScroll: true,
-            onSuccess: () => setDeleteCandidate(null),
-            onFinish: () => setIsDeleting(false),
-        });
-    }
-
-    // Server search: bumabalik sa page 1 at ang payslips lang ang nire-reload
-    function search(term: string) {
-        router.get(route('payslips.index'), term ? { search: term } : {}, {
+    // Every filter change goes back to the server (page 1); only the payslips are reloaded
+    function applyFilters(next: Partial<Filters>) {
+        router.get(route('payslips.index'), cleanFilters({ ...filters, ...next }), {
             preserveScroll: true,
             preserveState: true,
             replace: true,
             only: ['payslips', 'filters'],
+        });
+    }
+
+    function archivePayslip() {
+        if (!archiveCandidate) return;
+
+        setIsArchiving(true);
+        router.delete(route('payslips.destroy', archiveCandidate.id), {
+            data: cleanFilters({ ...filters }),
+            preserveScroll: true,
+            onSuccess: () => setArchiveCandidate(null),
+            onFinish: () => setIsArchiving(false),
+        });
+    }
+
+    function restorePayslip(payslip: Payslip) {
+        setRestoringId(payslip.id);
+        router.patch(route('payslips.restore', payslip.id), cleanFilters({ ...filters }), {
+            preserveScroll: true,
+            onFinish: () => setRestoringId(null),
         });
     }
 
@@ -83,8 +101,15 @@ export default function PayslipIndex({ payslips, filters }: Props) {
 
                 <DataTable
                     data={payslips.data}
-                    onSearch={search}
+                    onSearch={(term) => applyFilters({ search: term })}
                     initialSearch={filters.search}
+                    toolbar={
+                        <ArchiveStatusFilter
+                            label="Filter by archive status"
+                            value={filters.status}
+                            onChange={(value) => applyFilters({ status: value })}
+                        />
+                    }
                     getRowId={(payslip) => payslip.id}
                     getSearchValue={(payslip) =>
                         [
@@ -97,7 +122,7 @@ export default function PayslipIndex({ payslips, filters }: Props) {
                             .join(' ')
                     }
                     searchPlaceholder="Search payslips..."
-                    emptyMessage="No payslips found."
+                    emptyMessage={isArchivedView ? 'No archived payslips.' : 'No payslips found.'}
                     columns={
                         [
                             { header: 'Employee', cell: employeeName },
@@ -119,17 +144,26 @@ export default function PayslipIndex({ payslips, filters }: Props) {
                                                 <Link href={route('payrolls.show', payslip.payroll_id)}>View payroll</Link>
                                             </DropdownMenuItem>
 
-                                            <DropdownMenuItem asChild>
-                                                <Link href={route('payslips.edit', payslip.id)}>Edit date</Link>
-                                            </DropdownMenuItem>
+                                            {isArchivedView ? (
+                                                <DropdownMenuItem disabled={restoringId === payslip.id} onSelect={() => restorePayslip(payslip)}>
+                                                    <RotateCcw aria-hidden="true" />
+                                                    {restoringId === payslip.id ? 'Restoring...' : 'Restore'}
+                                                </DropdownMenuItem>
+                                            ) : (
+                                                <>
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={route('payslips.edit', payslip.id)}>Edit date</Link>
+                                                    </DropdownMenuItem>
 
-                                            <DropdownMenuItem
-                                                className="text-destructive focus:text-destructive"
-                                                onSelect={() => setDeleteCandidate(payslip)}
-                                            >
-                                                <Trash2 aria-hidden="true" />
-                                                Delete
-                                            </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        className="text-destructive focus:text-destructive"
+                                                        onSelect={() => setArchiveCandidate(payslip)}
+                                                    >
+                                                        <Archive aria-hidden="true" />
+                                                        Archive
+                                                    </DropdownMenuItem>
+                                                </>
+                                            )}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 ),
@@ -163,22 +197,24 @@ export default function PayslipIndex({ payslips, filters }: Props) {
                 </nav>
 
                 <Dialog
-                    open={deleteCandidate !== null}
+                    open={archiveCandidate !== null}
                     onOpenChange={(open) => {
-                        if (!open && !isDeleting) setDeleteCandidate(null);
+                        if (!open && !isArchiving) setArchiveCandidate(null);
                     }}
                 >
                     <DialogContent>
-                        <DialogTitle>Delete payslip?</DialogTitle>
+                        <DialogTitle>Archive payslip?</DialogTitle>
                         <DialogDescription>
-                            {deleteCandidate ? `${employeeName(deleteCandidate)}'s payslip will be deleted. The payroll itself is not affected, and you can generate the payslip again.` : ''}
+                            {archiveCandidate
+                                ? `${employeeName(archiveCandidate)}'s payslip will be moved to the archive. The payroll itself is not affected, and you can restore the payslip anytime.`
+                                : ''}
                         </DialogDescription>
                         <DialogFooter>
-                            <Button variant="outline" disabled={isDeleting} onClick={() => setDeleteCandidate(null)}>
+                            <Button variant="outline" disabled={isArchiving} onClick={() => setArchiveCandidate(null)}>
                                 Cancel
                             </Button>
-                            <Button variant="destructive" disabled={isDeleting} onClick={deletePayslip}>
-                                {isDeleting ? 'Deleting...' : 'Delete payslip'}
+                            <Button variant="destructive" disabled={isArchiving} onClick={archivePayslip}>
+                                {isArchiving ? 'Archiving...' : 'Archive payslip'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>

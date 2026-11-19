@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ListSearchRequest;
+use App\Http\Requests\Payroll\PayrollIndexRequest;
 use App\Http\Requests\Payroll\PayrollRequest;
+use App\Models\Department;
 use App\Models\Payroll;
+use App\Models\Position;
 use App\Services\PayrollService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -16,13 +18,15 @@ class PayrollController extends Controller
         private PayrollService $payrollService,
     ) {}
 
-    public function index(ListSearchRequest $request): Response
+    public function index(PayrollIndexRequest $request): Response
     {
-        $search = $request->validated('search');
+        $filters = $request->filters();
 
         return Inertia::render('payroll/index', [
-            'payrolls' => $this->payrollService->paginate($search),
-            'filters' => ['search' => $search ?? ''],
+            'payrolls' => $this->payrollService->paginate($filters),
+            'departments' => Department::options(),
+            'positions' => Position::options(),
+            'filters' => $filters,
         ]);
     }
 
@@ -43,7 +47,7 @@ class PayrollController extends Controller
     {
         $payroll->load(['employee', 'payrollPeriod', 'user']);
 
-        // Bayad na ang period: view lang, walang edit.
+        // Naka-lock lang kapag may laman ang Payroll::LOCKED_PERIOD_STATUSES.
         if ($payroll->isLocked()) {
             return to_route('payrolls.show', $payroll);
         }
@@ -60,10 +64,21 @@ class PayrollController extends Controller
         return to_route('payrolls.index')->with('success', 'Payroll updated successfully.');
     }
 
-    public function destroy(Payroll $payroll): RedirectResponse
+    /*
+     * LABEL: Archive payroll
+     * Purpose: Ang DELETE route ay nag-a-archive na (walang permanenteng burahan).
+     */
+    public function destroy(PayrollIndexRequest $request, Payroll $payroll): RedirectResponse
     {
-        $this->payrollService->delete($payroll);
+        $this->payrollService->archive($payroll);
 
-        return to_route('payrolls.index')->with('success', 'Payroll deleted successfully.');
+        return to_route('payrolls.index', $request->redirectFilters())->with('success', 'Payroll archived successfully.');
+    }
+
+    public function restore(PayrollIndexRequest $request, Payroll $payroll): RedirectResponse
+    {
+        $this->payrollService->restore($payroll);
+
+        return to_route('payrolls.index', $request->redirectFilters())->with('success', 'Payroll restored successfully.');
     }
 }

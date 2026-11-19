@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ListSearchRequest;
+use App\Http\Requests\Payslip\PayslipIndexRequest;
 use App\Http\Requests\Payslip\PayslipRequest;
 use App\Models\Payroll;
 use App\Models\Payslip;
@@ -17,13 +17,13 @@ class PayslipController extends Controller
         private PayslipService $payslipService,
     ) {}
 
-    public function index(ListSearchRequest $request): Response
+    public function index(PayslipIndexRequest $request): Response
     {
-        $search = $request->validated('search');
+        $filters = $request->filters();
 
         return Inertia::render('payslip/index', [
-            'payslips' => $this->payslipService->paginate($search),
-            'filters' => ['search' => $search ?? ''],
+            'payslips' => $this->payslipService->paginate($filters),
+            'filters' => $filters,
         ]);
     }
 
@@ -32,6 +32,7 @@ class PayslipController extends Controller
         // Mga payroll na wala pang payslip, pinakabago muna. Naka-cap para hindi bumigat ang dropdown.
         return Inertia::render('payslip/create', [
             'payrolls' => Payroll::query()
+                ->active()
                 ->doesntHave('payslip')
                 ->with([
                     'employee:id,first_name,last_name,suffix',
@@ -64,10 +65,21 @@ class PayslipController extends Controller
         return to_route('payslips.index')->with('success', 'Payslip updated successfully.');
     }
 
-    public function destroy(Payslip $payslip): RedirectResponse
+    /*
+     * LABEL: Archive payslip
+     * Purpose: Ang DELETE route ay nag-a-archive na (walang permanenteng burahan).
+     */
+    public function destroy(PayslipIndexRequest $request, Payslip $payslip): RedirectResponse
     {
-        $this->payslipService->delete($payslip);
+        $this->payslipService->archive($payslip);
 
-        return to_route('payslips.index')->with('success', 'Payslip deleted successfully.');
+        return to_route('payslips.index', $request->redirectFilters())->with('success', 'Payslip archived successfully.');
+    }
+
+    public function restore(PayslipIndexRequest $request, Payslip $payslip): RedirectResponse
+    {
+        $this->payslipService->restore($payslip);
+
+        return to_route('payslips.index', $request->redirectFilters())->with('success', 'Payslip restored successfully.');
     }
 }

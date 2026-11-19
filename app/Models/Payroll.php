@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Archivable;
+use App\Models\Concerns\FiltersByDateParts;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -17,19 +19,22 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
     'gross_pay',
     'total_deductions',
     'net_pay',
-    'date_processed'
+    'date_processed',
+    'archived_at',
 ])]
 
 class Payroll extends Model
 {
-    use HasFactory;
+    use HasFactory, Archivable, FiltersByDateParts;
 
     /*
      * LABEL: Locked period statuses
      * Purpose: Kapag ang period ng payroll ay may ganitong status, hindi na
      * pwedeng i-edit o i-delete ang payroll record (bayad na).
      */
-    public const LOCKED_PERIOD_STATUSES = ['Paid'];
+    // Walang naka-lock na status: pwedeng i-edit/i-archive ang payroll kahit Paid na
+    // ang period. Maglagay ulit ng ['Paid'] dito para ibalik ang lock.
+    public const LOCKED_PERIOD_STATUSES = [];
 
     /*
      * LABEL: Eager load details
@@ -52,6 +57,33 @@ class Payroll extends Model
     public function scopeForPeriod(Builder $query, int $payrollPeriodId): void
     {
         $query->where('payroll_period_id', $payrollPeriodId);
+    }
+
+    /*
+     * LABEL: Filters scope
+     * Purpose: Lahat ng filters ng Payroll records page sa iisang scope.
+     * - status: 'archived' o default 'active'.
+     * - year / month / day: sa date_processed.
+     * - department_id / position_id: sa employee ng payroll (isang whereHas
+     *   lang kahit pareho ang gamit).
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function scopeForFilters(Builder $query, array $filters): void
+    {
+        $departmentId = $filters['department_id'] ?? null;
+        $positionId = $filters['position_id'] ?? null;
+
+        $query
+            ->withArchiveStatus($filters['status'] ?? null)
+            ->search($filters['search'] ?? null)
+            ->matchingDateParts('date_processed', $filters)
+            ->when(filled($departmentId) || filled($positionId), fn (Builder $query) => $query->whereHas(
+                'employee',
+                fn (Builder $employee) => $employee
+                    ->when(filled($departmentId), fn (Builder $employee) => $employee->inDepartment($departmentId))
+                    ->when(filled($positionId), fn (Builder $employee) => $employee->inPosition($positionId)),
+            ));
     }
 
     public function scopeSearch(Builder $query, ?string $search): void

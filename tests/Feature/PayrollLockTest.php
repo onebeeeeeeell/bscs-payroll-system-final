@@ -27,35 +27,36 @@ class PayrollLockTest extends TestCase
         return ['gross_pay' => 5000, 'total_deductions' => 100, 'date_processed' => now()->toDateTimeString()];
     }
 
-    public function test_payroll_in_a_paid_period_cannot_be_updated(): void
+    public function test_payroll_in_a_paid_period_can_be_updated(): void
     {
         $payroll = $this->payrollIn('Paid');
 
         $this->actingAs(User::factory()->create())
             ->patch(route('payrolls.update', $payroll), $this->payload())
-            ->assertSessionHasErrors('gross_pay');
+            ->assertRedirect(route('payrolls.index'));
 
-        $this->assertEquals(1000, $payroll->fresh()->gross_pay);
+        $this->assertEquals(5000, $payroll->fresh()->gross_pay);
     }
 
-    public function test_payroll_in_a_paid_period_cannot_be_deleted(): void
+    public function test_payroll_in_a_paid_period_can_be_archived_and_restored(): void
     {
         $payroll = $this->payrollIn('Paid');
+        $this->actingAs(User::factory()->create());
 
-        $this->actingAs(User::factory()->create())
-            ->delete(route('payrolls.destroy', $payroll))
-            ->assertSessionHasErrors('payroll');
+        $this->delete(route('payrolls.destroy', $payroll))->assertRedirect(route('payrolls.index'));
+        $this->assertNotNull($payroll->fresh()->archived_at);
 
-        $this->assertDatabaseHas('payrolls', ['id' => $payroll->id]);
+        $this->patch(route('payrolls.restore', $payroll))->assertRedirect(route('payrolls.index'));
+        $this->assertNull($payroll->fresh()->archived_at);
     }
 
-    public function test_edit_page_redirects_to_show_for_a_paid_period(): void
+    public function test_edit_page_opens_for_a_paid_period(): void
     {
         $payroll = $this->payrollIn('Paid');
 
         $this->actingAs(User::factory()->create())
             ->get(route('payrolls.edit', $payroll))
-            ->assertRedirect(route('payrolls.show', $payroll));
+            ->assertOk();
     }
 
     public function test_payroll_in_a_processing_period_can_still_be_updated_with_server_computed_net(): void

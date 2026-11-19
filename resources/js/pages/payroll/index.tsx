@@ -1,19 +1,30 @@
 import { DataTable, type DataTableColumn } from '@/components/data-table';
+import { ArchiveStatusFilter, DateFilters, FilterSelect, cleanFilters } from '@/components/list-filters';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import AppLayout from '@/layouts/app-layout';
 import type { SharedData } from '@/types';
-import type { PaginatedData, Payroll } from '@/types/models';
+import type { Department, PaginatedData, Payroll, Position } from '@/types/models';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { MoreHorizontal, Trash2 } from 'lucide-react';
+import { Archive, MoreHorizontal, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
+
+type Filters = {
+    search: string;
+    status: 'active' | 'archived';
+    year: string;
+    month: string;
+    day: string;
+    department_id: string;
+    position_id: string;
+};
 
 type Props = {
     payrolls: PaginatedData<Payroll>;
-    filters: {
-        search: string;
-    };
+    departments: Pick<Department, 'id' | 'department_name'>[];
+    positions: Pick<Position, 'id' | 'title'>[];
+    filters: Filters;
 };
 
 function formatCurrency(value: string): string {
@@ -27,29 +38,40 @@ function employeeName(payroll: Payroll): string {
     return [payroll.employee?.first_name, payroll.employee?.last_name, payroll.employee?.suffix].filter(Boolean).join(' ') || '—';
 }
 
-export default function PayrollIndex({ payrolls, filters }: Props) {
+export default function PayrollIndex({ payrolls, departments, positions, filters }: Props) {
     const { flash } = usePage<SharedData>().props;
-    const [deleteCandidate, setDeleteCandidate] = useState<Payroll | null>(null);
-    const [isDeleting, setIsDeleting] = useState(false);
+    const [archiveCandidate, setArchiveCandidate] = useState<Payroll | null>(null);
+    const [isArchiving, setIsArchiving] = useState(false);
+    const [restoringId, setRestoringId] = useState<number | null>(null);
+    const isArchivedView = filters.status === 'archived';
 
-    function deletePayroll() {
-        if (!deleteCandidate) return;
-
-        setIsDeleting(true);
-        router.delete(route('payrolls.destroy', deleteCandidate.id), {
-            preserveScroll: true,
-            onSuccess: () => setDeleteCandidate(null),
-            onFinish: () => setIsDeleting(false),
-        });
-    }
-
-    // Server search: bumabalik sa page 1 at ang records lang ang nire-reload
-    function search(term: string) {
-        router.get(route('payrolls.index'), term ? { search: term } : {}, {
+    // Every filter change goes back to the server (page 1); only the records are reloaded
+    function applyFilters(next: Partial<Filters>) {
+        router.get(route('payrolls.index'), cleanFilters({ ...filters, ...next }), {
             preserveScroll: true,
             preserveState: true,
             replace: true,
             only: ['payrolls', 'filters'],
+        });
+    }
+
+    function archivePayroll() {
+        if (!archiveCandidate) return;
+
+        setIsArchiving(true);
+        router.delete(route('payrolls.destroy', archiveCandidate.id), {
+            data: cleanFilters({ ...filters }),
+            preserveScroll: true,
+            onSuccess: () => setArchiveCandidate(null),
+            onFinish: () => setIsArchiving(false),
+        });
+    }
+
+    function restorePayroll(payroll: Payroll) {
+        setRestoringId(payroll.id);
+        router.patch(route('payrolls.restore', payroll.id), cleanFilters({ ...filters }), {
+            preserveScroll: true,
+            onFinish: () => setRestoringId(null),
         });
     }
 
@@ -80,8 +102,50 @@ export default function PayrollIndex({ payrolls, filters }: Props) {
 
                 <DataTable
                     data={payrolls.data}
-                    onSearch={search}
+                    onSearch={(term) => applyFilters({ search: term })}
                     initialSearch={filters.search}
+                    toolbar={
+                        <div className="flex w-full flex-wrap gap-2">
+                            <DateFilters
+                                labelPrefix="Filter by date processed"
+                                year={filters.year}
+                                month={filters.month}
+                                day={filters.day}
+                                onChange={(name, value) => applyFilters({ [name]: value })}
+                            />
+                            <FilterSelect
+                                label="Filter by department"
+                                value={filters.department_id}
+                                onChange={(value) => applyFilters({ department_id: value })}
+                                className="min-w-36"
+                            >
+                                <option value="">All departments</option>
+                                {departments.map((department) => (
+                                    <option key={department.id} value={department.id}>
+                                        {department.department_name}
+                                    </option>
+                                ))}
+                            </FilterSelect>
+                            <FilterSelect
+                                label="Filter by position"
+                                value={filters.position_id}
+                                onChange={(value) => applyFilters({ position_id: value })}
+                                className="min-w-36"
+                            >
+                                <option value="">All positions</option>
+                                {positions.map((position) => (
+                                    <option key={position.id} value={position.id}>
+                                        {position.title}
+                                    </option>
+                                ))}
+                            </FilterSelect>
+                            <ArchiveStatusFilter
+                                label="Filter by archive status"
+                                value={filters.status}
+                                onChange={(value) => applyFilters({ status: value })}
+                            />
+                        </div>
+                    }
                     getRowId={(payroll) => payroll.id}
                     getSearchValue={(payroll) =>
                         [
@@ -95,7 +159,7 @@ export default function PayrollIndex({ payrolls, filters }: Props) {
                             .join(' ')
                     }
                     searchPlaceholder="Search payroll records..."
-                    emptyMessage="No payroll records found."
+                    emptyMessage={isArchivedView ? 'No archived payroll records.' : 'No payroll records found.'}
                     columns={
                         [
                             {
@@ -127,8 +191,12 @@ export default function PayrollIndex({ payrolls, filters }: Props) {
                                                 <Link href={route('payrolls.show', payroll.id)}>View</Link>
                                             </DropdownMenuItem>
 
-                                            {/* Bayad na ang period: walang edit/delete (hinaharang din ng server) */}
-                                            {payroll.payroll_period?.status !== 'Paid' && (
+                                            {isArchivedView ? (
+                                                <DropdownMenuItem disabled={restoringId === payroll.id} onSelect={() => restorePayroll(payroll)}>
+                                                    <RotateCcw aria-hidden="true" />
+                                                    {restoringId === payroll.id ? 'Restoring...' : 'Restore'}
+                                                </DropdownMenuItem>
+                                            ) : (
                                                 <>
                                                     <DropdownMenuItem asChild>
                                                         <Link href={route('payrolls.edit', payroll.id)}>Edit</Link>
@@ -136,10 +204,10 @@ export default function PayrollIndex({ payrolls, filters }: Props) {
 
                                                     <DropdownMenuItem
                                                         className="text-destructive focus:text-destructive"
-                                                        onSelect={() => setDeleteCandidate(payroll)}
+                                                        onSelect={() => setArchiveCandidate(payroll)}
                                                     >
-                                                        <Trash2 aria-hidden="true" />
-                                                        Delete
+                                                        <Archive aria-hidden="true" />
+                                                        Archive
                                                     </DropdownMenuItem>
                                                 </>
                                             )}
@@ -176,24 +244,24 @@ export default function PayrollIndex({ payrolls, filters }: Props) {
                 </nav>
 
                 <Dialog
-                    open={deleteCandidate !== null}
+                    open={archiveCandidate !== null}
                     onOpenChange={(open) => {
-                        if (!open && !isDeleting) setDeleteCandidate(null);
+                        if (!open && !isArchiving) setArchiveCandidate(null);
                     }}
                 >
                     <DialogContent>
-                        <DialogTitle>Delete payroll record?</DialogTitle>
+                        <DialogTitle>Archive payroll record?</DialogTitle>
                         <DialogDescription>
-                            {deleteCandidate
-                                ? `${employeeName(deleteCandidate)}'s payroll for this period will be permanently deleted, together with its deductions and payslip. This cannot be undone.`
+                            {archiveCandidate
+                                ? `${employeeName(archiveCandidate)}'s payroll for this period will be moved to the archive. Its deductions and payslip are kept, and you can restore it anytime.`
                                 : ''}
                         </DialogDescription>
                         <DialogFooter>
-                            <Button variant="outline" disabled={isDeleting} onClick={() => setDeleteCandidate(null)}>
+                            <Button variant="outline" disabled={isArchiving} onClick={() => setArchiveCandidate(null)}>
                                 Cancel
                             </Button>
-                            <Button variant="destructive" disabled={isDeleting} onClick={deletePayroll}>
-                                {isDeleting ? 'Deleting...' : 'Delete payroll'}
+                            <Button variant="destructive" disabled={isArchiving} onClick={archivePayroll}>
+                                {isArchiving ? 'Archiving...' : 'Archive payroll'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>

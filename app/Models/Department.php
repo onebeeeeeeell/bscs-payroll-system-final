@@ -71,7 +71,7 @@ class Department extends Model
     /*
      * LABEL: Employees count scope
      * Purpose: Idagdag ang employees_count sa bawat department.
-     * Ginagamit sa DepartmentService at OrganizationService.
+     * Ginagamit sa DepartmentService.
      */
     public function scopeWithEmployeesCount(Builder $query): void
     {

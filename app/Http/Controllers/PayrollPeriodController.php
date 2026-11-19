@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ListSearchRequest;
+use App\Http\Requests\PayrollPeriod\PayrollPeriodIndexRequest;
 use App\Http\Requests\PayrollPeriod\PayrollPeriodRequest;
 use App\Models\PayrollPeriod;
 use App\Services\PayrollPeriodService;
@@ -16,10 +16,13 @@ class PayrollPeriodController extends Controller
         private PayrollPeriodService $payrollPeriodService,
     ) {}
 
-    public function index(ListSearchRequest $request): Response
+    public function index(PayrollPeriodIndexRequest $request): Response
     {
+        $filters = $request->filters();
+
         return Inertia::render('payroll-period/index', [
-            'payrollPeriods' => $this->payrollPeriodService->paginate($request->validated('search')),
+            'payrollPeriods' => $this->payrollPeriodService->paginate($filters),
+            'filters' => $filters,
         ]);
     }
 
@@ -49,10 +52,21 @@ class PayrollPeriodController extends Controller
         return to_route('payroll_periods.index')->with('success', 'Payroll period updated successfully.');
     }
 
-    public function destroy(PayrollPeriod $payrollPeriod): RedirectResponse
+    /*
+     * LABEL: Archive period
+     * Purpose: Ang DELETE route ay nag-a-archive na (walang permanenteng burahan).
+     */
+    public function destroy(PayrollPeriodIndexRequest $request, PayrollPeriod $payrollPeriod): RedirectResponse
     {
-        $this->payrollPeriodService->delete($payrollPeriod);
+        $this->payrollPeriodService->archive($payrollPeriod);
 
-        return to_route('payroll_periods.index')->with('success', 'Payroll period deleted successfully.');
+        return to_route('payroll_periods.index', $request->redirectFilters())->with('success', 'Payroll period archived successfully.');
+    }
+
+    public function restore(PayrollPeriodIndexRequest $request, PayrollPeriod $payrollPeriod): RedirectResponse
+    {
+        $this->payrollPeriodService->restore($payrollPeriod);
+
+        return to_route('payroll_periods.index', $request->redirectFilters())->with('success', 'Payroll period restored successfully.');
     }
 }

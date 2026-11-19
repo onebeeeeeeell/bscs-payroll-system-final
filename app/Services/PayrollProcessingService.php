@@ -261,9 +261,4 @@ class PayrollProcessingService
 
         return ['rows' => $rows, 'amounts' => $amounts];
     }
-
-    private function sanitizeSearch(?string $search): string
-    {
-        return $this->sanitizeStringFields(['search' => $search], ['search'])['search'] ?? '';
-    }
 }

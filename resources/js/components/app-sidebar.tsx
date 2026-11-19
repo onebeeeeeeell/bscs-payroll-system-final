@@ -62,7 +62,6 @@ export function AppSidebar() {
             url: '/settings',
             icon: Settings,
             children: [
-                { title: 'Organization', url: '/settings/organization' },
                 { title: 'Account', url: '/settings/profile', matches: ['/settings/password', '/settings/appearance'] },
             ],
         },

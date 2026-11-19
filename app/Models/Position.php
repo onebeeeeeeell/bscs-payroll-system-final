@@ -71,7 +71,7 @@ class Position extends Model
     /*
      * LABEL: Employees count scope
      * Purpose: Idagdag ang employees_count sa bawat position.
-     * Ginagamit sa PositionService at OrganizationService.
+     * Ginagamit sa PositionService.
      */
     public function scopeWithEmployeesCount(Builder $query): void
     {

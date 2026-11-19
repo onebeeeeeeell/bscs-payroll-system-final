@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Archivable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -10,12 +11,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 #[Fillable([
     'payroll_id',
-    'date_generated'
+    'date_generated',
+    'archived_at',
 ])]
 
 class Payslip extends Model
 {
-    use HasFactory;
+    use HasFactory, Archivable;
 
     /*
      * LABEL: Eager load details
@@ -40,6 +42,19 @@ class Payslip extends Model
         if ($search) {
             $query->whereHas('payroll.employee', fn (Builder $employee) => $employee->matchingFirstOrLastName($search));
         }
+    }
+
+    /*
+     * LABEL: Filters scope
+     * Purpose: status ('active' / 'archived') at search (pangalan ng employee).
+     *
+     * @param array<string, mixed> $filters
+     */
+    public function scopeForFilters(Builder $query, array $filters): void
+    {
+        $query
+            ->withArchiveStatus($filters['status'] ?? null)
+            ->search($filters['search'] ?? null);
     }
 
     public function payroll(): BelongsTo
