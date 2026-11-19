@@ -3,7 +3,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { Calendar, CalendarRange, FileText, HandCoins, LayoutGrid, Settings, Users } from 'lucide-react';
+import { Calendar, CalendarRange, FileText, HandCoins, LayoutGrid, Settings, SlidersHorizontal, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 export function AppSidebar() {
@@ -41,6 +41,18 @@ export function AppSidebar() {
             title: 'Payslips',
             url: '/payslips',
             icon: FileText,
+        },
+        {
+            title: 'Payroll setup',
+            url: '/contribution_rates',
+            icon: SlidersHorizontal,
+            children: [
+                { title: 'Contribution types', url: '/contribution_types' },
+                { title: 'Contribution rates', url: '/contribution_rates' },
+                { title: 'Departments', url: '/departments' },
+                { title: 'Positions', url: '/positions' },
+                { title: 'Deductions', url: '/deductions' },
+            ],
         },
     ];
 

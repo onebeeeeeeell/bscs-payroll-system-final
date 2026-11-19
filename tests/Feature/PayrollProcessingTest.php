@@ -88,6 +88,30 @@ class PayrollProcessingTest extends TestCase
         $this->assertDatabaseCount('payrolls', 0);
     }
 
+    public function test_percentage_rates_are_computed_from_each_employees_gross(): void
+    {
+        $period = $this->period();
+        $type = ContributionType::factory()->create();
+        $other = ContributionType::factory()->create();
+
+        ContributionRate::factory()->create(['contribution_type_id' => $type->id, 'calculation_type' => 'percent', 'rate' => 4.5]);
+        ContributionRate::factory()->create(['contribution_type_id' => $other->id, 'calculation_type' => 'fixed', 'rate' => 100]);
+
+        $employee = $this->workedEmployee(); // gross 2,250
+
+        $row = $this->previewRow(app(PayrollProcessingService::class), $period, $employee);
+
+        // 4.5% of 2,250 = 101.25, plus fixed 100
+        $this->assertEquals(201.25, $row['total_deductions']);
+        $this->assertEquals(2048.75, $row['net_pay']);
+
+        app(PayrollProcessingService::class)->process($period->id, User::factory()->create()->id);
+
+        $this->assertDatabaseHas('deductions', ['amount' => 101.25]);
+        $this->assertDatabaseHas('deductions', ['amount' => 100]);
+        $this->assertDatabaseHas('payrolls', ['employee_id' => $employee->id, 'total_deductions' => 201.25, 'net_pay' => 2048.75]);
+    }
+
     public function test_attendance_outside_the_period_and_deleted_attendance_are_not_counted(): void
     {
         $period = $this->period();

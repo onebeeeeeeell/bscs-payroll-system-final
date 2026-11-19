@@ -3,12 +3,21 @@
 namespace App\Services;
 
 use App\Models\ContributionRate;
+use App\Models\ContributionType;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 
 class ContributionRateService
 {
+    // Ito lang ang fields na puwedeng pumasok galing sa labas. Hindi na pwedeng
+    // ilipat ng contribution type ang existing na rate, kaya wala ito sa update.
+    private const CREATE_FIELDS = ['contribution_type_id', 'calculation_type', 'rate'];
+
+    private const UPDATE_FIELDS = ['calculation_type', 'rate'];
+
     /*
      * LABEL: Contribution rate list
      * Purpose: Nasa ContributionRate model na ang logic (eager load, search).
@@ -27,8 +36,24 @@ class ContributionRateService
     }
 
 
+    /*
+     * LABEL: Current rate ids
+     * Purpose: Ang pinakabagong rate ng bawat type ang ginagamit sa payroll.
+     */
+    public function currentRateIds(): \Illuminate\Support\Collection
+    {
+        return ContributionRate::query()->latestPerType()->pluck('id');
+    }
+
+    public function typeOptions(): Collection
+    {
+        return ContributionType::query()->forSelection()->get();
+    }
+
     public function create(array $data): ContributionRate
     {
+        $data = Arr::only($data, self::CREATE_FIELDS);
+
         // transaction so nothing is saved if something fails in the middle
         return DB::transaction(
             fn () => ContributionRate::create($data)
@@ -38,6 +63,8 @@ class ContributionRateService
 
     public function update(ContributionRate $contributionRate, array $data): ContributionRate
     {
+        $data = Arr::only($data, self::UPDATE_FIELDS);
+
         return DB::transaction(function () use ($contributionRate, $data) {
             $this->assertUnused($contributionRate, 'rate');
 

@@ -4,6 +4,8 @@ namespace App\Http\Requests\ContributionRate;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use App\Models\ContributionRate;
 
 class ContributionRateRequest extends FormRequest
 {
@@ -16,14 +18,18 @@ class ContributionRateRequest extends FormRequest
      * LABEL: Rules
      * Purpose: Sa create: type at rate. Sa update: rate lang. Hindi na pwedeng
      * ilipat ng type ang existing na rate (guguluhin nito ang history).
-     * Ang rate ay flat na halaga bawat payroll (decimal 10,2).
+     * calculation_type: 'fixed' (flat PHP amount bawat payroll) o 'percent'
+     * (porsyento ng gross pay, 0-100). Decimal 10,2 ang rate.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
+        $isPercent = $this->input('calculation_type') === ContributionRate::TYPE_PERCENT;
+
         $rules = [
-            'rate' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
+            'calculation_type' => ['required', Rule::in(ContributionRate::CALCULATION_TYPES)],
+            'rate' => ['required', 'numeric', 'min:0', $isPercent ? 'max:100' : 'max:99999999.99'],
         ];
 
         if (! $this->isMethod('PATCH') && ! $this->isMethod('PUT')) {

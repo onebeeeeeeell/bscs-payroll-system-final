@@ -104,7 +104,7 @@ class PayrollProcessingService
                 ]);
             }
 
-            ['rows' => $rows, 'rates' => $rates] = $this->buildRows($period);
+            ['rows' => $rows, 'amounts' => $amounts] = $this->buildRows($period);
 
             if ($rows->whereIn('status', self::BLOCKING_STATUSES)->isNotEmpty()) {
                 throw ValidationException::withMessages([
@@ -140,11 +140,12 @@ class PayrollProcessingService
 
             $payrollIds = Payroll::query()->forPeriod($period->id)->pluck('id', 'employee_id');
 
+            // $amounts ay galing na sa buildRows(): walang ikalawang computation dito
             $deductionRows = $ready->flatMap(
-                fn (array $row) => $rates->map(fn (ContributionRate $rate) => [
+                fn (array $row) => collect($amounts[$row['employee_id']])->map(fn (float $amount, int $rateId) => [
                     'payroll_id' => $payrollIds[$row['employee_id']],
-                    'contribution_rate_id' => $rate->id,
-                    'amount' => $rate->rate,
+                    'contribution_rate_id' => $rateId,
+                    'amount' => $amount,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]),
@@ -195,9 +196,14 @@ class PayrollProcessingService
      * attendance totals ng period (grouped), at latest rate ng bawat type.
      * - paid_days at overtime_hours galing sa Attendance::totalsPerEmployee().
      * - gross = paid_days x daily_rate + OT hours x hourly rate x multiplier.
-     * - deductions = flat na kabuuan ng latest contribution rates.
+     * - deductions = kabuuan ng latest contribution rates ng bawat type: fixed =
+     *   flat na halaga, percent = porsyento ng gross ng employee (kaya per-employee).
+     *   Ang total ay kabuuan ng bawat rounded na deduction, para tugma sa deduction rows.
      *
-     * @return array{rows: Collection<int, array<string, mixed>>, rates: Collection<int, ContributionRate>}
+     * 'amounts' = [employee_id => [contribution_rate_id => amount]], isang beses lang
+     * kino-compute dito at ginagamit ng process() para sa deduction rows.
+     *
+     * @return array{rows: Collection<int, array<string, mixed>>, amounts: array<int, array<int, float>>}
      */
     private function buildRows(PayrollPeriod $period): array
     {
@@ -209,10 +215,11 @@ class PayrollProcessingService
             ->get()
             ->keyBy('employee_id');
 
-        $rates = ContributionRate::query()->latestPerType()->get(['id', 'rate']);
-        $deductions = round((float) $rates->sum('rate'), 2);
+        $rates = ContributionRate::query()->latestPerType()->get(['id', 'calculation_type', 'rate']);
 
-        $rows = $employees->map(function (Employee $employee) use ($totals, $deductions) {
+        $amounts = [];
+
+        $rows = $employees->map(function (Employee $employee) use ($totals, $rates, &$amounts) {
             $attendance = $totals->get($employee->id);
             $paidDays = (float) ($attendance->paid_days ?? 0);
             $overtimeHours = (float) ($attendance->overtime_hours ?? 0);
@@ -224,6 +231,9 @@ class PayrollProcessingService
                 2,
             );
 
+            $items = $rates->mapWithKeys(fn (ContributionRate $rate) => [$rate->id => $rate->amountFor($gross)])->all();
+            $deductions = round(array_sum($items), 2);
+
             $status = match (true) {
                 (int) ($attendance->open_records ?? 0) > 0 => self::STATUS_OPEN_TIME_OUT,
                 $gross <= 0 => self::STATUS_NO_ATTENDANCE,
@@ -232,6 +242,10 @@ class PayrollProcessingService
             };
 
             $payable = $status === self::STATUS_READY;
+
+            if ($payable) {
+                $amounts[$employee->id] = $items;
+            }
 
             return [
                 'employee_id' => $employee->id,
@@ -245,7 +259,7 @@ class PayrollProcessingService
             ];
         });
 
-        return ['rows' => $rows, 'rates' => $rates];
+        return ['rows' => $rows, 'amounts' => $amounts];
     }
 
     private function sanitizeSearch(?string $search): string

@@ -88,6 +88,7 @@ export interface Payslip {
 export interface ContributionRate {
     id: number;
     contribution_type_id: number;
+    calculation_type: 'fixed' | 'percent';
     rate: string;
     contribution_type?: ContributionType;
     created_at: string;

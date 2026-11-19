@@ -24,7 +24,16 @@ class ContributionType extends Model
      */
     public function scopeWithRates(Builder $query): void
     {
-        $query->with(['contributionRates:id,contribution_type_id,rate']);
+        $query->with(['contributionRates:id,contribution_type_id,calculation_type,rate']);
+    }
+
+    /*
+     * LABEL: Selection scope
+     * Purpose: Options para sa dropdown ng rate form: alphabetical, id at name lang.
+     */
+    public function scopeForSelection(Builder $query): void
+    {
+        $query->orderBy('name')->select(['id', 'name']);
     }
 
     protected function searchColumn(): string

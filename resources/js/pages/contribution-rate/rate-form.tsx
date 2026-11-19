@@ -19,8 +19,11 @@ export default function RateForm({ contributionTypes = [], contributionRate, loc
 
     const form = useForm({
         contribution_type_id: contributionRate ? String(contributionRate.contribution_type_id) : '',
+        calculation_type: contributionRate?.calculation_type ?? 'fixed',
         rate: contributionRate?.rate ?? '',
     });
+
+    const isPercent = form.data.calculation_type === 'percent';
 
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -28,8 +31,8 @@ export default function RateForm({ contributionTypes = [], contributionRate, loc
         if (locked) return;
 
         if (isEdit) {
-            // Rate lang ang binabago sa edit; hindi na ipinapadala ang type
-            form.transform((data) => ({ rate: data.rate }));
+            // Calculation type at rate lang ang binabago sa edit; hindi na ipinapadala ang contribution type
+            form.transform((data) => ({ calculation_type: data.calculation_type, rate: data.rate }));
             form.patch(route('contribution_rates.update', contributionRate.id), { preserveScroll: true });
         } else {
             form.post(route('contribution_rates.store'), { preserveScroll: true });
@@ -86,13 +89,31 @@ export default function RateForm({ contributionTypes = [], contributionRate, loc
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="rate">Amount per payroll (PHP)</Label>
+                    <Label htmlFor="calculation_type">Calculation</Label>
+                    <Select
+                        value={form.data.calculation_type}
+                        onValueChange={(value) => form.setData('calculation_type', value as 'fixed' | 'percent')}
+                        disabled={form.processing || locked}
+                    >
+                        <SelectTrigger id="calculation_type" aria-invalid={Boolean(form.errors.calculation_type)}>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="fixed">Fixed amount (PHP)</SelectItem>
+                            <SelectItem value="percent">Percentage of gross pay (%)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <InputError message={form.errors.calculation_type} />
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="rate">{isPercent ? 'Percentage of gross pay (%)' : 'Amount per payroll (PHP)'}</Label>
                     <Input
                         id="rate"
                         type="number"
                         inputMode="decimal"
                         min="0"
-                        max="99999999.99"
+                        max={isPercent ? '100' : '99999999.99'}
                         step="0.01"
                         value={form.data.rate}
                         onChange={(event) => form.setData('rate', event.target.value)}
@@ -100,7 +121,9 @@ export default function RateForm({ contributionTypes = [], contributionRate, loc
                         disabled={form.processing || locked}
                         aria-invalid={Boolean(form.errors.rate)}
                     />
-                    <p className="text-muted-foreground text-xs">A flat amount deducted from every employee&apos;s pay. The newest rate of each type is the one used.</p>
+                    <p className="text-muted-foreground text-xs">{isPercent
+                            ? "Deducted as this percentage of each employee's gross pay for the period. The newest rate of each type is the one used."
+                            : "A flat amount deducted from every employee's pay. The newest rate of each type is the one used."}</p>
                     <InputError message={form.errors.rate} />
                 </div>
             </div>

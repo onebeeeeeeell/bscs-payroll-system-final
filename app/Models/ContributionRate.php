@@ -11,12 +11,33 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 #[Fillable([
     'contribution_type_id',
+    'calculation_type',
     'rate'
 ])]
 
 class ContributionRate extends Model
 {
     use HasFactory;
+
+    public const TYPE_FIXED = 'fixed';
+
+    public const TYPE_PERCENT = 'percent';
+
+    public const CALCULATION_TYPES = [self::TYPE_FIXED, self::TYPE_PERCENT];
+
+    /*
+     * LABEL: Amount for gross
+     * Purpose: Halaga ng deduction para sa isang employee. Fixed = ang rate mismo;
+     * percent = rate% ng gross pay ng employee sa period (rounded sa 2 decimals).
+     */
+    public function amountFor(float $gross): float
+    {
+        if ($this->calculation_type === self::TYPE_PERCENT) {
+            return round($gross * (float) $this->rate / 100, 2);
+        }
+
+        return round((float) $this->rate, 2);
+    }
 
     /*
      * LABEL: Eager load contribution type
@@ -46,6 +67,15 @@ class ContributionRate extends Model
         if ($search) {
             $query->whereHas('contributionType', fn (Builder $type) => $type->search($search));
         }
+    }
+
+    /*
+     * LABEL: Used check
+     * Purpose: True kapag may deductions na na gumamit ng rate na ito (nasa payroll na).
+     */
+    public function isUsed(): bool
+    {
+        return $this->deductions()->exists();
     }
 
     public function contributionType(): BelongsTo
