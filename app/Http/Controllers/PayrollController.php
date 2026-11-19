@@ -39,10 +39,17 @@ class PayrollController extends Controller
         ]);
     }
 
-    public function edit(Payroll $payroll): Response
+    public function edit(Payroll $payroll): Response|RedirectResponse
     {
+        $payroll->load(['employee', 'payrollPeriod', 'user']);
+
+        // Bayad na ang period: view lang, walang edit.
+        if ($payroll->isLocked()) {
+            return to_route('payrolls.show', $payroll);
+        }
+
         return Inertia::render('payroll/edit', [
-            'payroll' => $payroll->load(['employee', 'payrollPeriod', 'user']),
+            'payroll' => $payroll,
         ]);
     }
 

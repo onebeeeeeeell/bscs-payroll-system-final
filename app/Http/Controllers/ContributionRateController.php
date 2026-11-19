@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ListSearchRequest;
 use App\Http\Requests\ContributionRate\ContributionRateRequest;
 use App\Models\ContributionRate;
+use App\Models\ContributionType;
 use App\Services\ContributionRateService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -20,12 +21,16 @@ class ContributionRateController extends Controller
     {
         return Inertia::render('contribution-rate/index', [
             'contributionRates' => $this->contributionRateService->paginate($request->validated('search')),
+            // Ang pinakabagong rate ng bawat type ang ginagamit sa payroll
+            'currentRateIds' => ContributionRate::query()->latestPerType()->pluck('id'),
         ]);
     }
 
     public function create(): Response
     {
-        return Inertia::render('contribution-rate/create');
+        return Inertia::render('contribution-rate/create', [
+            'contributionTypes' => ContributionType::query()->orderBy('name')->get(['id', 'name']),
+        ]);
     }
 
     public function store(ContributionRateRequest $request): RedirectResponse
@@ -39,6 +44,8 @@ class ContributionRateController extends Controller
     {
         return Inertia::render('contribution-rate/edit', [
             'contributionRate' => $contributionRate->load('contributionType'),
+            // True kapag nagamit na sa payroll: view lang, hindi na mababago
+            'locked' => $contributionRate->deductions()->exists(),
         ]);
     }
 

@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Services\Concerns\SanitizesText;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Validation\ValidationException;
 
 class DepartmentService
 {
@@ -49,9 +50,17 @@ class DepartmentService
 
     public function delete(Department $department): void
     {
-        DB::transaction(
-            fn () => $department->delete()
-        );
+        DB::transaction(function () use ($department) {
+            // RESTRICT ang FK sa employees: kapag may employee pa, mag-eerror ang
+            // database (500). Mas malinaw na validation message ang ibinabalik dito.
+            if ($department->employees()->lockForUpdate()->exists()) {
+                throw ValidationException::withMessages([
+                    'department' => 'This department still has employees and cannot be deleted.',
+                ]);
+            }
+
+            $department->delete();
+        });
     }
 
 

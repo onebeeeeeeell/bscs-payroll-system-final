@@ -25,6 +25,13 @@ class Payroll extends Model
     use HasFactory;
 
     /*
+     * LABEL: Locked period statuses
+     * Purpose: Kapag ang period ng payroll ay may ganitong status, hindi na
+     * pwedeng i-edit o i-delete ang payroll record (bayad na).
+     */
+    public const LOCKED_PERIOD_STATUSES = ['Paid'];
+
+    /*
      * LABEL: Eager load details
      * Purpose: I-load na agad ang employee, payrollPeriod, at user
      * (iwas N+1 problem). Piling columns lang para magaan ang query.
@@ -52,6 +59,16 @@ class Payroll extends Model
         if ($search) {
             $query->whereHas('employee', fn (Builder $employee) => $employee->matchingFirstOrLastName($search));
         }
+    }
+
+    /*
+     * LABEL: Locked check
+     * Purpose: True kapag bayad na ang period. Gumagamit ng loaded na
+     * payrollPeriod relation (naka-load sa controller/service).
+     */
+    public function isLocked(): bool
+    {
+        return in_array($this->payrollPeriod?->status, self::LOCKED_PERIOD_STATUSES, true);
     }
 
     public function employee(): BelongsTo

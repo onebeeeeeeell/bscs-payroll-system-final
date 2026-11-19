@@ -6,6 +6,7 @@ use App\Models\ContributionType;
 use App\Services\Concerns\SanitizesText;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Validation\ValidationException;
 
 class ContributionTypeService
 {
@@ -49,9 +50,18 @@ class ContributionTypeService
 
     public function delete(ContributionType $contributionType): void
     {
-        DB::transaction(
-            fn () => $contributionType->delete()
-        );
+        DB::transaction(function () use ($contributionType) {
+            // Cascade ang FK: buburahin ang mga rate ng type, at ang mga rate
+            // ay may deductions na nakakabit sa lumang payrolls. Kaya type na
+            // walang rate lang ang pwedeng i-delete.
+            if ($contributionType->contributionRates()->lockForUpdate()->exists()) {
+                throw ValidationException::withMessages([
+                    'name' => 'This contribution type has rates and cannot be deleted.',
+                ]);
+            }
+
+            $contributionType->delete();
+        });
     }
 
 

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ContributionRate;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Validation\ValidationException;
 
 class ContributionRateService
 {
@@ -18,6 +19,7 @@ class ContributionRateService
     {
         return ContributionRate::query()
             ->withType()
+            ->withCount('deductions') // para malaman kung ginamit na sa payroll
             ->search($search)
             ->latest()
             ->paginate($perPage)
@@ -37,6 +39,8 @@ class ContributionRateService
     public function update(ContributionRate $contributionRate, array $data): ContributionRate
     {
         return DB::transaction(function () use ($contributionRate, $data) {
+            $this->assertUnused($contributionRate, 'rate');
+
             $contributionRate->update($data);
 
             return $contributionRate;
@@ -46,9 +50,28 @@ class ContributionRateService
 
     public function delete(ContributionRate $contributionRate): void
     {
-        DB::transaction(
-            fn () => $contributionRate->delete()
-        );
+        DB::transaction(function () use ($contributionRate) {
+            $this->assertUnused($contributionRate, 'rate');
+
+            $contributionRate->delete();
+        });
+    }
+
+
+    /*
+     * LABEL: Used-rate guard
+     * Purpose: Ang rate na may deductions na (ginamit na sa payroll) ay hindi na
+     * binabago o binubura: ang pagbura ay mag-cascade sa deductions ng lumang
+     * payrolls. Para magpalit ng halaga, mag-add ng BAGONG rate para sa type;
+     * ang pinakabagong rate ang ginagamit sa susunod na payroll.
+     */
+    private function assertUnused(ContributionRate $contributionRate, string $errorKey): void
+    {
+        if ($contributionRate->deductions()->lockForUpdate()->exists()) {
+            throw ValidationException::withMessages([
+                $errorKey => 'This rate was already used in payroll. Add a new rate instead of changing it.',
+            ]);
+        }
     }
 
 }

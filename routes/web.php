@@ -60,7 +60,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('payrolls/process', [PayrollProcessController::class, 'create'])->name('payrolls.process.create');
     Route::post('payrolls/process', [PayrollProcessController::class, 'store'])->name('payrolls.process.store');
     Route::resource('payrolls', PayrollController::class)->except(['create', 'store']);
-    Route::resource('deductions', DeductionController::class);
+    // Read-only: ang deductions ay awtomatikong ginagawa ng payroll processing
+    Route::resource('deductions', DeductionController::class)->only(['index']);
     Route::resource('payslips', PayslipController::class);
     Route::resource('payroll_periods', PayrollPeriodController::class);
     Route::post('employee-options/departments', [EmployeeOptionController::class, 'storeDepartment'])->name('employee-options.departments.store');

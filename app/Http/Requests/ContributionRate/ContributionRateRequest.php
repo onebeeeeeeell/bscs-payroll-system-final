@@ -12,16 +12,24 @@ class ContributionRateRequest extends FormRequest
         return true;
     }
 
-    /**
+    /*
+     * LABEL: Rules
+     * Purpose: Sa create: type at rate. Sa update: rate lang. Hindi na pwedeng
+     * ilipat ng type ang existing na rate (guguluhin nito ang history).
+     * Ang rate ay flat na halaga bawat payroll (decimal 10,2).
+     *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
-        $required = $this->isMethod('PATCH') ? 'sometimes' : 'required';
-
-        return [
-            'contribution_type_id' => [$required, 'integer', 'exists:contribution_types,id'],
-            'rate' => [$required, 'numeric', 'min:0'],
+        $rules = [
+            'rate' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
         ];
+
+        if (! $this->isMethod('PATCH') && ! $this->isMethod('PUT')) {
+            $rules['contribution_type_id'] = ['required', 'integer', 'exists:contribution_types,id'];
+        }
+
+        return $rules;
     }
 }

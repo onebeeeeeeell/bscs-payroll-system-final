@@ -6,6 +6,7 @@ use App\Models\Position;
 use App\Services\Concerns\SanitizesText;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Validation\ValidationException;
 
 class PositionService
 {
@@ -49,9 +50,17 @@ class PositionService
 
     public function delete(Position $position): void
     {
-        DB::transaction(
-            fn () => $position->delete()
-        );
+        DB::transaction(function () use ($position) {
+            // RESTRICT ang FK sa employees: kapag may employee pa, mag-eerror ang
+            // database (500). Mas malinaw na validation message ang ibinabalik dito.
+            if ($position->employees()->lockForUpdate()->exists()) {
+                throw ValidationException::withMessages([
+                    'position' => 'This position still has employees and cannot be deleted.',
+                ]);
+            }
+
+            $position->delete();
+        });
     }
 
 

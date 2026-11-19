@@ -26,9 +26,23 @@ class Deduction extends Model
     public function scopeWithDetails(Builder $query): void
     {
         $query->with([
-            'payroll:id,employee_id,net_pay',
+            'payroll:id,employee_id,payroll_period_id,net_pay',
+            'payroll.employee:id,first_name,last_name,suffix',
+            'payroll.payrollPeriod:id,start_date,end_date',
             'contributionRate.contributionType:id,name',
         ]);
+    }
+
+    /*
+     * LABEL: Search scope
+     * Purpose: Hanapin ayon sa first o last name ng employee ng payroll.
+     * Walang search = walang filter. Tinatawag bilang ->search($term).
+     */
+    public function scopeSearch(Builder $query, ?string $search): void
+    {
+        if ($search) {
+            $query->whereHas('payroll.employee', fn (Builder $employee) => $employee->matchingFirstOrLastName($search));
+        }
     }
 
     public function payroll(): BelongsTo

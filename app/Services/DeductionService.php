@@ -3,43 +3,22 @@
 namespace App\Services;
 
 use App\Models\Deduction;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 
+/*
+ * Read-only: ang deductions ay ginagawa lang ng PayrollProcessingService kasabay
+ * ng payroll. Walang manual create/update/delete para hindi magkaiba ang
+ * total_deductions ng payroll at ang kabuuan ng deductions nito.
+ */
 class DeductionService
 {
-    public function paginate(int $perPage = 10): LengthAwarePaginator
+    public function paginate(?string $search = null, int $perPage = 10): LengthAwarePaginator
     {
         return Deduction::query()
             ->withDetails()
+            ->search($search)
             ->latest()
             ->paginate($perPage)
             ->withQueryString(); // keep ?search= when changing pages
     }
-
-    public function create(array $data): Deduction
-    {
-        // transaction so nothing is saved if something fails in the middle
-        return DB::transaction(
-            fn () => Deduction::create($data)
-        );
-    }
-
-    public function update(Deduction $deduction, array $data): Deduction
-    {
-        return DB::transaction(function () use ($deduction, $data) {
-            $deduction->update($data);
-
-            return $deduction;
-        });
-    }
-
-    public function delete(Deduction $deduction): void
-    {
-        DB::transaction(
-            fn () => $deduction->delete()
-        );
-    }
-
-    // diriiiiiiiiiiiiiiiii sugpon if may ano sa controller na logic
 }

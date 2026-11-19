@@ -127,17 +127,22 @@ export default function PayrollIndex({ payrolls, filters }: Props) {
                                                 <Link href={route('payrolls.show', payroll.id)}>View</Link>
                                             </DropdownMenuItem>
 
-                                            <DropdownMenuItem asChild>
-                                                <Link href={route('payrolls.edit', payroll.id)}>Edit</Link>
-                                            </DropdownMenuItem>
+                                            {/* Bayad na ang period: walang edit/delete (hinaharang din ng server) */}
+                                            {payroll.payroll_period?.status !== 'Paid' && (
+                                                <>
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={route('payrolls.edit', payroll.id)}>Edit</Link>
+                                                    </DropdownMenuItem>
 
-                                            <DropdownMenuItem
-                                                className="text-destructive focus:text-destructive"
-                                                onSelect={() => setDeleteCandidate(payroll)}
-                                            >
-                                                <Trash2 aria-hidden="true" />
-                                                Delete
-                                            </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        className="text-destructive focus:text-destructive"
+                                                        onSelect={() => setDeleteCandidate(payroll)}
+                                                    >
+                                                        <Trash2 aria-hidden="true" />
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                </>
+                                            )}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 ),

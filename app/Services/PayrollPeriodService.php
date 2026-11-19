@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\PayrollPeriod;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Validation\ValidationException;
 
 class PayrollPeriodService
 {
@@ -40,9 +41,19 @@ class PayrollPeriodService
 
     public function delete(PayrollPeriod $payrollPeriod): void
     {
-        DB::transaction(
-            fn () => $payrollPeriod->delete()
-        );
+        DB::transaction(function () use ($payrollPeriod) {
+            // Naka-cascade ang FK: ang pagbura ng period ay buburahin din ang lahat
+            // ng payrolls (at payslips) nito. Kaya empty na period lang ang pwedeng i-delete.
+            $hasPayrolls = $payrollPeriod->payrolls()->lockForUpdate()->exists();
+
+            if ($hasPayrolls) {
+                throw ValidationException::withMessages([
+                    'payroll_period' => 'This period already has payroll records and cannot be deleted.',
+                ]);
+            }
+
+            $payrollPeriod->delete();
+        });
     }
 
 
