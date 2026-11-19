@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Payslip\PayslipIndexRequest;
 use App\Http\Requests\Payslip\PayslipRequest;
+use App\Models\Department;
 use App\Models\Payroll;
 use App\Models\Payslip;
+use App\Models\Position;
 use App\Services\PayslipService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -23,6 +25,8 @@ class PayslipController extends Controller
 
         return Inertia::render('payslip/index', [
             'payslips' => $this->payslipService->paginate($filters),
+            'departments' => Department::options(),
+            'positions' => Position::options(),
             'filters' => $filters,
         ]);
     }
@@ -46,9 +50,20 @@ class PayslipController extends Controller
 
     public function store(PayslipRequest $request): RedirectResponse
     {
-        $this->payslipService->create($request->validated());
+        $payslip = $this->payslipService->create($request->validated());
 
-        return to_route('payslips.index')->with('success', 'Payslip created successfully.');
+        // Diretso sa payslip preview pagkatapos mag-generate
+        return to_route('payslips.show', $payslip)->with('success', 'Payslip generated successfully.');
+    }
+
+    /*
+     * LABEL: Payslip preview
+     * Purpose: Ang mismong payslip (earnings, deductions, net pay) na pwedeng
+     * i-print o i-save bilang PDF.
+     */
+    public function show(Payslip $payslip): Response
+    {
+        return Inertia::render('payslip/show', $this->payslipService->statement($payslip));
     }
 
     public function edit(Payslip $payslip): Response

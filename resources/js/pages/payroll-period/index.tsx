@@ -1,5 +1,5 @@
 import { DataTable, type DataTableColumn } from '@/components/data-table';
-import { ArchiveStatusFilter, DateFilters, cleanFilters } from '@/components/list-filters';
+import { ArchiveStatusFilter, DateFilter, cleanFilters } from '@/components/list-filters';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -16,9 +16,7 @@ type PeriodRow = PayrollPeriod & { payrolls_count: number };
 type Filters = {
     search: string;
     status: 'active' | 'archived';
-    year: string;
-    month: string;
-    day: string;
+    date: string;
 };
 
 type Props = {
@@ -108,13 +106,7 @@ export default function PayrollPeriodIndex({ payrollPeriods, filters }: Props) {
                     initialSearch={filters.search}
                     toolbar={
                         <div className="flex w-full flex-wrap gap-2">
-                            <DateFilters
-                                labelPrefix="Filter by period date"
-                                year={filters.year}
-                                month={filters.month}
-                                day={filters.day}
-                                onChange={(name, value) => applyFilters({ [name]: value })}
-                            />
+                            <DateFilter label="Filter by period date" value={filters.date} onChange={(value) => applyFilters({ date: value })} />
                             <ArchiveStatusFilter
                                 label="Filter by archive status"
                                 value={filters.status}
@@ -125,6 +117,8 @@ export default function PayrollPeriodIndex({ payrollPeriods, filters }: Props) {
                     getRowId={(period) => period.id}
                     getSearchValue={(period) => period.status}
                     searchPlaceholder="Search by status..."
+                    maxSearchLength={30}
+                    lettersOnly
                     emptyMessage={isArchivedView ? 'No archived payroll periods.' : 'No payroll periods yet. Create one to get started.'}
                     columns={
                         [

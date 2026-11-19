@@ -9,13 +9,22 @@ class PayslipIndexRequest extends ListFiltersRequest
     public function rules(): array
     {
         return [
-            'search' => ['nullable', 'string', 'max:100'],
+            'search' => $this->searchRules(),
             'status' => ['nullable', 'in:active,archived'],
+            'date' => ['nullable', 'date_format:Y-m-d'],
+            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'position_id' => ['nullable', 'integer', 'exists:positions,id'],
         ];
     }
 
     protected function defaults(): array
     {
-        return ['search' => '', 'status' => 'active'];
+        return [
+            'search' => '',
+            'status' => 'active',
+            'date' => '',
+            'department_id' => '',
+            'position_id' => '',
+        ];
     }
 }

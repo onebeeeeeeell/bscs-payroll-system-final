@@ -1,5 +1,5 @@
 import { DataTable, type DataTableColumn } from '@/components/data-table';
-import { ArchiveStatusFilter, DateFilters, FilterSelect, cleanFilters } from '@/components/list-filters';
+import { ArchiveStatusFilter, DateFilter, FilterSelect, cleanFilters } from '@/components/list-filters';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -13,9 +13,7 @@ import { useState } from 'react';
 type Filters = {
     search: string;
     status: 'active' | 'archived';
-    year: string;
-    month: string;
-    day: string;
+    date: string;
     department_id: string;
     position_id: string;
 };
@@ -106,13 +104,7 @@ export default function PayrollIndex({ payrolls, departments, positions, filters
                     initialSearch={filters.search}
                     toolbar={
                         <div className="flex w-full flex-wrap gap-2">
-                            <DateFilters
-                                labelPrefix="Filter by date processed"
-                                year={filters.year}
-                                month={filters.month}
-                                day={filters.day}
-                                onChange={(name, value) => applyFilters({ [name]: value })}
-                            />
+                            <DateFilter label="Filter by date processed" value={filters.date} onChange={(value) => applyFilters({ date: value })} />
                             <FilterSelect
                                 label="Filter by department"
                                 value={filters.department_id}
@@ -159,6 +151,8 @@ export default function PayrollIndex({ payrolls, departments, positions, filters
                             .join(' ')
                     }
                     searchPlaceholder="Search payroll records..."
+                    maxSearchLength={30}
+                    lettersOnly
                     emptyMessage={isArchivedView ? 'No archived payroll records.' : 'No payroll records found.'}
                     columns={
                         [

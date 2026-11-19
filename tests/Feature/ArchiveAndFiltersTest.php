@@ -48,9 +48,7 @@ class ArchiveAndFiltersTest extends TestCase
         Payroll::factory()->create(['employee_id' => $employee->id, 'date_processed' => '2025-03-15 09:00:00']);
 
         $this->get(route('payrolls.index', [
-            'year' => 2026,
-            'month' => 3,
-            'day' => 15,
+            'date' => '2026-03-15',
             'department_id' => $department->id,
             'position_id' => $position->id,
         ]))->assertInertia(fn ($page) => $page->has('payrolls.data', 1)->where('payrolls.data.0.id', $match->id));
@@ -77,7 +75,7 @@ class ArchiveAndFiltersTest extends TestCase
         $match = PayrollPeriod::factory()->create(['start_date' => '2026-03-01', 'end_date' => '2026-03-15']);
         PayrollPeriod::factory()->create(['start_date' => '2025-03-01', 'end_date' => '2025-03-15']);
 
-        $this->get(route('payroll_periods.index', ['year' => 2026, 'month' => 3]))
+        $this->get(route('payroll_periods.index', ['date' => '2026-03-10']))
             ->assertInertia(fn ($page) => $page->has('payrollPeriods.data', 1)->where('payrollPeriods.data.0.id', $match->id));
     }
 

@@ -85,6 +85,15 @@ class Attendance extends Model
     }
 
     /*
+     * LABEL: Employee scope
+     * Purpose: I-filter by employee_id. Tinatawag bilang ->forEmployee($id).
+     */
+    public function scopeForEmployee(Builder $query, int $employeeId): void
+    {
+        $query->where('employee_id', $employeeId);
+    }
+
+    /*
      * LABEL: Date range scope
      * Purpose: I-filter by work_date na nasa pagitan ng start at end (kasama
      * ang dalawa). Tinatawag bilang ->betweenDates($start, $end). Kaya nitong

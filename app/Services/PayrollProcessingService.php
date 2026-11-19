@@ -18,9 +18,9 @@ class PayrollProcessingService
 {
     use SanitizesText;
 
-    private const STANDARD_WORK_HOURS = 8;
+    public const STANDARD_WORK_HOURS = 8;
 
-    private const OVERTIME_MULTIPLIER = 1.25;
+    public const OVERTIME_MULTIPLIER = 1.25;
 
     // PostgreSQL: hanggang 65,535 bound parameters bawat statement. Ang Payroll
     // insert ay 9 columns/row at ang Deduction ay 5 columns/row, kaya 500 rows

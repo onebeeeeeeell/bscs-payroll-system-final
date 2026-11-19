@@ -1,7 +1,7 @@
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const selectClass = 'border-input bg-background h-10 rounded-md border px-3 text-sm';
 
 type FilterSelectProps = {
@@ -25,56 +25,10 @@ export function FilterSelect({ label, value, onChange, children, className }: Fi
     );
 }
 
-// Year / month / day dropdowns. Any of the three can be used alone or together.
-export function DateFilters({
-    year,
-    month,
-    day,
-    onChange,
-    labelPrefix,
-}: {
-    year: string;
-    month: string;
-    day: string;
-    onChange: (name: 'year' | 'month' | 'day', value: string) => void;
-    labelPrefix: string;
-}) {
-    const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: 11 }, (_, index) => currentYear + 1 - index);
-
-    // Keep a year that is already selected (e.g. from the URL) even if it is outside the default range
-    if (year && !years.includes(Number(year))) {
-        years.push(Number(year));
-        years.sort((a, b) => b - a);
-    }
-
+// One date picker (same as the Attendance page). Empty = no date filter.
+export function DateFilter({ value, onChange, label }: { value: string; onChange: (value: string) => void; label: string }) {
     return (
-        <>
-            <FilterSelect label={`${labelPrefix} year`} value={year} onChange={(value) => onChange('year', value)}>
-                <option value="">All years</option>
-                {years.map((value) => (
-                    <option key={value} value={value}>
-                        {value}
-                    </option>
-                ))}
-            </FilterSelect>
-            <FilterSelect label={`${labelPrefix} month`} value={month} onChange={(value) => onChange('month', value)}>
-                <option value="">All months</option>
-                {MONTHS.map((name, index) => (
-                    <option key={name} value={index + 1}>
-                        {name}
-                    </option>
-                ))}
-            </FilterSelect>
-            <FilterSelect label={`${labelPrefix} day`} value={day} onChange={(value) => onChange('day', value)} className="min-w-28">
-                <option value="">All days</option>
-                {Array.from({ length: 31 }, (_, index) => index + 1).map((value) => (
-                    <option key={value} value={value}>
-                        {value}
-                    </option>
-                ))}
-            </FilterSelect>
-        </>
+        <Input type="date" aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-44" />
     );
 }
 

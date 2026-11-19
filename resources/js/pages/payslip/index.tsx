@@ -1,11 +1,11 @@
 import { DataTable, type DataTableColumn } from '@/components/data-table';
-import { ArchiveStatusFilter, cleanFilters } from '@/components/list-filters';
+import { ArchiveStatusFilter, DateFilter, FilterSelect, cleanFilters } from '@/components/list-filters';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import AppLayout from '@/layouts/app-layout';
 import type { SharedData } from '@/types';
-import type { PaginatedData, Payslip } from '@/types/models';
+import type { Department, PaginatedData, Payslip, Position } from '@/types/models';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Archive, MoreHorizontal, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
@@ -13,10 +13,15 @@ import { useState } from 'react';
 type Filters = {
     search: string;
     status: 'active' | 'archived';
+    date: string;
+    department_id: string;
+    position_id: string;
 };
 
 type Props = {
     payslips: PaginatedData<Payslip>;
+    departments: Pick<Department, 'id' | 'department_name'>[];
+    positions: Pick<Position, 'id' | 'title'>[];
     filters: Filters;
 };
 
@@ -36,7 +41,7 @@ function employeeName(payslip: Payslip): string {
     );
 }
 
-export default function PayslipIndex({ payslips, filters }: Props) {
+export default function PayslipIndex({ payslips, departments, positions, filters }: Props) {
     const { flash } = usePage<SharedData>().props;
     const [archiveCandidate, setArchiveCandidate] = useState<Payslip | null>(null);
     const [isArchiving, setIsArchiving] = useState(false);
@@ -104,11 +109,40 @@ export default function PayslipIndex({ payslips, filters }: Props) {
                     onSearch={(term) => applyFilters({ search: term })}
                     initialSearch={filters.search}
                     toolbar={
-                        <ArchiveStatusFilter
-                            label="Filter by archive status"
-                            value={filters.status}
-                            onChange={(value) => applyFilters({ status: value })}
-                        />
+                        <div className="flex w-full flex-wrap gap-2">
+                            <DateFilter label="Filter by date generated" value={filters.date} onChange={(value) => applyFilters({ date: value })} />
+                            <FilterSelect
+                                label="Filter by department"
+                                value={filters.department_id}
+                                onChange={(value) => applyFilters({ department_id: value })}
+                                className="min-w-36"
+                            >
+                                <option value="">All departments</option>
+                                {departments.map((department) => (
+                                    <option key={department.id} value={department.id}>
+                                        {department.department_name}
+                                    </option>
+                                ))}
+                            </FilterSelect>
+                            <FilterSelect
+                                label="Filter by position"
+                                value={filters.position_id}
+                                onChange={(value) => applyFilters({ position_id: value })}
+                                className="min-w-36"
+                            >
+                                <option value="">All positions</option>
+                                {positions.map((position) => (
+                                    <option key={position.id} value={position.id}>
+                                        {position.title}
+                                    </option>
+                                ))}
+                            </FilterSelect>
+                            <ArchiveStatusFilter
+                                label="Filter by archive status"
+                                value={filters.status}
+                                onChange={(value) => applyFilters({ status: value })}
+                            />
+                        </div>
                     }
                     getRowId={(payslip) => payslip.id}
                     getSearchValue={(payslip) =>
@@ -122,6 +156,8 @@ export default function PayslipIndex({ payslips, filters }: Props) {
                             .join(' ')
                     }
                     searchPlaceholder="Search payslips..."
+                    maxSearchLength={30}
+                    lettersOnly
                     emptyMessage={isArchivedView ? 'No archived payslips.' : 'No payslips found.'}
                     columns={
                         [
@@ -140,6 +176,10 @@ export default function PayslipIndex({ payslips, filters }: Props) {
                                         </DropdownMenuTrigger>
 
                                         <DropdownMenuContent align="end">
+                                            <DropdownMenuItem asChild>
+                                                <Link href={route('payslips.show', payslip.id)}>View payslip</Link>
+                                            </DropdownMenuItem>
+
                                             <DropdownMenuItem asChild>
                                                 <Link href={route('payrolls.show', payslip.payroll_id)}>View payroll</Link>
                                             </DropdownMenuItem>

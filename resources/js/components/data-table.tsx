@@ -19,6 +19,8 @@ type DataTableProps<T> = {
     searchPlaceholder: string;
     emptyMessage: string;
     maxSearchLength?: number;
+    // Search box accepts letters and spaces only (no numbers or special characters)
+    lettersOnly?: boolean;
     toolbar?: ReactNode;
     /*
      * Server search mode (optional). Kapag may onSearch, hindi na sa browser
@@ -41,6 +43,7 @@ export function DataTable<T>({
     searchPlaceholder,
     emptyMessage,
     maxSearchLength,
+    lettersOnly = false,
     toolbar,
     onSearch,
     initialSearch = '',
@@ -80,7 +83,11 @@ export function DataTable<T>({
                     <Input
                         type="search"
                         value={search}
-                        onChange={(event) => setSearch(event.target.value.slice(0, maxSearchLength))}
+                        onChange={(event) => {
+                            const value = lettersOnly ? event.target.value.replace(/[^\p{L} ]/gu, '') : event.target.value;
+
+                            setSearch(value.slice(0, maxSearchLength));
+                        }}
                         maxLength={maxSearchLength}
                         placeholder={searchPlaceholder}
                         aria-label={searchPlaceholder}

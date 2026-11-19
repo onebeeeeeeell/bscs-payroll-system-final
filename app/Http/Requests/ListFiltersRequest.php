@@ -18,6 +18,17 @@ abstract class ListFiltersRequest extends FormRequest
     }
 
     /**
+     * Rule ng ?search= sa mga page na pangalan/status ang hinahanap:
+     * letters at spaces lang, hanggang 30 characters.
+     *
+     * @return list<string>
+     */
+    protected function searchRules(): array
+    {
+        return ['nullable', 'string', 'max:30', 'regex:/^[\pL ]*$/u'];
+    }
+
+    /**
      * Lahat ng filter key at ang default nito (string).
      *
      * @return array<string, string>
