@@ -26,6 +26,19 @@ class PayrollController extends Controller
         ]);
     }
 
+    public function show(Payroll $payroll): Response
+    {
+        return Inertia::render('payroll/show', [
+            'payroll' => $payroll->load([
+                'employee:id,first_name,last_name,suffix',
+                'payrollPeriod:id,start_date,end_date,pay_date,status',
+                'user:id,name',
+                'deductions.contributionRate.contributionType:id,name',
+                'payslip:id,payroll_id,date_generated',
+            ]),
+        ]);
+    }
+
     public function edit(Payroll $payroll): Response
     {
         return Inertia::render('payroll/edit', [
