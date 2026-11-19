@@ -13,31 +13,8 @@ class EmployeeRequest extends FormRequest
         return true;
     }
 
-    protected function prepareForValidation(): void
-    {
-        // trim spaces on the name fields.
-        foreach (['first_name', 'last_name', 'suffix'] as $field) {
-            $value = $this->input($field);
-
-            if (is_string($value)) {
-                $this->merge([
-                    // trim the ends and make multiple spaces into one
-                    $field => preg_replace('/\s+/u', ' ', trim($value)),
-                ]);
-            }
-        }
-
-        foreach (['sss_no', 'philhealth_no', 'pagibig_no', 'tin_no'] as $field) {
-            $value = $this->input($field);
-
-            if (is_string($value)) {
-                $digits = preg_replace('/\D/', '', $value);
-                $this->merge([
-                    $field => $digits === '' ? null : $digits,
-                ]);
-            }
-        }
-    }
+    // Walang prepareForValidation dito: sanitization (squish, strip tags, null kung blank)
+    // nasa EmployeeService na. Validation lang ang trabaho ng request.
 
     /**
      * @return array<string, ValidationRule|array<mixed>|string>

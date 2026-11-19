@@ -25,7 +25,8 @@ class EmploymentStatusRequest extends FormRequest
                 $required,
                 'string',
                 'max:30',
-                'regex:/^[\p{L}]+(?:[ ]+[\p{L}]+)*$/u',
+                // isang space lang sa pagitan ng words, para pareho ang unique check at ang sine-save ng service
+                'regex:/^[\p{L}]+(?:[ ][\p{L}]+)*$/u',
                 Rule::unique('employment_statuses', 'name')->ignore($this->route('status')),
             ],
         ];

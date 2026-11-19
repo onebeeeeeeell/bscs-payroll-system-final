@@ -10,21 +10,17 @@ use App\Services\Concerns\SanitizesText;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 class EmployeeService
 {
     use SanitizesText;
 
+    // Free text lang ang nililinis dito. Ang status at government IDs ay
+    // validated na sa EmployeeRequest (exists / digits), kaya wala nang gagawin.
     private const SANITIZED_TEXT_FIELDS = [
         'first_name',
         'last_name',
         'suffix',
-        'sss_no',
-        'philhealth_no',
-        'pagibig_no',
-        'tin_no',
-        'status',
     ];
 
     /**
@@ -145,20 +141,9 @@ class EmployeeService
          * LABEL: Text sanitization
          * Purpose: Iisang sanitizer na lang (SanitizesText trait): strip_tags
          * tapos squish. String lang ang dadaan, kaya hindi masisira ang null
-         * o numbers.
+         * o numbers. Names at suffix lang ang kasama.
          */
         $data = $this->sanitizeStringFields($data, self::SANITIZED_TEXT_FIELDS);
-
-        /*
-         * LABEL: Government ID cleanup
-         * Purpose: Tanggalin hyphens at spaces para 3412345678 at 34-1234567-8
-         * ay pareho ang bilang para sa unique index.
-         */
-        foreach (['sss_no', 'philhealth_no', 'pagibig_no', 'tin_no'] as $field) {
-            if (isset($data[$field]) && is_string($data[$field]) && $data[$field] !== '') {
-                $data[$field] = preg_replace('/\D/', '', $data[$field]);
-            }
-        }
 
         /*
          * LABEL: Empty optional fields -> NULL
@@ -171,9 +156,9 @@ class EmployeeService
             }
         }
 
-        if (! empty($data['pin'])) {
-            $data['pin'] = Hash::make($data['pin']);
-        } else {
+        // Blank PIN sa edit = huwag galawin ang existing PIN.
+        // Ang hashing ay nasa Employee model na ('pin' => 'hashed' cast).
+        if (empty($data['pin'])) {
             unset($data['pin']);
         }
 

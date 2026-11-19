@@ -168,7 +168,7 @@ export default function EmployeeForm({ employee, positions, departments, statuse
     }
 
     function filterIdentificationNumber(value: string) {
-        return value.replace(/[^\d-]/g, '');
+        return value.replace(/\D/g, '');
     }
 
     function openDatePicker() {
@@ -360,8 +360,8 @@ export default function EmployeeForm({ employee, positions, departments, statuse
                             value={form.data[name]}
                             onChange={(event) => form.setData(name, filterIdentificationNumber(event.target.value).slice(0, maxLength))}
                             inputMode="numeric"
-                            pattern="[0-9-]*"
-                            title="Use numbers and hyphens only."
+                            pattern="[0-9]*"
+                            title="Use numbers only."
                             maxLength={maxLength}
                             className="h-10"
                             disabled={form.processing}

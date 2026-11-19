@@ -230,6 +230,7 @@ class Employee extends Model
     {
         return [
             'archived_at' => 'datetime',
+            'pin' => 'hashed',
         ];
     }
 }

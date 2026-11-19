@@ -259,11 +259,10 @@ class AttendanceService
 
     private function sanitizeFullName(string $fullName): string
     {
-        $data = $this->sanitizeStringFields(
+        // strip tags + squish na ang ginagawa ng trait, kaya hindi na kailangan ng extra preg_replace
+        return $this->sanitizeStringFields(
             ['full_name' => $fullName],
             ['full_name'],
-        );
-
-        return preg_replace('/\s+/u', ' ', $data['full_name']) ?? '';
+        )['full_name'];
     }
 }

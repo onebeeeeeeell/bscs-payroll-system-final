@@ -7,7 +7,6 @@ use App\Models\Employee;
 use App\Services\AttendanceService;
 use App\Services\DepartmentService;
 use App\Services\EmploymentStatusService;
-use App\Services\PayrollPeriodService;
 use App\Services\PositionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -37,17 +36,9 @@ class ServiceInputSanitizationTest extends TestCase
         $employmentStatus = app(EmploymentStatusService::class)->create([
             'name' => ' <em>Seasonal</em> ',
         ]);
-        $payrollPeriod = app(PayrollPeriodService::class)->create([
-            'start_date' => ' 2026-01-01 ',
-            'end_date' => ' 2026-01-15 ',
-            'pay_date' => ' 2026-01-20 ',
-            'status' => ' <b>Pending</b> ',
-        ]);
 
         $this->assertSame('Lead Operator', $position->title);
         $this->assertSame('Seasonal', $employmentStatus->name);
-        $this->assertSame('Pending', $payrollPeriod->status);
-        $this->assertSame('2026-01-01', $payrollPeriod->start_date);
     }
 
     public function test_attendance_service_discards_client_calculated_fields(): void

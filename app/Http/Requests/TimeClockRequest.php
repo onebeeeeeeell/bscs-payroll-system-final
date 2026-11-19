@@ -7,16 +7,8 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class TimeClockRequest extends FormRequest
 {
-    protected function prepareForValidation(): void
-    {
-        $fullName = $this->input('full_name');
-
-        if (is_string($fullName)) {
-            $this->merge([
-                'full_name' => preg_replace('/\s+/u', ' ', trim($fullName)),
-            ]);
-        }
-    }
+    // Walang prepareForValidation dito: ang pag-squish ng full_name ay nasa
+    // AttendanceService na (sanitizeFullName). Validation lang ang trabaho ng request.
 
     public function authorize(): bool
     {
