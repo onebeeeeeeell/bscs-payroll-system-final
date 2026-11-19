@@ -18,7 +18,7 @@ class PositionService
     {
         return Position::query()
             ->withEmployeesCount()
-            ->search($search)
+            ->search($this->sanitizeSearch($search))
             ->latest()
             ->paginate($perPage)
             ->withQueryString(); // it keep ?search= when changing pages

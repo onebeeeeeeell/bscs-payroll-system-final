@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { sanitizeAmount, trimTrailingDot } from '@/lib/utils';
 import type { ContributionRate, ContributionType } from '@/types/models';
 import { Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
@@ -32,9 +33,10 @@ export default function RateForm({ contributionTypes = [], contributionRate, loc
 
         if (isEdit) {
             // Calculation type at rate lang ang binabago sa edit; hindi na ipinapadala ang contribution type
-            form.transform((data) => ({ calculation_type: data.calculation_type, rate: data.rate }));
+            form.transform((data) => ({ calculation_type: data.calculation_type, rate: trimTrailingDot(data.rate) }));
             form.patch(route('contribution_rates.update', contributionRate.id), { preserveScroll: true });
         } else {
+            form.transform((data) => ({ ...data, rate: trimTrailingDot(data.rate) }));
             form.post(route('contribution_rates.store'), { preserveScroll: true });
         }
     }
@@ -110,20 +112,22 @@ export default function RateForm({ contributionTypes = [], contributionRate, loc
                     <Label htmlFor="rate">{isPercent ? 'Percentage of gross pay (%)' : 'Amount per payroll (PHP)'}</Label>
                     <Input
                         id="rate"
-                        type="number"
+                        type="text"
                         inputMode="decimal"
-                        min="0"
-                        max={isPercent ? '100' : '99999999.99'}
-                        step="0.01"
+                        maxLength={11}
+                        autoComplete="off"
                         value={form.data.rate}
-                        onChange={(event) => form.setData('rate', event.target.value)}
+                        onChange={(event) => form.setData('rate', sanitizeAmount(event.target.value))}
                         required
                         disabled={form.processing || locked}
                         aria-invalid={Boolean(form.errors.rate)}
                     />
-                    <p className="text-muted-foreground text-xs">{isPercent
-                            ? "Deducted as this percentage of each employee's gross pay for the period. The newest rate of each type is the one used."
-                            : "A flat amount deducted from every employee's pay. The newest rate of each type is the one used."}</p>
+                    <p className="text-muted-foreground text-xs">
+                        Numbers only, up to 2 decimals.{' '}
+                        {isPercent
+                            ? "Deducted as this percentage of each employee's gross pay for the period (max 100). The newest rate of each type is the one used."
+                            : "A flat amount deducted from every employee's pay. The newest rate of each type is the one used."}
+                    </p>
                     <InputError message={form.errors.rate} />
                 </div>
             </div>

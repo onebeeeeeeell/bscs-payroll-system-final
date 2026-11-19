@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesInput;
 use Illuminate\Foundation\Http\FormRequest;
 
 /*
@@ -12,20 +13,21 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 abstract class ListFiltersRequest extends FormRequest
 {
+    use ValidatesInput;
+
     public function authorize(): bool
     {
         return true;
     }
 
     /**
-     * Rule ng ?search= sa mga page na pangalan/status ang hinahanap:
-     * letters at spaces lang, hanggang 30 characters.
-     *
-     * @return list<string>
+     * @return array<string, string>
      */
-    protected function searchRules(): array
+    public function messages(): array
     {
-        return ['nullable', 'string', 'max:30', 'regex:/^[\pL ]*$/u'];
+        return [
+            'date.date_equals' => 'Only today\'s date can be used.',
+        ];
     }
 
     /**

@@ -33,22 +33,14 @@ class PayrollController extends Controller
     public function show(Payroll $payroll): Response
     {
         return Inertia::render('payroll/show', [
-            'payroll' => $payroll->load([
-                'employee:id,first_name,last_name,suffix',
-                'payrollPeriod:id,start_date,end_date,pay_date,status',
-                'user:id,name',
-                'deductions.contributionRate.contributionType:id,name',
-                'payslip:id,payroll_id,date_generated',
-            ]),
+            'payroll' => $payroll->loadShowDetails(),
         ]);
     }
 
     public function edit(Payroll $payroll): Response|RedirectResponse
     {
-        $payroll->load(['employee', 'payrollPeriod', 'user']);
-
         // Naka-lock lang kapag may laman ang Payroll::LOCKED_PERIOD_STATUSES.
-        if ($payroll->isLocked()) {
+        if ($payroll->loadEditDetails()->isLocked()) {
             return to_route('payrolls.show', $payroll);
         }
 

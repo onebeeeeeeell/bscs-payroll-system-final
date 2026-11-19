@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Deduction;
+use App\Services\Concerns\SanitizesText;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /*
@@ -12,11 +13,13 @@ use Illuminate\Pagination\LengthAwarePaginator;
  */
 class DeductionService
 {
+    use SanitizesText;
+
     public function paginate(?string $search = null, int $perPage = 10): LengthAwarePaginator
     {
         return Deduction::query()
             ->withDetails()
-            ->search($search)
+            ->search($this->sanitizeSearch($search))
             ->latest()
             ->paginate($perPage)
             ->withQueryString(); // keep ?search= when changing pages

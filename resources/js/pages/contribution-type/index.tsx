@@ -80,6 +80,8 @@ export default function ContributionTypeIndex({ contributionTypes }: Props) {
                     getRowId={(type) => type.id}
                     getSearchValue={(type) => type.name}
                     searchPlaceholder="Search contribution types..."
+                    maxSearchLength={30}
+                    lettersOnly
                     emptyMessage="No contribution types yet."
                     columns={
                         [

@@ -78,6 +78,8 @@ export default function PositionIndex({ positions }: Props) {
                     getRowId={(row) => row.id}
                     getSearchValue={(row) => row.title}
                     searchPlaceholder="Search positions..."
+                    maxSearchLength={30}
+                    lettersOnly
                     emptyMessage="No positions yet."
                     columns={
                         [

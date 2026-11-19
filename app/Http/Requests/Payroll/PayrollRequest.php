@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests\Payroll;
 
+use App\Http\Requests\Concerns\ValidatesInput;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PayrollRequest extends FormRequest
 {
+    use ValidatesInput;
+
     public function authorize(): bool
     {
         return true;
@@ -20,15 +23,30 @@ class PayrollRequest extends FormRequest
      * employee, period, at user_id ay hindi validated dito kaya wala sa
      * validated(): net_pay ay kino-compute ng PayrollService, at ang tatlo pa
      * ay hindi na nagagalaw pagkatapos ma-process.
+     * - Amounts: numbers at decimal lang, hanggang 2 decimal places.
+     * - date_processed: ngayong araw lang (Y-m-d).
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'gross_pay' => ['required', 'numeric', 'min:0'],
-            'total_deductions' => ['required', 'numeric', 'min:0'],
-            'date_processed' => ['required', 'date'],
+            'gross_pay' => $this->amountRules(),
+            'total_deductions' => $this->amountRules(),
+            'date_processed' => $this->presentDateRules(required: true),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'gross_pay.regex' => 'Gross pay must be a number with up to 2 decimal places.',
+            'total_deductions.regex' => 'Total deductions must be a number with up to 2 decimal places.',
+            'date_processed.date_equals' => 'Date processed must be today.',
+            'date_processed.date_format' => 'Date processed must be today.',
         ];
     }
 }

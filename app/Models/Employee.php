@@ -211,11 +211,6 @@ class Employee extends Model
         });
     }
 
-    public function scopeMissingAttendanceOn(Builder $query, string $date): void
-    {
-        $query->whereDoesntHave('attendances', fn (Builder $attendance) => $attendance->forDate($date));
-    }
-
     public function position(): BelongsTo
     {
         return $this->belongsTo(Position::class, 'position_id', 'id');

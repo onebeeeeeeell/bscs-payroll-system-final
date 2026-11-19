@@ -83,6 +83,8 @@ export default function ContributionRateIndex({ contributionRates, currentRateId
                     getRowId={(rate) => rate.id}
                     getSearchValue={(rate) => rate.contribution_type?.name ?? ''}
                     searchPlaceholder="Search by contribution type..."
+                    maxSearchLength={30}
+                    lettersOnly
                     emptyMessage="No contribution rates yet."
                     columns={
                         [

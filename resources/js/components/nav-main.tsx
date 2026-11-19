@@ -3,7 +3,6 @@ import {
     SidebarGroup,
     SidebarGroupLabel,
     SidebarMenu,
-    SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarMenuSub,
@@ -29,7 +28,7 @@ export function NavMain({ label, items = [] }: { label: string; items: NavItem[]
                     const hasChildren = (item.children?.length ?? 0) > 0;
                     const active = isActive(item) || (item.children ?? []).some(isActive);
 
-                    // Normal link (with an optional badge)
+                    // Normal link
                     if (!hasChildren) {
                         return (
                             <SidebarMenuItem key={item.title}>
@@ -39,7 +38,6 @@ export function NavMain({ label, items = [] }: { label: string; items: NavItem[]
                                         <span>{item.title}</span>
                                     </Link>
                                 </SidebarMenuButton>
-                                {item.badge ? <SidebarMenuBadge>{item.badge > 99 ? '99+' : item.badge}</SidebarMenuBadge> : null}
                             </SidebarMenuItem>
                         );
                     }

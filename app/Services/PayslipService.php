@@ -7,6 +7,7 @@ use App\Models\ContributionRate;
 use App\Models\Payroll;
 use App\Models\Payslip;
 use App\Services\Concerns\SanitizesText;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -21,11 +22,21 @@ class PayslipService
     {
         return Payslip::query()
             ->withDetails()
-            ->forFilters([...$filters, 'search' => $this->sanitizeSearch($filters['search'] ?? null)])
+            ->forFilters($this->sanitizeFilters($filters))
             ->latest('date_generated')
             ->latest('id')
             ->paginate($perPage)
             ->withQueryString(); // keep the filters when changing pages
+    }
+
+    /*
+     * LABEL: Payroll options
+     * Purpose: Mga payroll na wala pang payslip para sa Generate payslip
+     * dropdown. Nasa Payroll model (awaitingPayslip scope) na ang query.
+     */
+    public function payrollOptions(): Collection
+    {
+        return Payroll::query()->awaitingPayslip()->get();
     }
 
     public function create(array $data): Payslip
@@ -34,15 +45,6 @@ class PayslipService
         return DB::transaction(
             fn () => Payslip::create($data)
         );
-    }
-
-    public function update(Payslip $payslip, array $data): Payslip
-    {
-        return DB::transaction(function () use ($payslip, $data) {
-            $payslip->update($data);
-
-            return $payslip;
-        });
     }
 
     /*

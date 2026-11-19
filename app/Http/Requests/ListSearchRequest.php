@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesInput;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ListSearchRequest extends FormRequest
 {
+    use ValidatesInput;
+
     public function authorize(): bool
     {
         return true;
@@ -14,13 +17,14 @@ class ListSearchRequest extends FormRequest
     /*
      * LABEL: ?search= validation
      * Purpose: Para sa mga index page na may search (departments, positions,
-     * contribution types/rates, payrolls, payroll periods). 'string' ang
-     * humaharang sa ?search[]=x, 'max:100' naman sa sobrang habang term.
+     * contribution types/rates, deductions). Letters at spaces lang, hanggang
+     * 30 characters (pareho ng search box sa frontend). 'string' ang humaharang
+     * sa ?search[]=x.
      */
     public function rules(): array
     {
         return [
-            'search' => ['nullable', 'string', 'max:100'],
+            'search' => $this->searchRules(),
         ];
     }
 }

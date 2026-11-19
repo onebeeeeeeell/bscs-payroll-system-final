@@ -110,7 +110,7 @@ export default function PayslipIndex({ payslips, departments, positions, filters
                     initialSearch={filters.search}
                     toolbar={
                         <div className="flex w-full flex-wrap gap-2">
-                            <DateFilter label="Filter by date generated" value={filters.date} onChange={(value) => applyFilters({ date: value })} />
+                            <DateFilter label="Filter by date generated" presentOnly value={filters.date} onChange={(value) => applyFilters({ date: value })} />
                             <FilterSelect
                                 label="Filter by department"
                                 value={filters.department_id}
@@ -190,19 +190,13 @@ export default function PayslipIndex({ payslips, departments, positions, filters
                                                     {restoringId === payslip.id ? 'Restoring...' : 'Restore'}
                                                 </DropdownMenuItem>
                                             ) : (
-                                                <>
-                                                    <DropdownMenuItem asChild>
-                                                        <Link href={route('payslips.edit', payslip.id)}>Edit date</Link>
-                                                    </DropdownMenuItem>
-
-                                                    <DropdownMenuItem
-                                                        className="text-destructive focus:text-destructive"
-                                                        onSelect={() => setArchiveCandidate(payslip)}
-                                                    >
-                                                        <Archive aria-hidden="true" />
-                                                        Archive
-                                                    </DropdownMenuItem>
-                                                </>
+                                                <DropdownMenuItem
+                                                    className="text-destructive focus:text-destructive"
+                                                    onSelect={() => setArchiveCandidate(payslip)}
+                                                >
+                                                    <Archive aria-hidden="true" />
+                                                    Archive
+                                                </DropdownMenuItem>
                                             )}
                                         </DropdownMenuContent>
                                     </DropdownMenu>

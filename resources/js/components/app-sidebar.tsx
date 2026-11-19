@@ -1,15 +1,12 @@
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
-import { type NavItem, type SharedData } from '@/types';
-import { Link, usePage } from '@inertiajs/react';
+import { type NavItem } from '@/types';
+import { Link } from '@inertiajs/react';
 import { Calendar, CalendarRange, FileText, HandCoins, LayoutGrid, Settings, SlidersHorizontal, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 export function AppSidebar() {
-    // Counts come from the server on every page (see HandleInertiaRequests)
-    const { navCounts } = usePage<SharedData>().props;
-
     const mainNavItems: NavItem[] = [
         {
             title: 'Dashboard',
@@ -25,7 +22,6 @@ export function AppSidebar() {
             title: 'Attendance',
             url: '/attendance',
             icon: Calendar,
-            badge: navCounts?.attendance, // employees with no attendance today
         },
         {
             title: 'Pay periods',

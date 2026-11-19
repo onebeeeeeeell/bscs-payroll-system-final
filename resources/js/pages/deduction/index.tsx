@@ -49,6 +49,8 @@ export default function DeductionIndex({ deductions, filters }: Props) {
                     getRowId={(deduction) => deduction.id}
                     getSearchValue={employeeName}
                     searchPlaceholder="Search by employee..."
+                    maxSearchLength={30}
+                    lettersOnly
                     emptyMessage="No deductions found."
                     columns={
                         [

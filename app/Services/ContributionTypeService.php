@@ -18,7 +18,7 @@ class ContributionTypeService
     {
         return ContributionType::query()
             ->withRates()
-            ->search($search)
+            ->search($this->sanitizeSearch($search))
             ->latest()
             ->paginate($perPage)
             ->withQueryString(); // keep ?search= when changing pages

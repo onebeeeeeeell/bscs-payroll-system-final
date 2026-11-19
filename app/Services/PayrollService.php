@@ -6,6 +6,7 @@ use App\Models\Payroll;
 use App\Models\Employee;
 use App\Models\PayrollPeriod;
 use App\Services\Concerns\SanitizesText;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
@@ -15,13 +16,13 @@ class PayrollService
     use SanitizesText;
 
     /**
-     * @param array<string, mixed> $filters search, status, year, month, day, department_id, position_id
+     * @param array<string, mixed> $filters search, status, date, department_id, position_id
      */
     public function paginate(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
         return Payroll::query()
             ->withDetails()
-            ->forFilters([...$filters, 'search' => $this->sanitizeSearch($filters['search'] ?? null)])
+            ->forFilters($this->sanitizeFilters($filters))
             ->latest('date_processed')
             ->latest('id')
             ->paginate($perPage)
@@ -60,13 +61,16 @@ class PayrollService
      */
     public function update(Payroll $payroll, array $data): Payroll
     {
+        $data = $this->sanitizeAmountFields($data, ['gross_pay', 'total_deductions']);
+        $this->assertAmountsFilled($data, ['gross_pay', 'total_deductions']);
+
         return DB::transaction(function () use ($payroll, $data) {
             $this->assertNotLocked($payroll, 'gross_pay');
 
             $attributes = [
                 'gross_pay' => $data['gross_pay'],
                 'total_deductions' => $data['total_deductions'],
-                'date_processed' => $data['date_processed'],
+                'date_processed' => $this->processedAt($data['date_processed'] ?? null),
                 'net_pay' => $this->netPay($data['gross_pay'], $data['total_deductions']),
             ];
 
@@ -120,6 +124,18 @@ class PayrollService
                 $errorKey => 'This payroll belongs to a paid period and can no longer be changed.',
             ]);
         }
+    }
+
+
+    /*
+     * LABEL: Processed at
+     * Purpose: Petsa (Y-m-d) + oras ngayon, para may oras pa rin ang audit
+     * trail ng payslip. Ang "ngayong araw lang" ay binabantayan ng PayrollRequest;
+     * kapag blangko o hindi tunay na petsa ang dumating, ngayon ang gagamitin.
+     */
+    private function processedAt(?string $date): Carbon
+    {
+        return Carbon::parse($this->sanitizeDate($date) ?: 'today')->setTimeFrom(now());
     }
 
 

@@ -19,7 +19,6 @@ export interface NavItem {
     url: string;
     icon?: LucideIcon | null;
     isActive?: boolean;
-    badge?: number; // small count shown on the right (hidden when 0)
     matches?: string[]; // extra URL prefixes that should also highlight this item
     children?: NavItem[]; // makes the item a collapsible group
 }
@@ -28,7 +27,7 @@ export interface SharedData {
     name: string;
     flash: { success?: string | null };
     auth: Auth;
-    navCounts?: { attendance: number } | null;
+    today: string; // YYYY-MM-DD, server date
     [key: string]: unknown;
 }
 

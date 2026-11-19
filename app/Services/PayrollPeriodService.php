@@ -12,13 +12,13 @@ class PayrollPeriodService
     use SanitizesText;
 
     /**
-     * @param array<string, mixed> $filters search, status, year, month, day
+     * @param array<string, mixed> $filters search, status, date
      */
     public function paginate(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
         return PayrollPeriod::query()
             ->withPayrollsCount()
-            ->forFilters([...$filters, 'search' => $this->sanitizeSearch($filters['search'] ?? null)])
+            ->forFilters($this->sanitizeFilters($filters))
             ->latest('start_date')
             ->latest('id')
             ->paginate($perPage)

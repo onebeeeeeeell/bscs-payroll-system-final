@@ -1,6 +1,5 @@
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { CommandPalette } from '@/components/command-palette';
-import { NotificationsBell } from '@/components/notifications-bell';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { breadcrumbsFromUrl } from '@/lib/utils';
 import { type BreadcrumbItem as BreadcrumbItemType } from '@/types';
@@ -21,7 +20,6 @@ export function AppSidebarHeader({ breadcrumbs = [] }: { breadcrumbs?: Breadcrum
 
             <div className="flex items-center gap-2">
                 <CommandPalette />
-                <NotificationsBell />
             </div>
         </header>
     );

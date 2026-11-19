@@ -7,6 +7,21 @@ export function cn(...inputs: ClassValue[]) {
 
 import { type BreadcrumbItem } from '@/types';
 
+// Amount inputs: only digits and one decimal point, up to 2 decimals (e.g. "12a3..45.678" -> "123.45").
+// Meant for onChange, so it also cleans pasted text.
+export function sanitizeAmount(value: string, maxDecimals = 2): string {
+    const cleaned = value.replace(/[^\d.]/g, '');
+    const dot = cleaned.indexOf('.');
+
+    if (dot === -1) return cleaned;
+
+    // ".5" -> "0.5" so the server's number format accepts it
+    return `${cleaned.slice(0, dot) || '0'}.${cleaned.slice(dot + 1).replace(/\./g, '').slice(0, maxDecimals)}`;
+}
+
+// "5." -> "5" (a trailing decimal point is not a valid amount when sending to the server)
+export const trimTrailingDot = (value: string): string => value.replace(/\.$/, '');
+
 // Friendly names for URL pieces. Anything not listed is capitalised automatically.
 const labels: Record<string, string> = {
     dashboard: 'Dashboard',

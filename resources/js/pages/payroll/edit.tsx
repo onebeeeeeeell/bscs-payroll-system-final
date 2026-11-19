@@ -3,8 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
+import { sanitizeAmount, trimTrailingDot } from '@/lib/utils';
+import type { SharedData } from '@/types';
 import type { Payroll } from '@/types/models';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 
 type Props = {
@@ -15,11 +17,6 @@ function formatCurrency(value: number): string {
     return value.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' });
 }
 
-// date_processed galing DB ay "YYYY-MM-DD HH:MM:SS" (o ISO); ang datetime-local ay "YYYY-MM-DDTHH:MM"
-function toDateTimeLocal(value: string): string {
-    return value.replace(' ', 'T').slice(0, 16);
-}
-
 function toAmount(value: string): number {
     const amount = Number(value);
 
@@ -27,11 +24,14 @@ function toAmount(value: string): number {
 }
 
 export default function EditPayroll({ payroll }: Props) {
+    // Date processed can only be today (server date), so the field always starts on today
+    const { today } = usePage<SharedData>().props;
+
     const form = useForm({
         gross_pay: payroll.gross_pay,
         total_deductions: payroll.total_deductions,
         net_pay: payroll.net_pay,
-        date_processed: toDateTimeLocal(payroll.date_processed),
+        date_processed: today,
     });
 
     const employeeName = [payroll.employee?.first_name, payroll.employee?.last_name, payroll.employee?.suffix].filter(Boolean).join(' ') || '—';
@@ -48,7 +48,12 @@ export default function EditPayroll({ payroll }: Props) {
             return;
         }
 
-        form.transform((data) => ({ ...data, net_pay: net.toFixed(2) }));
+        form.transform((data) => ({
+            ...data,
+            gross_pay: trimTrailingDot(data.gross_pay),
+            total_deductions: trimTrailingDot(data.total_deductions),
+            net_pay: net.toFixed(2),
+        }));
         form.patch(route('payrolls.update', payroll.id), { preserveScroll: true });
     }
 
@@ -59,7 +64,7 @@ export default function EditPayroll({ payroll }: Props) {
                 <div className="space-y-1 rounded-2xl border border-emerald-800/10 bg-white/80 p-5 shadow-sm sm:p-6 dark:border-emerald-400/15 dark:bg-[#07130f]">
                     <p className="text-xs font-semibold tracking-[0.16em] text-emerald-700 uppercase dark:text-emerald-400">Payroll</p>
                     <h1 className="text-2xl font-semibold tracking-tight">Edit Payroll</h1>
-                    <p className="text-muted-foreground text-sm">Adjust the amounts for this payroll record. Net pay is computed for you.</p>
+                    <p className="text-muted-foreground text-sm">Adjust the amounts for this payroll record. Numbers only, up to 2 decimals. Net pay is computed for you.</p>
                 </div>
 
                 <form
@@ -88,12 +93,12 @@ export default function EditPayroll({ payroll }: Props) {
                             <Label htmlFor="gross_pay">Gross pay</Label>
                             <Input
                                 id="gross_pay"
-                                type="number"
+                                type="text"
                                 inputMode="decimal"
-                                min="0"
-                                step="0.01"
+                                maxLength={11}
+                                autoComplete="off"
                                 value={form.data.gross_pay}
-                                onChange={(event) => form.setData('gross_pay', event.target.value)}
+                                onChange={(event) => form.setData('gross_pay', sanitizeAmount(event.target.value))}
                                 required
                                 disabled={form.processing}
                                 aria-invalid={Boolean(form.errors.gross_pay)}
@@ -105,12 +110,12 @@ export default function EditPayroll({ payroll }: Props) {
                             <Label htmlFor="total_deductions">Total deductions</Label>
                             <Input
                                 id="total_deductions"
-                                type="number"
+                                type="text"
                                 inputMode="decimal"
-                                min="0"
-                                step="0.01"
+                                maxLength={11}
+                                autoComplete="off"
                                 value={form.data.total_deductions}
-                                onChange={(event) => form.setData('total_deductions', event.target.value)}
+                                onChange={(event) => form.setData('total_deductions', sanitizeAmount(event.target.value))}
                                 required
                                 disabled={form.processing}
                                 aria-invalid={Boolean(form.errors.total_deductions)}
@@ -132,13 +137,16 @@ export default function EditPayroll({ payroll }: Props) {
                             <Label htmlFor="date_processed">Date processed</Label>
                             <Input
                                 id="date_processed"
-                                type="datetime-local"
+                                type="date"
+                                min={today}
+                                max={today}
                                 value={form.data.date_processed}
-                                onChange={(event) => form.setData('date_processed', event.target.value)}
+                                onChange={(event) => form.setData('date_processed', event.target.value === today ? today : form.data.date_processed)}
                                 required
                                 disabled={form.processing}
                                 aria-invalid={Boolean(form.errors.date_processed)}
                             />
+                            <p className="text-muted-foreground text-xs">Only today&apos;s date is allowed.</p>
                             <InputError message={form.errors.date_processed} />
                         </div>
                     </div>

@@ -98,13 +98,9 @@ class AttendanceService
 
 
         // transaction so nothing is saved if something fails in the middle
-        $attendance = DB::transaction(
+        return DB::transaction(
             fn () => Attendance::create($data)
         );
-
-        NotificationService::flushMissingAttendanceCount();
-
-        return $attendance;
     }
 
     public function punch(string $fullName, string $pin, string $action): Attendance
@@ -155,8 +151,6 @@ class AttendanceService
                     ]);
                 }
 
-                DB::afterCommit(fn () => NotificationService::flushMissingAttendanceCount());
-
                 return Attendance::create([
                     'employee_id' => $employee->id,
                     'work_date' => today()->toDateString(),
@@ -205,16 +199,11 @@ class AttendanceService
         $data = $this->calculateWorkedHours($data);
 
 
-        $attendance = DB::transaction(function () use ($attendance, $data) {
+        return DB::transaction(function () use ($attendance, $data) {
             $attendance->update($data);
-
 
             return $attendance;
         });
-
-        NotificationService::flushMissingAttendanceCount();
-
-        return $attendance;
     }
 
 
@@ -224,8 +213,6 @@ class AttendanceService
         DB::transaction(
             fn () => $attendance->delete()
         );
-
-        NotificationService::flushMissingAttendanceCount();
     }
 
 
@@ -234,8 +221,6 @@ class AttendanceService
         DB::transaction(
             fn () => $attendance->restore()
         );
-
-        NotificationService::flushMissingAttendanceCount();
     }
 
 

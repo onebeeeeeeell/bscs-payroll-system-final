@@ -43,12 +43,13 @@ class ArchiveAndFiltersTest extends TestCase
         $position = Position::factory()->create();
         $employee = Employee::factory()->create(['department_id' => $department->id, 'position_id' => $position->id]);
 
-        $match = Payroll::factory()->create(['employee_id' => $employee->id, 'date_processed' => '2026-03-15 09:00:00']);
-        Payroll::factory()->create(['date_processed' => '2026-03-15 09:00:00']);
-        Payroll::factory()->create(['employee_id' => $employee->id, 'date_processed' => '2025-03-15 09:00:00']);
+        // Date filter is today only, so the matching records are processed today
+        $match = Payroll::factory()->create(['employee_id' => $employee->id, 'date_processed' => now()]);
+        Payroll::factory()->create(['date_processed' => now()]);
+        Payroll::factory()->create(['employee_id' => $employee->id, 'date_processed' => now()->subYear()]);
 
         $this->get(route('payrolls.index', [
-            'date' => '2026-03-15',
+            'date' => today()->toDateString(),
             'department_id' => $department->id,
             'position_id' => $position->id,
         ]))->assertInertia(fn ($page) => $page->has('payrolls.data', 1)->where('payrolls.data.0.id', $match->id));
@@ -72,10 +73,16 @@ class ArchiveAndFiltersTest extends TestCase
 
     public function test_payroll_periods_filter_by_date(): void
     {
-        $match = PayrollPeriod::factory()->create(['start_date' => '2026-03-01', 'end_date' => '2026-03-15']);
-        PayrollPeriod::factory()->create(['start_date' => '2025-03-01', 'end_date' => '2025-03-15']);
+        $match = PayrollPeriod::factory()->create([
+            'start_date' => today()->subDays(5)->toDateString(),
+            'end_date' => today()->addDays(5)->toDateString(),
+        ]);
+        PayrollPeriod::factory()->create([
+            'start_date' => today()->subYear()->toDateString(),
+            'end_date' => today()->subYear()->addDays(14)->toDateString(),
+        ]);
 
-        $this->get(route('payroll_periods.index', ['date' => '2026-03-10']))
+        $this->get(route('payroll_periods.index', ['date' => today()->toDateString()]))
             ->assertInertia(fn ($page) => $page->has('payrollPeriods.data', 1)->where('payrollPeriods.data.0.id', $match->id));
     }
 

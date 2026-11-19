@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Models\Concerns\Archivable;
+use App\Models\Concerns\FiltersListsByEmployeeAndDay;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,7 +25,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Payroll extends Model
 {
-    use HasFactory, Archivable;
+    use HasFactory, Archivable, FiltersListsByEmployeeAndDay;
 
     /*
      * LABEL: Locked period statuses
@@ -64,31 +64,61 @@ class Payroll extends Model
      * Purpose: Lahat ng filters ng Payroll records page sa iisang scope.
      * - status: 'archived' o default 'active'.
      * - date: eksaktong araw ng date_processed (Y-m-d).
-     * - search / department_id / position_id: sa employee ng payroll (isang
-     *   whereHas lang kahit lahat ng tatlo ang gamit).
+     * - search / department_id / position_id: sa employee ng payroll.
      *
      * @param array<string, mixed> $filters
      */
     public function scopeForFilters(Builder $query, array $filters): void
     {
-        $search = $filters['search'] ?? null;
-        $departmentId = $filters['department_id'] ?? null;
-        $positionId = $filters['position_id'] ?? null;
-
         $query
             ->withArchiveStatus($filters['status'] ?? null)
-            // range sa halip na whereDate() para magamit ang index ng column
-            ->when(filled($filters['date'] ?? null), fn (Builder $query) => $query->whereBetween('date_processed', [
-                Carbon::parse($filters['date'])->startOfDay(),
-                Carbon::parse($filters['date'])->endOfDay(),
-            ]))
-            ->when(filled($search) || filled($departmentId) || filled($positionId), fn (Builder $query) => $query->whereHas(
-                'employee',
-                fn (Builder $employee) => $employee
-                    ->when(filled($search), fn (Builder $employee) => $employee->matchingFirstOrLastName($search))
-                    ->when(filled($departmentId), fn (Builder $employee) => $employee->inDepartment($departmentId))
-                    ->when(filled($positionId), fn (Builder $employee) => $employee->inPosition($positionId)),
-            ));
+            ->onDay('date_processed', $filters['date'] ?? null)
+            ->forEmployeeFilters('employee', $filters);
+    }
+
+    /*
+     * LABEL: Awaiting payslip scope
+     * Purpose: Mga active na payroll na wala pang payslip, pinakabago muna,
+     * para sa dropdown ng Generate payslip. Piling columns lang, naka-cap
+     * para hindi bumigat ang dropdown.
+     */
+    public function scopeAwaitingPayslip(Builder $query, int $limit = 300): void
+    {
+        $query->active()
+            ->doesntHave('payslip')
+            ->with([
+                'employee:id,first_name,last_name,suffix',
+                'payrollPeriod:id,start_date,end_date',
+            ])
+            ->latest('date_processed')
+            ->limit($limit)
+            ->select(['id', 'employee_id', 'payroll_period_id', 'net_pay', 'date_processed']);
+    }
+
+    /*
+     * LABEL: Load details
+     * Purpose: Mga relation na kailangan ng show at edit page. Isang lugar na
+     * lang para hindi na nasa controller ang mga listahan. loadMissing: hindi
+     * na uulitin ang query sa relation na naka-load na.
+     */
+    public function loadShowDetails(): static
+    {
+        return $this->loadMissing([
+            'employee:id,first_name,last_name,suffix',
+            'payrollPeriod:id,start_date,end_date,pay_date,status',
+            'user:id,name',
+            'deductions.contributionRate.contributionType:id,name',
+            'payslip:id,payroll_id,date_generated',
+        ]);
+    }
+
+    public function loadEditDetails(): static
+    {
+        return $this->loadMissing([
+            'employee:id,first_name,last_name,suffix',
+            'payrollPeriod:id,start_date,end_date,pay_date,status',
+            'user:id,name',
+        ]);
     }
 
     /*

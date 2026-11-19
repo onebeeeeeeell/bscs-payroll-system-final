@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Payslip\PayslipIndexRequest;
 use App\Http\Requests\Payslip\PayslipRequest;
 use App\Models\Department;
-use App\Models\Payroll;
 use App\Models\Payslip;
 use App\Models\Position;
 use App\Services\PayslipService;
@@ -33,18 +32,9 @@ class PayslipController extends Controller
 
     public function create(): Response
     {
-        // Mga payroll na wala pang payslip, pinakabago muna. Naka-cap para hindi bumigat ang dropdown.
+        // Mga payroll na wala pang payslip (ang query ay nasa Payroll::awaitingPayslip)
         return Inertia::render('payslip/create', [
-            'payrolls' => Payroll::query()
-                ->active()
-                ->doesntHave('payslip')
-                ->with([
-                    'employee:id,first_name,last_name,suffix',
-                    'payrollPeriod:id,start_date,end_date',
-                ])
-                ->latest('date_processed')
-                ->limit(300)
-                ->get(['id', 'employee_id', 'payroll_period_id', 'net_pay', 'date_processed']),
+            'payrolls' => $this->payslipService->payrollOptions(),
         ]);
     }
 
@@ -64,20 +54,6 @@ class PayslipController extends Controller
     public function show(Payslip $payslip): Response
     {
         return Inertia::render('payslip/show', $this->payslipService->statement($payslip));
-    }
-
-    public function edit(Payslip $payslip): Response
-    {
-        return Inertia::render('payslip/edit', [
-            'payslip' => $payslip->load(['payroll.employee', 'payroll.payrollPeriod']),
-        ]);
-    }
-
-    public function update(PayslipRequest $request, Payslip $payslip): RedirectResponse
-    {
-        $this->payslipService->update($payslip, $request->validated());
-
-        return to_route('payslips.index')->with('success', 'Payslip updated successfully.');
     }
 
     /*

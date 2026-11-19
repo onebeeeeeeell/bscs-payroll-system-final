@@ -106,7 +106,7 @@ export default function PayrollPeriodIndex({ payrollPeriods, filters }: Props) {
                     initialSearch={filters.search}
                     toolbar={
                         <div className="flex w-full flex-wrap gap-2">
-                            <DateFilter label="Filter by period date" value={filters.date} onChange={(value) => applyFilters({ date: value })} />
+                            <DateFilter label="Filter by period date" presentOnly value={filters.date} onChange={(value) => applyFilters({ date: value })} />
                             <ArchiveStatusFilter
                                 label="Filter by archive status"
                                 value={filters.status}

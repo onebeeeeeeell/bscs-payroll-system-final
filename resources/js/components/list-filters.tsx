@@ -1,5 +1,7 @@
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import type { SharedData } from '@/types';
+import { usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 
 const selectClass = 'border-input bg-background h-10 rounded-md border px-3 text-sm';
@@ -25,10 +27,37 @@ export function FilterSelect({ label, value, onChange, children, className }: Fi
     );
 }
 
-// One date picker (same as the Attendance page). Empty = no date filter.
-export function DateFilter({ value, onChange, label }: { value: string; onChange: (value: string) => void; label: string }) {
+// One date picker. Empty = no date filter.
+// presentOnly = only today's date (server date) can be picked; typed-in past or future dates are ignored.
+export function DateFilter({
+    value,
+    onChange,
+    label,
+    presentOnly = false,
+}: {
+    value: string;
+    onChange: (value: string) => void;
+    label: string;
+    presentOnly?: boolean;
+}) {
+    const { today } = usePage<SharedData>().props;
+
     return (
-        <Input type="date" aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-44" />
+        <Input
+            type="date"
+            aria-label={label}
+            value={value}
+            min={presentOnly ? today : undefined}
+            max={presentOnly ? today : undefined}
+            onChange={(event) => {
+                const next = event.target.value;
+
+                if (presentOnly && next !== '' && next !== today) return;
+
+                onChange(next);
+            }}
+            className="h-10 w-44"
+        />
     );
 }
 

@@ -15,27 +15,22 @@ class PayslipRequest extends FormRequest
 
     /*
      * LABEL: Rules
-     * Purpose: Sa create: payroll (isa lang na payslip bawat payroll) at petsa.
-     * Sa update: petsa lang. Hindi na pwedeng ilipat ng payroll ang payslip.
+     * Purpose: Create lang ang gumagamit nito (walang edit/update na ng payslip):
+     * payroll (isa lang na payslip bawat payroll) at petsa.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
-        $rules = [
+        return [
             'date_generated' => ['required', 'date'],
-        ];
-
-        if (! $this->isMethod('PATCH') && ! $this->isMethod('PUT')) {
-            $rules['payroll_id'] = [
+            'payroll_id' => [
                 'required',
                 'integer',
                 'exists:payrolls,id',
                 Rule::unique('payslips', 'payroll_id'),
-            ];
-        }
-
-        return $rules;
+            ],
+        ];
     }
 
     /**

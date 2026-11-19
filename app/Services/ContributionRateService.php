@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ContributionRate;
 use App\Models\ContributionType;
+use App\Services\Concerns\SanitizesText;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 class ContributionRateService
 {
+    use SanitizesText;
+
     // Ito lang ang fields na puwedeng pumasok galing sa labas. Hindi na pwedeng
     // ilipat ng contribution type ang existing na rate, kaya wala ito sa update.
     private const CREATE_FIELDS = ['contribution_type_id', 'calculation_type', 'rate'];
@@ -29,7 +32,7 @@ class ContributionRateService
         return ContributionRate::query()
             ->withType()
             ->withCount('deductions') // para malaman kung ginamit na sa payroll
-            ->search($search)
+            ->search($this->sanitizeSearch($search))
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
@@ -52,7 +55,8 @@ class ContributionRateService
 
     public function create(array $data): ContributionRate
     {
-        $data = Arr::only($data, self::CREATE_FIELDS);
+        $data = $this->sanitizeAmountFields(Arr::only($data, self::CREATE_FIELDS), ['rate']);
+        $this->assertAmountsFilled($data, ['rate']);
 
         // transaction so nothing is saved if something fails in the middle
         return DB::transaction(
@@ -63,7 +67,8 @@ class ContributionRateService
 
     public function update(ContributionRate $contributionRate, array $data): ContributionRate
     {
-        $data = Arr::only($data, self::UPDATE_FIELDS);
+        $data = $this->sanitizeAmountFields(Arr::only($data, self::UPDATE_FIELDS), ['rate']);
+        $this->assertAmountsFilled($data, ['rate']);
 
         return DB::transaction(function () use ($contributionRate, $data) {
             $this->assertUnused($contributionRate, 'rate');

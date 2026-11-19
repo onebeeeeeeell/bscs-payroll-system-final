@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -45,8 +44,8 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
-            // Small counts for the sidebar badges (only for logged-in users)
-            'navCounts' => fn () => $request->user() ? app(NotificationService::class)->counts() : null,
+            // Today's date based on the server (app timezone). Date inputs that only allow the present day use this.
+            'today' => fn () => today()->toDateString(),
         ];
     }
 }

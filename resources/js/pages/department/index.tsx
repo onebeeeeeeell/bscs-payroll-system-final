@@ -78,6 +78,8 @@ export default function DepartmentIndex({ departments }: Props) {
                     getRowId={(row) => row.id}
                     getSearchValue={(row) => row.department_name}
                     searchPlaceholder="Search departments..."
+                    maxSearchLength={30}
+                    lettersOnly
                     emptyMessage="No departments yet."
                     columns={
                         [

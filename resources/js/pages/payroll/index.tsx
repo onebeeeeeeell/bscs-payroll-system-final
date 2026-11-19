@@ -104,7 +104,7 @@ export default function PayrollIndex({ payrolls, departments, positions, filters
                     initialSearch={filters.search}
                     toolbar={
                         <div className="flex w-full flex-wrap gap-2">
-                            <DateFilter label="Filter by date processed" value={filters.date} onChange={(value) => applyFilters({ date: value })} />
+                            <DateFilter label="Filter by date processed" presentOnly value={filters.date} onChange={(value) => applyFilters({ date: value })} />
                             <FilterSelect
                                 label="Filter by department"
                                 value={filters.department_id}

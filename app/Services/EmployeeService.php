@@ -122,13 +122,9 @@ class EmployeeService
         $fields = $this->sanitizeFields($data);
 
         // LABEL: Transaction; puwedeng tanggalin kung walang idadagdag na related writes sa susunod.
-        $employee = DB::transaction(
+        return DB::transaction(
             fn () => Employee::create($fields)
         );
-
-        NotificationService::flushMissingAttendanceCount();
-
-        return $employee;
     }
 
     /*
@@ -198,8 +194,6 @@ class EmployeeService
             $employee->update(['archived_at' => now()]);
             $employee->attendances()->delete();
         });
-
-        NotificationService::flushMissingAttendanceCount();
     }
 
     /*
@@ -215,8 +209,6 @@ class EmployeeService
                 ->onlyTrashed()
                 ->restore();
         });
-
-        NotificationService::flushMissingAttendanceCount();
     }
 
 }

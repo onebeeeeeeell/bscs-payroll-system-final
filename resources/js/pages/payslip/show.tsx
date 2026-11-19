@@ -129,7 +129,6 @@ export default function ShowPayslip({ payslip, earnings, deductions }: Props) {
     const period = payroll?.payroll_period;
 
     const employeeName = [employee?.first_name, employee?.last_name, employee?.suffix].filter(Boolean).join(' ') || '—';
-    const employeeCode = employee ? `EMP-${String(employee.id).padStart(4, '0')}` : '—';
     const role = [employee?.position?.title, employee?.department?.department_name].filter(Boolean).join(' · ');
     const periodLabel = period ? `${formatDate(period.start_date)} – ${formatDate(period.end_date)}` : '—';
     const payDate = period ? formatDate(period.pay_date) : '—';
@@ -213,7 +212,7 @@ export default function ShowPayslip({ payslip, earnings, deductions }: Props) {
                                 <div>
                                     <p className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">Employee</p>
                                     <p className="mt-1 text-lg font-semibold">{employeeName}</p>
-                                    <p className="text-xs text-neutral-500">{[role, employeeCode].filter(Boolean).join(' · ')}</p>
+                                    <p className="text-xs text-neutral-500">{role}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">Pay period</p>
@@ -257,7 +256,6 @@ export default function ShowPayslip({ payslip, earnings, deductions }: Props) {
                     <aside className="space-y-4">
                         <div className="rounded-xl border border-emerald-800/10 bg-white p-4 shadow-sm dark:border-emerald-400/15 dark:bg-[#07130f]">
                             <h2 className="mb-1 text-sm font-semibold">Statement details</h2>
-                            <DetailRow label="Employee ID" value={employeeCode} />
                             <DetailRow label="Period" value={periodLabel} />
                             <DetailRow label="Pay date" value={payDate} />
                             <DetailRow label="Net pay" value={peso(netPay)} />

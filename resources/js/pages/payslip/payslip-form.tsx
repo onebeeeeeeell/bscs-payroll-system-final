@@ -3,14 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Payroll, Payslip } from '@/types/models';
+import type { Payroll } from '@/types/models';
 import { Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 
 type Props = {
-    // create mode: payrolls (wala pang payslip). edit mode: payslip
+    // payrolls na wala pang payslip
     payrolls?: Payroll[];
-    payslip?: Payslip;
 };
 
 function formatCurrency(value: string): string {
@@ -25,9 +24,6 @@ function periodLabel(payroll?: Payroll): string {
     return payroll?.payroll_period ? `${payroll.payroll_period.start_date.slice(0, 10)} – ${payroll.payroll_period.end_date.slice(0, 10)}` : '—';
 }
 
-// Ang timestamp column ay "YYYY-MM-DD HH:MM:SS" (o ISO); ang datetime-local ay "YYYY-MM-DDTHH:MM"
-const toDateTimeLocal = (value: string): string => value.replace(' ', 'T').slice(0, 16);
-
 function nowLocal(): string {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -35,27 +31,19 @@ function nowLocal(): string {
     return now.toISOString().slice(0, 16);
 }
 
-export default function PayslipForm({ payrolls = [], payslip }: Props) {
-    const isEdit = payslip !== undefined;
-
+export default function PayslipForm({ payrolls = [] }: Props) {
     const form = useForm({
-        payroll_id: payslip ? String(payslip.payroll_id) : '',
-        date_generated: payslip ? toDateTimeLocal(payslip.date_generated) : nowLocal(),
+        payroll_id: '',
+        date_generated: nowLocal(),
     });
 
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
-        if (isEdit) {
-            // Petsa lang ang binabago sa edit
-            form.transform((data) => ({ date_generated: data.date_generated }));
-            form.patch(route('payslips.update', payslip.id), { preserveScroll: true });
-        } else {
-            form.post(route('payslips.store'), { preserveScroll: true });
-        }
+        form.post(route('payslips.store'), { preserveScroll: true });
     }
 
-    const noPayrolls = !isEdit && payrolls.length === 0;
+    const noPayrolls = payrolls.length === 0;
 
     return (
         <form
@@ -71,27 +59,18 @@ export default function PayslipForm({ payrolls = [], payslip }: Props) {
             <div className="grid min-w-0 gap-5 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="payroll_id">Payroll</Label>
-                    {isEdit ? (
-                        <Input
-                            id="payroll_id"
-                            value={`${employeeName(payslip.payroll)} · ${periodLabel(payslip.payroll)}`}
-                            readOnly
-                            tabIndex={-1}
-                        />
-                    ) : (
-                        <Select value={form.data.payroll_id} onValueChange={(value) => form.setData('payroll_id', value)} disabled={form.processing || noPayrolls}>
-                            <SelectTrigger id="payroll_id" aria-invalid={Boolean(form.errors.payroll_id)}>
-                                <SelectValue placeholder="Select a payroll" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {payrolls.map((payroll) => (
-                                    <SelectItem key={payroll.id} value={String(payroll.id)}>
-                                        {employeeName(payroll)} · {periodLabel(payroll)} · {formatCurrency(payroll.net_pay)}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
+                    <Select value={form.data.payroll_id} onValueChange={(value) => form.setData('payroll_id', value)} disabled={form.processing || noPayrolls}>
+                        <SelectTrigger id="payroll_id" aria-invalid={Boolean(form.errors.payroll_id)}>
+                            <SelectValue placeholder="Select a payroll" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {payrolls.map((payroll) => (
+                                <SelectItem key={payroll.id} value={String(payroll.id)}>
+                                    {employeeName(payroll)} · {periodLabel(payroll)} · {formatCurrency(payroll.net_pay)}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <InputError message={form.errors.payroll_id} />
                 </div>
 
@@ -125,7 +104,7 @@ export default function PayslipForm({ payrolls = [], payslip }: Props) {
                     type="submit"
                     disabled={form.processing || noPayrolls}
                 >
-                    {form.processing ? 'Saving...' : isEdit ? 'Update payslip' : 'Generate payslip'}
+                    {form.processing ? 'Saving...' : 'Generate payslip'}
                 </Button>
             </div>
         </form>

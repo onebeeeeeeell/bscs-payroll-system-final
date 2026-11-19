@@ -24,7 +24,7 @@ class PayrollLockTest extends TestCase
 
     private function payload(): array
     {
-        return ['gross_pay' => 5000, 'total_deductions' => 100, 'date_processed' => now()->toDateTimeString()];
+        return ['gross_pay' => 5000, 'total_deductions' => 100, 'date_processed' => today()->toDateString()];
     }
 
     public function test_payroll_in_a_paid_period_can_be_updated(): void
@@ -78,7 +78,7 @@ class PayrollLockTest extends TestCase
         $payroll = $this->payrollIn('Processing');
 
         $this->actingAs(User::factory()->create())
-            ->patch(route('payrolls.update', $payroll), ['gross_pay' => 100, 'total_deductions' => 500, 'date_processed' => now()->toDateTimeString()])
+            ->patch(route('payrolls.update', $payroll), ['gross_pay' => 100, 'total_deductions' => 500, 'date_processed' => today()->toDateString()])
             ->assertSessionHasErrors('total_deductions');
     }
 }

@@ -12,7 +12,6 @@ use App\Http\Controllers\PositionController;
 use App\Http\Controllers\DeductionController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\DepartmentController;
-use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PayrollPeriodController;
 use App\Http\Controllers\EmployeeOptionController;
 use App\Http\Controllers\ContributionRateController;
@@ -47,7 +46,6 @@ Route::middleware(['auth'])->group(function () {
 
 
     Route::get('search', SearchController::class)->name('search');
-    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
 
 
     Route::resource('contribution_rates', ContributionRateController::class);
@@ -61,7 +59,8 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('payrolls/{payroll}/restore', [PayrollController::class, 'restore'])->name('payrolls.restore');
     // Read-only: ang deductions ay awtomatikong ginagawa ng payroll processing
     Route::resource('deductions', DeductionController::class)->only(['index']);
-    Route::resource('payslips', PayslipController::class);
+    // Walang edit/update: ang payslip ay generate, view, at archive lang
+    Route::resource('payslips', PayslipController::class)->except(['edit', 'update']);
     Route::patch('payslips/{payslip}/restore', [PayslipController::class, 'restore'])->name('payslips.restore');
     Route::resource('payroll_periods', PayrollPeriodController::class);
     Route::patch('payroll_periods/{payroll_period}/restore', [PayrollPeriodController::class, 'restore'])->name('payroll_periods.restore');

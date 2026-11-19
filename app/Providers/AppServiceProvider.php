@@ -20,11 +20,11 @@ class AppServiceProvider extends ServiceProvider
      * Bootstrap any application services.
      */
     public function boot(): void
-    {
-        // Dev/test lang: i-log (hindi mag-error) kapag may lazy-loaded relation (N+1).
-        Model::preventLazyLoading(! $this->app->isProduction());
-        Model::handleLazyLoadingViolationUsing(function (Model $model, string $relation): void {
-            Log::warning(sprintf('Lazy loading [%s] on model [%s].', $relation, $model::class));
-        });
-    }
+{
+    // Dev/test lang: i-log (hindi mag-error) kapag may lazy-loaded relation (N+1).
+    Model::preventLazyLoading(! app()->isProduction()); // <- palitan ito (line 25)
+    Model::handleLazyLoadingViolationUsing(function (Model $model, string $relation): void {
+        Log::warning(sprintf('Lazy loading [%s] on model [%s].', $relation, $model::class));
+    });
+}
 }
