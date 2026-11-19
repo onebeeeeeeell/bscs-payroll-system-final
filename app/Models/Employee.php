@@ -189,15 +189,25 @@ class Employee extends Model
         );
     }
 
+    /*
+     * LABEL: Navbar search scope
+     * Purpose: Hanap sa first name, last name, o "first last".
+     * - PostgreSQL: ilike (kayang gumamit ng pg_trgm GIN indexes). Ang
+     *   (first_name || ' ' || last_name) ay kailangang kapareho ng expression
+     *   sa employees_full_name_trgm_index; huwag palitan ng concat() kasi
+     *   hindi na tatama sa index.
+     * - Ibang DB (SQLite): like na, na case-insensitive na doon.
+     * - Walang lower() sa column, kasi hindi 'yon magagamit ng trigram index.
+     */
     public function scopeMatchingSearchTerm(Builder $query, string $term): void
     {
-        $term = mb_strtolower(trim($term));
-        $like = Like::contains($term);
+        $like = Like::contains(trim($term));
+        $operator = $query->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
-        $query->where(function (Builder $query) use ($like) {
-            $query->whereRaw('lower(first_name) like ?', [$like])
-                ->orWhereRaw('lower(last_name) like ?', [$like])
-                ->orWhereRaw("lower(concat(first_name, ' ', last_name)) like ?", [$like]);
+        $query->where(function (Builder $query) use ($like, $operator) {
+            $query->where('first_name', $operator, $like)
+                ->orWhere('last_name', $operator, $like)
+                ->orWhereRaw("(first_name || ' ' || last_name) {$operator} ?", [$like]);
         });
     }
 

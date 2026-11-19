@@ -22,6 +22,11 @@ class PayrollProcessingService
 
     private const OVERTIME_MULTIPLIER = 1.25;
 
+    // PostgreSQL: hanggang 65,535 bound parameters bawat statement. Ang Payroll
+    // insert ay 9 columns/row at ang Deduction ay 5 columns/row, kaya 500 rows
+    // bawat chunk ay malayo pa sa limit kahit ilan ang employee.
+    private const INSERT_CHUNK_SIZE = 500;
+
     public const STATUS_READY = 'ready';
 
     public const STATUS_NO_ATTENDANCE = 'no_attendance';
@@ -117,7 +122,7 @@ class PayrollProcessingService
 
             $now = now();
 
-            Payroll::insert($ready->map(fn (array $row) => [
+            $payrollRows = $ready->map(fn (array $row) => [
                 'employee_id' => $row['employee_id'],
                 'payroll_period_id' => $period->id,
                 'user_id' => $userId,
@@ -127,11 +132,15 @@ class PayrollProcessingService
                 'date_processed' => $now,
                 'created_at' => $now,
                 'updated_at' => $now,
-            ])->all());
+            ])->all();
+
+            foreach (array_chunk($payrollRows, self::INSERT_CHUNK_SIZE) as $chunk) {
+                Payroll::insert($chunk);
+            }
 
             $payrollIds = Payroll::query()->forPeriod($period->id)->pluck('id', 'employee_id');
 
-            Deduction::insert($ready->flatMap(
+            $deductionRows = $ready->flatMap(
                 fn (array $row) => $rates->map(fn (ContributionRate $rate) => [
                     'payroll_id' => $payrollIds[$row['employee_id']],
                     'contribution_rate_id' => $rate->id,
@@ -139,7 +148,11 @@ class PayrollProcessingService
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]),
-            )->values()->all());
+            )->values()->all();
+
+            foreach (array_chunk($deductionRows, self::INSERT_CHUNK_SIZE) as $chunk) {
+                Deduction::insert($chunk);
+            }
 
             $period->update(['status' => 'Processing']);
 

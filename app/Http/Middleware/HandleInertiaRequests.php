@@ -3,7 +3,6 @@
 namespace App\Http\Middleware;
 
 use App\Services\NotificationService;
-use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -37,12 +36,9 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
-
-        return array_merge(parent::share($request), [
+        return [
             ...parent::share($request),
             'name' => config('app.name'),
-            'quote' => ['message' => trim($message), 'author' => trim($author)],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
             ],
@@ -51,6 +47,6 @@ class HandleInertiaRequests extends Middleware
             ],
             // Small counts for the sidebar badges (only for logged-in users)
             'navCounts' => fn () => $request->user() ? app(NotificationService::class)->counts() : null,
-        ]);
+        ];
     }
 }

@@ -26,9 +26,13 @@ class AttendanceService
      */
     public function indexData(array $validated, array $filters): array
     {
+        // stats() runs first: its "records" is COUNT(*) with the same filters as
+        // the list, so the paginator reuses it instead of running its own count.
+        $stats = $this->stats($validated);
+
         return [
-            'attendances' => $this->paginate($validated),
-            'stats' => $this->stats($validated),
+            'attendances' => $this->paginate($validated, total: $stats['records']),
+            'stats' => $stats,
             'departments' => Department::options(),
             'positions' => Position::options(),
             'filters' => $filters,
@@ -42,13 +46,14 @@ class AttendanceService
      * sorting). Dito, tinatawag na lang ang mga scopes.
      * withQueryString(): ini-keep ang filters sa pagination links.
      */
-    public function paginate(array $filters = [], int $perPage = 10): LengthAwarePaginator
+    public function paginate(array $filters = [], int $perPage = 10, ?int $total = null): LengthAwarePaginator
     {
+        // $total: kung alam na ang bilang ng rows, hindi na mag-COUNT ang paginator.
         return Attendance::query()
             ->forFilters($filters)
             ->withEmployee()
             ->latestFirst()
-            ->paginate($perPage)
+            ->paginate($perPage, total: $total)
             ->withQueryString();
     }
 
