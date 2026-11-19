@@ -68,15 +68,12 @@ export default function Welcome() {
                             </Button>
                         ) : (
                             <>
-                                <Link href="/login" className="text-foreground/90 hover:text-foreground text-sm font-medium whitespace-nowrap">
-                                    Log In
-                                </Link>
                                 <Button
                                     className="h-9 rounded-full bg-gradient-to-r from-[#0fb582] to-[#16d79b] px-4 text-sm font-semibold whitespace-nowrap text-white md:h-10 md:px-6"
                                     asChild
                                 >
-                                    <Link href="/register">
-                                        Get Started <ArrowRight />
+                                    <Link href="/login">
+                                        Log In <ArrowRight />
                                     </Link>
                                 </Button>
                             </>
@@ -219,7 +216,7 @@ export default function Welcome() {
                         className="h-12 rounded-full bg-emerald-700 px-8 font-semibold text-white hover:bg-emerald-800 dark:bg-white dark:text-emerald-900 dark:hover:bg-white/90"
                         asChild
                     >
-                        <Link href={auth.user ? '/dashboard' : '/register'}>{auth.user ? 'Open Dashboard' : 'Create Your Account'}</Link>
+                        <Link href={auth.user ? '/dashboard' : '/login'}>{auth.user ? 'Open Dashboard' : 'Log In'}</Link>
                     </Button>
                 </div>
             </section>
