@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
+use App\Models\Employee;
 use App\Models\Payroll;
 use App\Models\PayrollPeriod;
 use App\Models\Payslip;
@@ -101,5 +103,46 @@ class DashboardTest extends TestCase
                 ->where('period_statuses.2', ['status' => 'Paid', 'total' => 1])
                 ->where('period_statuses.3', ['status' => 'Failed', 'total' => 0])
             );
+    }
+
+    public function test_dashboard_departments_only_count_active_employees(): void
+    {
+        $accounting = Department::factory()->create(['department_name' => 'Accounting']);
+        $billing = Department::factory()->create(['department_name' => 'Billing']);
+        $cashier = Department::factory()->create(['department_name' => 'Cashier']);
+
+        Employee::factory()->count(2)->create(['department_id' => $accounting->id]);
+        // archived employees are left out
+        Employee::factory()->create(['department_id' => $accounting->id, 'archived_at' => now()]);
+        Employee::factory()->create(['department_id' => $billing->id]);
+        // a department with only archived employees still shows up, with 0
+        Employee::factory()->create(['department_id' => $cashier->id, 'archived_at' => now()]);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('dashboard'))
+            ->assertInertia(fn ($page) => $page
+                ->has('departments', 3)
+                ->where('departments.0.department_name', 'Accounting')
+                ->where('departments.0.employees_count', 2)
+                ->where('departments.1.department_name', 'Billing')
+                ->where('departments.1.employees_count', 1)
+                ->where('departments.2.department_name', 'Cashier')
+                ->where('departments.2.employees_count', 0)
+            );
+    }
+
+    public function test_dashboard_active_employees_total_is_the_sum_across_departments(): void
+    {
+        $first = Department::factory()->create();
+        $second = Department::factory()->create();
+
+        Employee::factory()->count(3)->create(['department_id' => $first->id]);
+        Employee::factory()->count(2)->create(['department_id' => $second->id]);
+        // archived employees are not part of the total
+        Employee::factory()->count(2)->create(['department_id' => $second->id, 'archived_at' => now()]);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('dashboard'))
+            ->assertInertia(fn ($page) => $page->where('stats.active_employees', 5));
     }
 }
