@@ -273,7 +273,7 @@ export default function AttendanceIndex({ attendances, stats, departments, posit
 
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuItem asChild>
-                                                <Link href={route('attendance.show', attendance.id)}>View</Link>
+                                                <Link href={route('attendance.employee-records', attendance.employee_id)}>View</Link>
                                             </DropdownMenuItem>
 
                                             {filters.status === 'active' ? (

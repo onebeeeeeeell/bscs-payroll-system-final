@@ -78,6 +78,16 @@ class Department extends Model
         $query->withCount('employees');
     }
 
+    /*
+     * LABEL: Active employees count scope
+     * Purpose: Idagdag ang employees_count sa bawat department, pero active
+     * (hindi naka-archive) na employee lang ang bilang. Para sa dashboard.
+     */
+    public function scopeWithActiveEmployeesCount(Builder $query): void
+    {
+        $query->withCount(['employees' => fn (Builder $employee) => $employee->active()]);
+    }
+
     public function employees(): HasMany
     {
         return $this->hasMany(Employee::class, 'department_id', 'id');

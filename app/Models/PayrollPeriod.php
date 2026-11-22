@@ -54,6 +54,19 @@ class PayrollPeriod extends Model
     }
 
     /*
+     * LABEL: Counts by status scope
+     * Purpose: Bilang ng active na period bawat status (Pending, Processing,
+     * Paid, Failed), ISANG query lang (GROUP BY status). Para sa dashboard.
+     */
+    public function scopeCountsByStatus(Builder $query): void
+    {
+        $query->active()
+            ->select('status')
+            ->selectRaw('COUNT(*) AS total')
+            ->groupBy('status');
+    }
+
+    /*
      * LABEL: Processable scope
      * Purpose: Mga period na pwede pang i-process (Pending o Failed), pinakabago
      * muna. Piling columns lang para sa dropdown.

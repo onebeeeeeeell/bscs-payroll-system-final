@@ -130,9 +130,51 @@ class Attendance extends Model
     }
 
     /*
+     * LABEL: Status scope
+     * Purpose: 'deleted' = soft-deleted records lang (onlyTrashed). Kahit ano
+     * pa ang ibang value, active records ang default. Ginagamit ng forFilters()
+     * at ng employee records page, kaya hindi na inuulit ang logic.
+     */
+    public function scopeInStatus(Builder $query, string $status): void
+    {
+        $query->when($status === 'deleted', fn (Builder $query) => $query->onlyTrashed());
+    }
+
+    /*
+     * LABEL: Hours summary scope
+     * Purpose: Aggregates para sa cards ng isang employee, ISANG query lang:
+     * records (total), total_hours, total_overtime, open_records (wala pang
+     * time_out). COALESCE para 0 ang lumabas, hindi null, kapag walang records.
+     */
+    public function scopeHoursSummary(Builder $query): void
+    {
+        $query
+            ->selectRaw('COUNT(*) AS records')
+            ->selectRaw('COALESCE(SUM(hours_worked), 0) AS total_hours')
+            ->selectRaw('COALESCE(SUM(overtime_hours), 0) AS total_overtime')
+            ->selectRaw('COUNT(CASE WHEN time_out IS NULL THEN 1 END) AS open_records');
+    }
+
+    /*
+     * LABEL: Employee records filters scope
+     * Purpose: Filters ng employee records page: status (active/deleted) at
+     * date. Walang department/position dito kasi isang employee lang ang
+     * tinitingnan. Tinatawag bilang ->forEmployeeRecords($id, $filters).
+     *
+     * @param array{status?: 'active'|'deleted', date?: string|null} $filters
+     */
+    public function scopeForEmployeeRecords(Builder $query, int $employeeId, array $filters): void
+    {
+        $query
+            ->forEmployee($employeeId)
+            ->inStatus($filters['status'] ?? 'active')
+            ->when($filters['date'] ?? null, fn (Builder $query, $date) => $query->forDate($date));
+    }
+
+    /*
      * LABEL: Filters scope
      * Purpose: Lahat ng index filters sa iisang scope.
-     * - status 'deleted': onlyTrashed() (soft-deleted records lang).
+     * - status 'deleted': inStatus() -> soft-deleted records lang.
      * - status 'active' (default): active employees lang ang kasama.
      * - department / position: dumadaan sa employee relation gamit ang
      *   inDepartment() at inPosition() scopes ng Employee.
@@ -145,7 +187,7 @@ class Attendance extends Model
         $status = $filters['status'] ?? 'active';
 
         $query
-            ->when($status === 'deleted', fn (Builder $query) => $query->onlyTrashed())
+            ->inStatus($status)
             ->whereHas('employee', fn (Builder $employee) => $employee
                 ->when($status !== 'deleted', fn (Builder $employee) => $employee->active())
                 ->when($filters['department_id'] ?? null, fn (Builder $employee, $departmentId) => $employee->inDepartment($departmentId))

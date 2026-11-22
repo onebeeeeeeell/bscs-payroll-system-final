@@ -11,6 +11,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\DeductionController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\PayrollPeriodController;
 use App\Http\Controllers\EmployeeOptionController;
@@ -28,12 +29,15 @@ Route::post('time-clock', [TimeClockController::class, 'store'])->middleware('th
 
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
 
-    Route::resource('attendance', AttendanceController::class);
+    // View in the attendance actions: records of one employee (no single-record show page)
+    Route::get('/attendance/employees/{employee}', [AttendanceController::class, 'employeeRecords'])
+        ->whereNumber('employee')
+        ->name('attendance.employee-records');
+
+    Route::resource('attendance', AttendanceController::class)->except('show');
 
 
     Route::patch('/attendance/{attendance}/restore', [AttendanceController::class, 'restore'])

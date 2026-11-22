@@ -77,6 +77,49 @@ class Payroll extends Model
     }
 
     /*
+     * LABEL: Without payslip scope
+     * Purpose: Mga payroll na wala pang payslip. Ginagamit ng awaitingPayslip()
+     * at ng dashboard count, kaya iisa lang ang logic.
+     */
+    public function scopeWithoutPayslip(Builder $query): void
+    {
+        $query->doesntHave('payslip');
+    }
+
+    /*
+     * LABEL: Summary scope
+     * Purpose: Aggregates para sa dashboard, ISANG query lang: payrolls
+     * (bilang), gross_pay, total_deductions, net_pay (kabuuan). COALESCE para
+     * 0 ang lumabas, hindi null, kapag wala pang payroll.
+     */
+    public function scopeSummary(Builder $query): void
+    {
+        $query
+            ->selectRaw('COUNT(*) AS payrolls')
+            ->selectRaw('COALESCE(SUM(gross_pay), 0) AS gross_pay')
+            ->selectRaw('COALESCE(SUM(total_deductions), 0) AS total_deductions')
+            ->selectRaw('COALESCE(SUM(net_pay), 0) AS net_pay');
+    }
+
+    /*
+     * LABEL: Recent scope
+     * Purpose: Pinakabagong payroll muna (date_processed, tapos id kung
+     * pareho ang araw), kasama ang employee at period (piling columns lang).
+     * Para sa "Recent payrolls" ng dashboard.
+     */
+    public function scopeRecent(Builder $query, int $limit = 5): void
+    {
+        $query
+            ->with([
+                'employee:id,first_name,last_name,suffix',
+                'payrollPeriod:id,start_date,end_date',
+            ])
+            ->latest('date_processed')
+            ->latest('id')
+            ->limit($limit);
+    }
+
+    /*
      * LABEL: Awaiting payslip scope
      * Purpose: Mga active na payroll na wala pang payslip, pinakabago muna,
      * para sa dropdown ng Generate payslip. Piling columns lang, naka-cap
@@ -85,7 +128,7 @@ class Payroll extends Model
     public function scopeAwaitingPayslip(Builder $query, int $limit = 300): void
     {
         $query->active()
-            ->doesntHave('payslip')
+            ->withoutPayslip()
             ->with([
                 'employee:id,first_name,last_name,suffix',
                 'payrollPeriod:id,start_date,end_date',

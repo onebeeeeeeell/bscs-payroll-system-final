@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Attendance\AttendanceEmployeeRecordsRequest;
 use App\Http\Requests\Attendance\AttendanceIndexRequest;
 use App\Http\Requests\Attendance\AttendanceRequest;
 use App\Models\Attendance;
@@ -42,17 +43,13 @@ class AttendanceController extends Controller
         return to_route('attendance.index')->with('success', 'Attendance recorded successfully.');
     }
 
-    public function show(int $attendanceId): Response
+    // View in the attendance actions: all attendance records of one employee
+    public function employeeRecords(AttendanceEmployeeRecordsRequest $request, int $employeeId): Response
     {
-        $attendance = Attendance::withTrashed()->findOrFail($attendanceId);
-        $attendance->load([
-            'employee.position:id,title',
-            'employee.department:id,department_name',
-        ]);
-
-        return Inertia::render('attendance/show', [
-            'attendance' => $attendance,
-        ]);
+        return Inertia::render('attendance/employee-records', $this->attendanceService->employeeRecordsData(
+            $employeeId,
+            $request->validated(),
+        ));
     }
 
     public function edit(int $attendanceId): Response

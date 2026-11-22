@@ -92,6 +92,47 @@ class AttendanceService
     }
 
 
+    /**
+     * Data for the employee records page (View in the attendance actions):
+     * the employee's info, their attendance records, and the summary cards.
+     * Filters are cleaned here, the queries live in the Attendance scopes.
+     *
+     * @param array{status?: string|null, date?: string|null} $filters
+     */
+    public function employeeRecordsData(int $employeeId, array $filters): array
+    {
+        $employee = Employee::query()
+            ->withListRelations()
+            ->findOrFail($employeeId);
+
+        $filters = $this->sanitizeRecordFilters($filters);
+
+        // one aggregate query: its "records" is also the total for the paginator
+        $summary = Attendance::query()
+            ->forEmployeeRecords($employee->id, $filters)
+            ->hoursSummary()
+            ->first();
+
+        $records = (int) $summary->records;
+
+        return [
+            'employee' => $employee,
+            'attendances' => Attendance::query()
+                ->forEmployeeRecords($employee->id, $filters)
+                ->latestFirst()
+                ->paginate(10, total: $records)
+                ->withQueryString(),
+            'stats' => [
+                'records' => $records,
+                'total_hours' => (float) $summary->total_hours,
+                'total_overtime' => (float) $summary->total_overtime,
+                'open_records' => (int) $summary->open_records,
+            ],
+            'filters' => $filters,
+        ];
+    }
+
+
     public function create(array $data): Attendance
     {
         $data = $this->calculateWorkedHours($data);
@@ -244,6 +285,16 @@ class AttendanceService
 
 
         return $data;
+    }
+
+
+    // status can only be active or deleted, date must be a real Y-m-d (else blank)
+    private function sanitizeRecordFilters(array $filters): array
+    {
+        return [
+            'status' => ($filters['status'] ?? 'active') === 'deleted' ? 'deleted' : 'active',
+            'date' => $this->sanitizeDate($filters['date'] ?? null),
+        ];
     }
 
 

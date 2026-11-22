@@ -180,8 +180,12 @@ class AttendanceManagementTest extends TestCase
         $attendance->delete();
 
         $this->actingAs(User::factory()->create())
-            ->get(route('attendance.show', $attendance))
-            ->assertOk();
+            ->get(route('attendance.employee-records', [
+                'employee' => $attendance->employee_id,
+                'status' => 'deleted',
+            ]))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('attendances.data', 1));
 
         $this->actingAs(User::factory()->create())
             ->from(route('attendance.index', ['status' => 'deleted']))
@@ -199,21 +203,83 @@ class AttendanceManagementTest extends TestCase
         ]);
     }
 
-    public function test_attendance_show_includes_employee_position_and_department(): void
+    public function test_employee_records_page_includes_employee_position_and_department(): void
     {
         $employee = Employee::factory()->create();
-        $attendance = Attendance::factory()->create([
+        Attendance::factory()->create(['employee_id' => $employee->id]);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('attendance.employee-records', $employee->id))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('attendance/employee-records')
+                ->where('employee.id', $employee->id)
+                ->where('employee.position.id', $employee->position_id)
+                ->where('employee.department.id', $employee->department_id)
+                ->has('employee.position.title')
+                ->has('employee.department.department_name')
+            );
+    }
+
+    public function test_employee_records_page_only_lists_that_employees_records(): void
+    {
+        $employee = Employee::factory()->create();
+        $other = Employee::factory()->create();
+
+        Attendance::factory()->create(['employee_id' => $employee->id, 'work_date' => today()->toDateString()]);
+        Attendance::factory()->create(['employee_id' => $employee->id, 'work_date' => today()->subDay()->toDateString()]);
+        Attendance::factory()->create(['employee_id' => $other->id]);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('attendance.employee-records', $employee->id))
+            ->assertInertia(fn ($page) => $page
+                ->has('attendances.data', 2)
+                ->where('attendances.data.0.employee_id', $employee->id)
+                ->where('stats.records', 2)
+            );
+    }
+
+    public function test_employee_records_page_summarizes_hours_and_filters_by_date(): void
+    {
+        $employee = Employee::factory()->create();
+        $today = today()->toDateString();
+
+        Attendance::factory()->create([
             'employee_id' => $employee->id,
+            'work_date' => $today,
+            'hours_worked' => 9.5,
+            'overtime_hours' => 1.5,
+        ]);
+        Attendance::factory()->create([
+            'employee_id' => $employee->id,
+            'work_date' => today()->subDay()->toDateString(),
+            'time_out' => null,
+            'hours_worked' => 0,
+            'overtime_hours' => 0,
         ]);
 
         $this->actingAs(User::factory()->create())
-            ->get(route('attendance.show', $attendance))
+            ->get(route('attendance.employee-records', $employee->id))
             ->assertInertia(fn ($page) => $page
-                ->where('attendance.employee.position.id', $employee->position_id)
-                ->where('attendance.employee.department.id', $employee->department_id)
-                ->has('attendance.employee.position.title')
-                ->has('attendance.employee.department.department_name')
+                ->where('stats.records', 2)
+                ->where('stats.total_hours', 9.5)
+                ->where('stats.total_overtime', 1.5)
+                ->where('stats.open_records', 1)
             );
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('attendance.employee-records', ['employee' => $employee->id, 'date' => $today]))
+            ->assertInertia(fn ($page) => $page
+                ->has('attendances.data', 1)
+                ->where('filters.date', $today)
+            );
+    }
+
+    public function test_employee_records_page_returns_404_for_unknown_employee(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->get(route('attendance.employee-records', 999999))
+            ->assertNotFound();
     }
 
     public function test_attendance_edit_loads_active_employees_for_selection(): void
