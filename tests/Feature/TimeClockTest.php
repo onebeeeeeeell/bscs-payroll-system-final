@@ -116,7 +116,7 @@ class TimeClockTest extends TestCase
         $this->assertDatabaseCount('attendances', 0);
     }
 
-    public function test_unmatched_employee_name_error_is_attached_to_the_name_field(): void
+    public function test_unmatched_employee_name_gets_the_same_error_as_a_wrong_pin(): void
     {
         $this->employeeWithPin();
 
@@ -124,7 +124,7 @@ class TimeClockTest extends TestCase
             'full_name' => 'John Doe',
             'pin' => '123456',
             'action' => 'time_in',
-        ])->assertSessionHasErrors('full_name');
+        ])->assertSessionHasErrors(['pin' => 'Name or PIN is incorrect.']);
 
         $this->assertDatabaseCount('attendances', 0);
     }

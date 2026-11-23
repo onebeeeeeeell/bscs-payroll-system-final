@@ -22,6 +22,9 @@ class AttendanceService
 
     private const STANDARD_WORK_HOURS = 8;
 
+    // One message for "unknown name" and "wrong PIN" so the time clock does not reveal which names exist.
+    private const INVALID_CREDENTIALS = 'Name or PIN is incorrect.';
+
     /**
      * @param array{status?: 'active'|'deleted', department_id?: int|null, position_id?: int|null, date?: string|null} $filters
      */
@@ -160,8 +163,9 @@ class AttendanceService
                 ->get();
 
             if ($employees->isEmpty()) {
+                // same message as a wrong PIN, so outsiders cannot tell which names exist
                 throw ValidationException::withMessages([
-                    'full_name' => 'No employee matches the entered name.',
+                    'pin' => self::INVALID_CREDENTIALS,
                 ]);
             }
 
@@ -171,7 +175,7 @@ class AttendanceService
 
             if ($matchingEmployees->isEmpty()) {
                 throw ValidationException::withMessages([
-                    'pin' => 'The PIN is incorrect.',
+                    'pin' => self::INVALID_CREDENTIALS,
                 ]);
             }
 

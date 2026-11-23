@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests\Payroll;
 
+use App\Http\Requests\Concerns\ValidatesInput;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ProcessPayrollRequest extends FormRequest
 {
+    use ValidatesInput;
+
     public function authorize(): bool
     {
         return true;
@@ -16,7 +19,8 @@ class ProcessPayrollRequest extends FormRequest
      * LABEL: Process payroll validation
      * Purpose: Isang request para sa preview (GET) at sa pag-save (POST).
      * - GET: payroll_period_id ay optional (walang napili pa) at may optional
-     *   search sa employee table. 'string' ang humaharang sa ?search[]=x.
+     *   search sa employee table: letters at spaces lang, hanggang 30
+     *   (same rule ng ibang search box).
      * - POST: payroll_period_id ay required.
      * Hindi na ine-exists-check dito ang period at ang status nito: ang service
      * na ang nagloload ng period (isang query lang) at nagche-check kung
@@ -31,7 +35,7 @@ class ProcessPayrollRequest extends FormRequest
 
         return [
             'payroll_period_id' => [$period, 'integer'],
-            'search' => ['nullable', 'string', 'max:100'],
+            'search' => $this->searchRules(),
         ];
     }
 }

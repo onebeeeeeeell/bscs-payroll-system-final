@@ -25,7 +25,6 @@ use Illuminate\Support\Carbon;
     'tin_no',
     'status',
     'pin',
-    'archived_at',
 ])]
 
 class Employee extends Model

@@ -8,7 +8,6 @@ use App\Http\Requests\Attendance\AttendanceRequest;
 use App\Models\Attendance;
 use App\Services\AttendanceService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -61,27 +60,17 @@ class AttendanceController extends Controller
         return to_route('attendance.index')->with('success', 'Attendance updated successfully.');
     }
 
-    public function destroy(Request $request, Attendance $attendance): RedirectResponse
+    public function destroy(AttendanceIndexRequest $request, Attendance $attendance): RedirectResponse
     {
         $this->attendanceService->delete($attendance);
 
-        return to_route('attendance.index', $request->only([
-            'status',
-            'department_id',
-            'position_id',
-            'date',
-        ]))->with('success', 'Attendance deleted successfully.');
+        return to_route('attendance.index', $request->redirectFilters())->with('success', 'Attendance deleted successfully.');
     }
 
-    public function restore(Request $request, int $attendanceId): RedirectResponse
+    public function restore(AttendanceIndexRequest $request, int $attendanceId): RedirectResponse
     {
         $this->attendanceService->restoreById($attendanceId);
 
-        return to_route('attendance.index', $request->only([
-            'status',
-            'department_id',
-            'position_id',
-            'date',
-        ]))->with('success', 'Attendance restored successfully.');
+        return to_route('attendance.index', $request->redirectFilters())->with('success', 'Attendance restored successfully.');
     }
 }

@@ -50,7 +50,7 @@ class EmployeeArchiveWorkflowsTest extends TestCase
         $activeAttendance = Attendance::factory()->create();
         $archivedAttendance = Attendance::factory()->create();
         $archivedEmployee = $archivedAttendance->employee;
-        $archivedEmployee->update(['archived_at' => now()]);
+        $archivedEmployee->forceFill(['archived_at' => now()])->save();
 
         $this->get(route('attendance.index'))
             ->assertOk()
@@ -81,7 +81,7 @@ class EmployeeArchiveWorkflowsTest extends TestCase
 
         $employee = Employee::factory()->create();
         $attendance = Attendance::factory()->create(['employee_id' => $employee->id]);
-        $employee->update(['archived_at' => now()]);
+        $employee->forceFill(['archived_at' => now()])->save();
         $attendance->delete();
 
         $this->get(route('attendance.index', ['status' => 'deleted']))
@@ -98,7 +98,7 @@ class EmployeeArchiveWorkflowsTest extends TestCase
 
         $payslip = Payslip::factory()->create();
         $employee = $payslip->payroll->employee;
-        $employee->update(['archived_at' => now()]);
+        $employee->forceFill(['archived_at' => now()])->save();
 
         $this->get(route('payrolls.index'))
             ->assertOk()
@@ -116,7 +116,7 @@ class EmployeeArchiveWorkflowsTest extends TestCase
     public function test_payroll_service_rejects_archived_employees(): void
     {
         $employee = Employee::factory()->create();
-        $employee->update(['archived_at' => now()]);
+        $employee->forceFill(['archived_at' => now()])->save();
         $payrollPeriod = PayrollPeriod::factory()->create();
         $user = User::factory()->create();
 

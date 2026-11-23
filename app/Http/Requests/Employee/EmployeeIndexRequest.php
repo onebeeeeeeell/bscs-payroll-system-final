@@ -34,4 +34,14 @@ class EmployeeIndexRequest extends FormRequest
             'status' => $validated['status'] ?? 'active',
         ];
     }
+
+    /**
+     * For archive/restore redirects: only the validated filters that were sent.
+     *
+     * @return array<string, mixed>
+     */
+    public function redirectFilters(): array
+    {
+        return array_filter($this->validated(), fn ($value) => $value !== null && $value !== '');
+    }
 }

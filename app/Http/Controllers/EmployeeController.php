@@ -7,7 +7,6 @@ use App\Models\Employee;
 use App\Services\EmployeeService;
 use App\Http\Requests\Employee\EmployeeIndexRequest;
 use App\Http\Requests\Employee\EmployeeRequest;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Response;
 
@@ -61,29 +60,17 @@ class EmployeeController extends Controller
         return to_route('employees.index')->with('success', 'Employee updated successfully.');
     }
 
-    public function destroy(Request $request, Employee $employee): RedirectResponse
+    public function destroy(EmployeeIndexRequest $request, Employee $employee): RedirectResponse
     {
         $this->employeeService->archive($employee);
 
-        return to_route('employees.index', $request->only([
-            'status',
-            'department_id',
-            'position_id',
-            'hire_year',
-            'hire_month',
-        ]))->with('success', 'Employee archived successfully.');
+        return to_route('employees.index', $request->redirectFilters())->with('success', 'Employee archived successfully.');
     }
 
-    public function restore(Request $request, Employee $employee): RedirectResponse
+    public function restore(EmployeeIndexRequest $request, Employee $employee): RedirectResponse
     {
         $this->employeeService->restore($employee);
 
-        return to_route('employees.index', $request->only([
-            'status',
-            'department_id',
-            'position_id',
-            'hire_year',
-            'hire_month',
-        ]))->with('success', 'Employee restored successfully.');
+        return to_route('employees.index', $request->redirectFilters())->with('success', 'Employee restored successfully.');
     }
 }

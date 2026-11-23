@@ -149,7 +149,8 @@ export default function CreatePayroll({ periods, preview, filters }: Props) {
                         getSearchValue={(row) => row.name}
                         searchPlaceholder="Search employees..."
                         emptyMessage="No active employees found."
-                        maxSearchLength={100}
+                        maxSearchLength={30}
+                        lettersOnly
                         columns={
                             [
                                 { header: 'Employee', cell: (row) => row.name || '—' },

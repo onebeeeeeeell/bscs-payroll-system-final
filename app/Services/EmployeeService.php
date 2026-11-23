@@ -185,7 +185,8 @@ class EmployeeService
     public function archive(Employee $employee): void
     {
         DB::transaction(function () use ($employee) {
-            $employee->update(['archived_at' => now()]);
+            // forceFill: archived_at is not mass assignable, only archive() and restore() set it
+            $employee->forceFill(['archived_at' => now()])->save();
             $employee->attendances()->delete();
         });
     }
@@ -198,7 +199,7 @@ class EmployeeService
     public function restore(Employee $employee): void
     {
         DB::transaction(function () use ($employee) {
-            $employee->update(['archived_at' => null]);
+            $employee->forceFill(['archived_at' => null])->save();
             $employee->attendances()
                 ->onlyTrashed()
                 ->restore();

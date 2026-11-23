@@ -64,7 +64,7 @@ class EmployeeArchiveTest extends TestCase
         $this->actingAs(User::factory()->create());
 
         $employee = Employee::factory()->create();
-        $employee->update(['archived_at' => now()]);
+        $employee->forceFill(['archived_at' => now()])->save();
 
         $this->deleteJson(route('employee-options.departments.destroy', $employee->department))
             ->assertStatus(409);
@@ -84,7 +84,7 @@ class EmployeeArchiveTest extends TestCase
         $employee = Employee::factory()->create([
             'date_hired' => '2024-05-15',
         ]);
-        $employee->update(['archived_at' => now()]);
+        $employee->forceFill(['archived_at' => now()])->save();
         Employee::factory()->create([
             'date_hired' => '2024-06-15',
         ]);
