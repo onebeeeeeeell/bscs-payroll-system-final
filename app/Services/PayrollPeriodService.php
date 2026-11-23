@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\PayrollPeriod;
 use App\Services\Concerns\SanitizesText;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Arr;
 
 class PayrollPeriodService
 {
@@ -24,15 +25,23 @@ class PayrollPeriodService
     }
 
 
+    /*
+     * LABEL: Create period
+     * Purpose: Arr::only para dates lang ang pumasok; ang status ay laging
+     * Pending (hindi galing sa request).
+     */
     public function create(array $data): PayrollPeriod
     {
-        return PayrollPeriod::create($data);
+        return PayrollPeriod::create([
+            ...Arr::only($data, ['start_date', 'end_date', 'pay_date']),
+            'status' => PayrollPeriod::INITIAL_STATUS,
+        ]);
     }
 
 
     public function update(PayrollPeriod $payrollPeriod, array $data): PayrollPeriod
     {
-        $payrollPeriod->update($data);
+        $payrollPeriod->update(Arr::only($data, ['start_date', 'end_date', 'pay_date', 'status']));
 
         return $payrollPeriod;
     }

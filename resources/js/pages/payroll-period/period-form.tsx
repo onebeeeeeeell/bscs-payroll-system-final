@@ -14,6 +14,9 @@ type Props = {
 
 const STATUSES: PayrollPeriod['status'][] = ['Pending', 'Processing', 'Paid', 'Failed'];
 
+// Paid na ang period: hindi na pwedeng ibalik sa ibang status (tugma sa PayrollPeriod::FINAL_STATUSES)
+const FINAL_STATUSES: PayrollPeriod['status'][] = ['Paid'];
+
 // Galing DB ay "YYYY-MM-DD" (o ISO); ang <input type="date"> ay "YYYY-MM-DD" lang
 const toDateInput = (value?: string): string => (value ? value.slice(0, 10) : '');
 
@@ -30,13 +33,24 @@ export default function PeriodForm({ payrollPeriod }: Props) {
         status: payrollPeriod?.status ?? 'Pending',
     });
 
-    const startBeforeToday = form.data.start_date !== '' && form.data.start_date < today;
+    const original = {
+        start_date: toDateInput(payrollPeriod?.start_date),
+        end_date: toDateInput(payrollPeriod?.end_date),
+        pay_date: toDateInput(payrollPeriod?.pay_date),
+    };
+    // Nagsimula na ang period? Pwede pa ring i-edit; bagong petsa lang ang bawal sa nakaraan.
+    const isNewPastDate = (value: string, originalValue: string) => value !== '' && value < today && value !== originalValue;
+    // Kung nakaraan na ang orihinal na petsa, walang native "min" para hindi ma-block ang submit
+    const minFor = (floor: string, originalValue: string) => (originalValue !== '' && originalValue < floor ? undefined : floor);
+    const statusLocked = isEdit && FINAL_STATUSES.includes(payrollPeriod.status);
+
+    const startBeforeToday = isNewPastDate(form.data.start_date, original.start_date);
     const endBeforeStart = form.data.start_date !== '' && form.data.end_date !== '' && form.data.end_date < form.data.start_date;
-    const endBeforeToday = form.data.end_date !== '' && form.data.end_date < today;
-    const payBeforeToday = form.data.pay_date !== '' && form.data.pay_date < today;
+    const endBeforeToday = isNewPastDate(form.data.end_date, original.end_date);
+    const payBeforeToday = isNewPastDate(form.data.pay_date, original.pay_date);
     const payBeforeEnd = form.data.pay_date !== '' && form.data.end_date !== '' && form.data.pay_date < form.data.end_date;
-    const endMin = form.data.start_date > today ? form.data.start_date : today;
-    const payMin = form.data.end_date > today ? form.data.end_date : today;
+    const endMin = minFor(form.data.start_date > today ? form.data.start_date : today, original.end_date);
+    const payMin = minFor(form.data.end_date > today ? form.data.end_date : today, original.pay_date);
     const hasDateErrors = startBeforeToday || endBeforeStart || endBeforeToday || payBeforeToday || payBeforeEnd;
 
     function submit(event: FormEvent<HTMLFormElement>) {
@@ -64,7 +78,7 @@ export default function PeriodForm({ payrollPeriod }: Props) {
                     <Input
                         id="start_date"
                         type="date"
-                        min={today}
+                        min={minFor(today, original.start_date)}
                         value={form.data.start_date}
                         onChange={(event) => form.setData('start_date', event.target.value)}
                         required
@@ -126,19 +140,20 @@ export default function PeriodForm({ payrollPeriod }: Props) {
                         <Select
                             value={form.data.status}
                             onValueChange={(value) => form.setData('status', value as PayrollPeriod['status'])}
-                            disabled={form.processing}
+                            disabled={form.processing || statusLocked}
                         >
                             <SelectTrigger id="status" aria-invalid={Boolean(form.errors.status)}>
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                {STATUSES.map((status) => (
+                                {(statusLocked ? [payrollPeriod.status] : STATUSES).map((status) => (
                                     <SelectItem key={status} value={status}>
                                         {status}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
+                        {statusLocked && <p className="text-muted-foreground text-sm">The status of a Paid period can no longer be changed.</p>}
                         <InputError message={form.errors.status} />
                     </div>
                 )}

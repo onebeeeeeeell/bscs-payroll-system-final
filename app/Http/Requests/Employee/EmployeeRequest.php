@@ -32,9 +32,9 @@ class EmployeeRequest extends FormRequest
         $dateHiredRules[] = 'before_or_equal:'.now()->endOfYear()->toDateString();
 
         return [
-            'first_name' => [$required, 'string', 'max:50', 'regex:/^[\p{L}\p{M}.\'-]+(?:\s+[\p{L}\p{M}.\'-]+)*$/u'],
-            'last_name' => [$required, 'string', 'max:50', 'regex:/^[\p{L}\p{M}.\'-]+(?:\s+[\p{L}\p{M}.\'-]+)*$/u'],
-            'suffix' => ['nullable', 'string', 'max:5', 'regex:/^[\p{L}\p{M}.\'-]+(?:\s+[\p{L}\p{M}.\'-]+)*$/u'],
+            'first_name' => $this->nameRules([$required], 50),
+            'last_name' => $this->nameRules([$required], 50),
+            'suffix' => $this->nameRules(['nullable'], 5),
             'position_id' => [$required, 'integer', 'exists:positions,id'],
             'department_id' => [$required, 'integer', 'exists:departments,id'],
             'date_hired' => $dateHiredRules,
@@ -45,6 +45,31 @@ class EmployeeRequest extends FormRequest
             'tin_no' => ['nullable', 'digits_between:9,12', Rule::unique('employees', 'tin_no')->ignore($employee)],
             'pin' => [$this->isMethod('POST') ? 'required' : 'sometimes', 'nullable', 'digits:6'],
             'status' => [$required, Rule::exists('employment_statuses', 'name')],
+        ];
+    }
+
+    /*
+     * LABEL: Name rules
+     * Purpose: Letters, spaces, hyphens, apostrophes at periods lang, AT dapat
+     * may kahit isang letter (hindi pwede ang "---", "..." o "'" lang).
+     * \z ang gamit (hindi $) para hindi makalusot ang newline sa dulo.
+     *
+     * @param list<string> $lead
+     * @return array<int, mixed>
+     */
+    private function nameRules(array $lead, int $max): array
+    {
+        return [
+            'bail',
+            ...$lead,
+            'string',
+            'max:'.$max,
+            'regex:/^[\p{L}\p{M}.\'-]+(?:\s+[\p{L}\p{M}.\'-]+)*\z/u',
+            function (string $attribute, mixed $value, \Closure $fail): void {
+                if (! is_string($value) || ! preg_match('/\p{L}/u', $value)) {
+                    $fail('The :attribute must contain at least one letter.');
+                }
+            },
         ];
     }
 

@@ -24,6 +24,15 @@ class PayrollPeriod extends Model
 
     public const PROCESSABLE_STATUSES = ['Pending', 'Failed'];
 
+    public const STATUSES = ['Pending', 'Processing', 'Paid', 'Failed'];
+
+    // Bagong period ay laging Pending; hindi pinipili ng user sa create.
+    public const INITIAL_STATUS = 'Pending';
+
+    // Kapag ganito na ang status, hindi na pwedeng ibalik sa ibang status.
+    // Alisin ang 'Paid' dito (gawing []) para payagan ulit ang pagbabago.
+    public const FINAL_STATUSES = ['Paid'];
+
     /*
      * LABEL: Payrolls count scope
      * Purpose: Idagdag ang payrolls_count sa bawat payroll period.
@@ -56,6 +65,19 @@ class PayrollPeriod extends Model
                     ->where(fn (Builder $range) => $range->where('start_date', '<=', $filters['date'])->where('end_date', '>=', $filters['date']))
                     ->orWhere('pay_date', $filters['date']),
             ));
+    }
+
+    /*
+     * LABEL: Overlapping scope
+     * Purpose: Mga active na period na tumatama (kahit isang araw) sa start-end
+     * na ibinigay. Pwedeng i-exclude ang isang period (para sa edit).
+     */
+    public function scopeOverlapping(Builder $query, string $startDate, string $endDate, ?int $exceptId = null): void
+    {
+        $query->active()
+            ->where('start_date', '<=', $endDate)
+            ->where('end_date', '>=', $startDate)
+            ->when($exceptId !== null, fn (Builder $query) => $query->whereKeyNot($exceptId));
     }
 
     /*
