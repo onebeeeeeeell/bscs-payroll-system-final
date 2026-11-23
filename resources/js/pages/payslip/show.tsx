@@ -274,7 +274,7 @@ export default function ShowPayslip({ payslip, earnings, deductions }: Props) {
                                 <li className="flex gap-3">
                                     <span className="bg-muted-foreground mt-1.5 size-2 shrink-0 rounded-full" aria-hidden="true" />
                                     <div>
-                                        <p>Payroll processed{payroll?.user?.name ? ` by ${payroll.user.name}` : ''}</p>
+                                        <p>Payroll processed</p>
                                         {payroll?.date_processed && <p className="text-muted-foreground text-xs">{formatDateTime(payroll.date_processed)}</p>}
                                     </div>
                                 </li>

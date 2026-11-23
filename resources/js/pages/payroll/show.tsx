@@ -67,10 +67,6 @@ export default function ShowPayroll({ payroll }: Props) {
                         <p className="mt-1 font-medium">{payroll.date_processed}</p>
                     </div>
                     <div>
-                        <p className="text-muted-foreground">Processed by</p>
-                        <p className="mt-1 font-medium">{payroll.user?.name ?? '—'}</p>
-                    </div>
-                    <div>
                         <p className="text-muted-foreground">Period status</p>
                         <p className="mt-1 font-medium">{payroll.payroll_period?.status ?? '—'}</p>
                     </div>

@@ -79,6 +79,43 @@ class TimeClockTest extends TestCase
         $this->assertDatabaseCount('attendances', 0);
     }
 
+    public function test_repeated_duplicate_punches_do_not_trigger_the_request_limit(): void
+    {
+        $employee = $this->employeeWithPin();
+        $payload = [
+            'full_name' => $this->fullName($employee),
+            'pin' => '123456',
+            'action' => 'time_in',
+        ];
+
+        $this->post(route('time-clock.store'), $payload)
+            ->assertRedirect(route('time-clock.index'));
+
+        for ($attempt = 0; $attempt < 6; $attempt++) {
+            $this->post(route('time-clock.store'), $payload)
+                ->assertSessionHasErrors('action');
+        }
+
+        $this->assertDatabaseCount('attendances', 1);
+    }
+
+    public function test_failed_pin_attempts_are_limited_as_validation_errors(): void
+    {
+        $employee = $this->employeeWithPin();
+        $payload = [
+            'full_name' => $this->fullName($employee),
+            'pin' => '654321',
+            'action' => 'time_in',
+        ];
+
+        for ($attempt = 0; $attempt < 6; $attempt++) {
+            $this->post(route('time-clock.store'), $payload)
+                ->assertSessionHasErrors('pin');
+        }
+
+        $this->assertDatabaseCount('attendances', 0);
+    }
+
     public function test_unmatched_employee_name_error_is_attached_to_the_name_field(): void
     {
         $this->employeeWithPin();

@@ -4,10 +4,11 @@ import { Label } from '@/components/ui/label';
 import { type SharedData } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { ArrowLeft, Clock3 } from 'lucide-react';
-import type { FormEvent } from 'react';
+import { useRef, type FormEvent } from 'react';
 
 export default function TimeClock() {
     const { flash } = usePage<SharedData>().props;
+    const submissionInProgress = useRef(false);
     const form = useForm({
         full_name: '',
         pin: '',
@@ -16,8 +17,16 @@ export default function TimeClock() {
 
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        if (submissionInProgress.current || form.processing) {
+            return;
+        }
+
+        submissionInProgress.current = true;
         form.post('/time-clock', {
             onSuccess: () => form.reset('pin'),
+            onFinish: () => {
+                submissionInProgress.current = false;
+            },
         });
     }
 
@@ -91,7 +100,10 @@ export default function TimeClock() {
                         <select
                             id="action"
                             value={form.data.action}
-                            onChange={(event) => form.setData('action', event.target.value)}
+                            onChange={(event) => {
+                                form.setData('action', event.target.value);
+                                form.clearErrors('action');
+                            }}
                             disabled={form.processing}
                             className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
                         >
@@ -103,7 +115,7 @@ export default function TimeClock() {
 
                     <Button
                         type="submit"
-                        disabled={form.processing}
+                        disabled={form.processing || Boolean(form.errors.action)}
                         className="h-10 w-full bg-emerald-700 font-semibold text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"
                     >
                         {form.processing ? 'Recording...' : 'Submit Attendance'}

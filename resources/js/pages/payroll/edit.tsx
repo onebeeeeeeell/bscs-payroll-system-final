@@ -80,12 +80,6 @@ export default function EditPayroll({ payroll }: Props) {
                             <p className="text-muted-foreground text-sm">Pay period</p>
                             <p className="mt-1 font-semibold">{period}</p>
                         </div>
-                        {payroll.user && (
-                            <div className="sm:col-span-2">
-                                <p className="text-muted-foreground text-sm">Processed by</p>
-                                <p className="mt-1 font-semibold">{payroll.user.name}</p>
-                            </div>
-                        )}
                     </div>
 
                     <div className="grid min-w-0 gap-5 sm:grid-cols-2">
