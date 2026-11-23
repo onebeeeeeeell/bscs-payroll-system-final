@@ -170,16 +170,28 @@ export default function AttendanceEmployeeRecords({ employee, attendances, stats
                             <Input
                                 type="date"
                                 aria-label="Filter by date"
-                                value={filters.date}
+                                // uncontrolled on purpose: a controlled date input gets wiped while
+                                // typing, because a half-typed date reads as '' (or a wrong year)
+                                key={filters.date}
+                                defaultValue={filters.date}
                                 min={today}
                                 max={today}
                                 onChange={(event) => {
                                     const next = event.target.value;
 
-                                    // typed-in past or future dates are ignored
+                                    // half-typed date: let the person keep typing
+                                    if (event.target.validity.badInput) return;
+
+                                    // only today (or cleared) is applied; any other date is ignored
                                     if (next !== '' && next !== today) return;
 
-                                    updateFilter('date', next);
+                                    if (next !== filters.date) updateFilter('date', next);
+                                }}
+                                onBlur={(event) => {
+                                    // leaving the field with a wrong date: put back the applied one
+                                    const next = event.target.value;
+
+                                    if (next !== '' && next !== today) event.target.value = filters.date;
                                 }}
                                 className="h-10 w-44"
                             />

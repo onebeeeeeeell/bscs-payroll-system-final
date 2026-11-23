@@ -83,6 +83,8 @@ class PayrollService
      */
     public function update(Payroll $payroll, array $data): Payroll
     {
+        $this->assertNotArchived($payroll, 'gross_pay');
+
         $data = $this->sanitizeAmountFields($data, ['gross_pay', 'total_deductions']);
         $this->assertAmountsFilled($data, ['gross_pay', 'total_deductions']);
         $this->assertGrossPayWithinLimit($data['gross_pay']);
@@ -111,6 +113,8 @@ class PayrollService
      */
     public function archive(Payroll $payroll): void
     {
+        $this->assertNotArchived($payroll, 'payroll');
+
         DB::transaction(function () use ($payroll) {
             $this->assertNotLocked($payroll, 'payroll');
 
@@ -121,6 +125,21 @@ class PayrollService
     public function restore(Payroll $payroll): void
     {
         $payroll->restore();
+    }
+
+
+    /*
+     * LABEL: Archived guard
+     * Purpose: Hindi puwedeng baguhin o i-archive ulit ang naka-archive na payroll,
+     * kahit gawan ng request nang mano-mano (hindi dumaan sa page). Restore muna.
+     */
+    private function assertNotArchived(Payroll $payroll, string $errorKey): void
+    {
+        if ($payroll->archived_at !== null) {
+            throw ValidationException::withMessages([
+                $errorKey => 'Archived payrolls cannot be changed. Restore it first.',
+            ]);
+        }
     }
 
 

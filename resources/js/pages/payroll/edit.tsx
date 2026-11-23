@@ -144,8 +144,18 @@ export default function EditPayroll({ payroll }: Props) {
                                 type="date"
                                 min={today}
                                 max={today}
-                                value={form.data.date_processed}
-                                onChange={(event) => form.setData('date_processed', event.target.value === today ? today : form.data.date_processed)}
+                                // uncontrolled on purpose: a controlled date input gets wiped while typing
+                                defaultValue={form.data.date_processed}
+                                onChange={(event) => {
+                                    // half-typed date: let the person keep typing
+                                    if (event.target.validity.badInput) return;
+
+                                    if (event.target.value === today) form.setData('date_processed', today);
+                                }}
+                                onBlur={(event) => {
+                                    // anything but today is not accepted: put today back
+                                    if (event.target.value !== today) event.target.value = today;
+                                }}
                                 required
                                 disabled={form.processing}
                                 aria-invalid={Boolean(form.errors.date_processed)}

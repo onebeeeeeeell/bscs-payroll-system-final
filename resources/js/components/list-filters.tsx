@@ -46,15 +46,28 @@ export function DateFilter({
         <Input
             type="date"
             aria-label={label}
-            value={value}
+            // uncontrolled on purpose: a controlled date input gets wiped while typing,
+            // because a half-typed date reads as '' (or a wrong year like 0002)
+            key={value}
+            defaultValue={value}
             min={presentOnly ? today : undefined}
             max={presentOnly ? today : undefined}
             onChange={(event) => {
                 const next = event.target.value;
 
+                // half-typed date: let the person keep typing
+                if (event.target.validity.badInput) return;
+
+                // only today (or cleared) is applied when presentOnly; other dates are ignored
                 if (presentOnly && next !== '' && next !== today) return;
 
-                onChange(next);
+                if (next !== value) onChange(next);
+            }}
+            onBlur={(event) => {
+                // leaving the field with a rejected date: put back the applied one
+                const next = event.target.value;
+
+                if (presentOnly && next !== '' && next !== today) event.target.value = value;
             }}
             className="h-10 w-44"
         />
