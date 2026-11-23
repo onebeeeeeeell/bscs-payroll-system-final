@@ -59,6 +59,11 @@ class Payroll extends Model
         $query->where('payroll_period_id', $payrollPeriodId);
     }
 
+    public function scopeLatestFirst(Builder $query): void
+    {
+        $query->latest('date_processed')->latest('id');
+    }
+
     /*
      * LABEL: Filters scope
      * Purpose: Lahat ng filters ng Payroll records page sa iisang scope.
@@ -88,9 +93,9 @@ class Payroll extends Model
 
     /*
      * LABEL: Summary scope
-     * Purpose: Aggregates para sa dashboard, ISANG query lang: payrolls
-     * (bilang), gross_pay, total_deductions, net_pay (kabuuan). COALESCE para
-     * 0 ang lumabas, hindi null, kapag wala pang payroll.
+     * Purpose: Aggregates para sa dashboard, kasama ang payrolls na wala pang
+     * payslip sa isang database round trip. COALESCE para 0 ang lumabas, hindi
+     * null, kapag wala pang payroll.
      */
     public function scopeSummary(Builder $query): void
     {
@@ -98,7 +103,15 @@ class Payroll extends Model
             ->selectRaw('COUNT(*) AS payrolls')
             ->selectRaw('COALESCE(SUM(gross_pay), 0) AS gross_pay')
             ->selectRaw('COALESCE(SUM(total_deductions), 0) AS total_deductions')
-            ->selectRaw('COALESCE(SUM(net_pay), 0) AS net_pay');
+            ->selectRaw('COALESCE(SUM(net_pay), 0) AS net_pay')
+            ->selectSub(
+                static::query()
+                    ->active()
+                    ->withoutPayslip()
+                    ->select([])
+                    ->selectRaw('COUNT(*)'),
+                'awaiting_payslip',
+            );
     }
 
     /*

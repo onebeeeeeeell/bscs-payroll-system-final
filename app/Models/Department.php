@@ -68,6 +68,11 @@ class Department extends Model
         $query->orderBy('department_name');
     }
 
+    public function scopeLatestFirst(Builder $query): void
+    {
+        $query->latest()->latest('id');
+    }
+
     /*
      * LABEL: Employees count scope
      * Purpose: Idagdag ang employees_count sa bawat department.

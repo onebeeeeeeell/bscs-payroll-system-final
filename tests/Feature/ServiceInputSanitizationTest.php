@@ -3,7 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Attendance;
+use App\Models\ContributionRate;
+use App\Models\ContributionType;
 use App\Models\Employee;
+use App\Models\User;
 use App\Services\AttendanceService;
 use App\Services\DepartmentService;
 use App\Services\EmploymentStatusService;
@@ -57,5 +60,36 @@ class ServiceInputSanitizationTest extends TestCase
         $this->assertInstanceOf(Attendance::class, $attendance);
         $this->assertSame('9.00', $attendance->hours_worked);
         $this->assertSame('1.00', $attendance->overtime_hours);
+    }
+
+    public function test_contribution_rate_edit_page_loads_type_and_usage_from_service_data(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $type = ContributionType::factory()->create(['name' => 'Health']);
+        $rate = ContributionRate::factory()->create(['contribution_type_id' => $type->id]);
+
+        $this->get(route('contribution_rates.edit', $rate->id))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('contribution-rate/edit')
+                ->where('contributionRate.id', $rate->id)
+                ->where('contributionRate.contribution_type.name', 'Health')
+                ->where('locked', false)
+            );
+    }
+
+    public function test_contribution_rate_list_marks_the_latest_rate_as_current(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $type = ContributionType::factory()->create();
+        ContributionRate::factory()->create(['contribution_type_id' => $type->id]);
+        $currentRate = ContributionRate::factory()->create(['contribution_type_id' => $type->id]);
+
+        $this->get(route('contribution_rates.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('contributionRates.data.0.id', $currentRate->id)
+                ->where('contributionRates.data.0.is_current', true)
+            );
     }
 }

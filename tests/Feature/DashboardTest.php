@@ -8,7 +8,9 @@ use App\Models\Payroll;
 use App\Models\PayrollPeriod;
 use App\Models\Payslip;
 use App\Models\User;
+use App\Services\DashboardService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class DashboardTest extends TestCase
@@ -67,6 +69,22 @@ class DashboardTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->get(route('dashboard'))
             ->assertInertia(fn ($page) => $page->where('stats.awaiting_payslip', 2));
+    }
+
+    public function test_dashboard_summary_avoids_a_separate_awaiting_payslip_query(): void
+    {
+        Payroll::factory()->count(2)->create();
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        try {
+            $data = app(DashboardService::class)->data();
+            $this->assertCount(6, DB::getQueryLog());
+            $this->assertSame(2, $data['stats']['awaiting_payslip']);
+        } finally {
+            DB::disableQueryLog();
+        }
     }
 
     public function test_dashboard_recent_payrolls_are_the_latest_five_with_employee_and_period(): void

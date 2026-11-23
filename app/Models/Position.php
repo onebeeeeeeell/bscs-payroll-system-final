@@ -68,6 +68,11 @@ class Position extends Model
         $query->orderBy('title');
     }
 
+    public function scopeLatestFirst(Builder $query): void
+    {
+        $query->latest()->latest('id');
+    }
+
     /*
      * LABEL: Employees count scope
      * Purpose: Idagdag ang employees_count sa bawat position.

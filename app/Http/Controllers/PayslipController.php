@@ -4,9 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Payslip\PayslipIndexRequest;
 use App\Http\Requests\Payslip\PayslipRequest;
-use App\Models\Department;
 use App\Models\Payslip;
-use App\Models\Position;
 use App\Services\PayslipService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -22,12 +20,7 @@ class PayslipController extends Controller
     {
         $filters = $request->filters();
 
-        return Inertia::render('payslip/index', [
-            'payslips' => $this->payslipService->paginate($filters),
-            'departments' => Department::options(),
-            'positions' => Position::options(),
-            'filters' => $filters,
-        ]);
+        return Inertia::render('payslip/index', $this->payslipService->indexData($filters));
     }
 
     public function create(): Response

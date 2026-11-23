@@ -7,7 +7,9 @@ use App\Models\Employee;
 use App\Models\EmploymentStatus;
 use App\Models\Position;
 use App\Models\User;
+use App\Services\EmploymentStatusService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class EmployeeOptionCreationTest extends TestCase
@@ -200,6 +202,25 @@ class EmployeeOptionCreationTest extends TestCase
             ->assertJson(['label' => 'Temporary']);
 
         $this->assertDatabaseHas('employees', ['id' => $employee->id, 'status' => 'Temporary']);
+    }
+
+    public function test_updating_status_without_renaming_skips_the_employee_update_query(): void
+    {
+        $status = EmploymentStatus::where('name', 'Casual')->firstOrFail();
+        Employee::factory()->create(['status' => $status->name]);
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        try {
+            app(EmploymentStatusService::class)->update($status, ['name' => $status->name]);
+            $queries = DB::getQueryLog();
+        } finally {
+            DB::disableQueryLog();
+        }
+
+        $this->assertFalse(collect($queries)->contains(
+            fn (array $query) => str_starts_with(strtolower($query['query']), 'update "employees"'),
+        ));
     }
 
     public function test_status_cannot_be_deleted_while_employee_records_use_it(): void

@@ -3,13 +3,13 @@
 
 namespace App\Services;
 
-
 use App\Models\Employee;
+use App\Services\Concerns\SanitizesText;
 use Illuminate\Support\Collection;
-
 
 class SearchService
 {
+    use SanitizesText;
     /**
      * Search active (not archived) employees by first name, last name, or full name.
      *
@@ -17,17 +17,16 @@ class SearchService
      */
     public function employees(string $term, int $limit = 8): Collection
     {
-        if (trim($term) === '') {
+        $term = $this->sanitizeSearch($term);
+
+        if ($term === '') {
             return collect();
         }
 
+        $limit = max(1, min($limit, 50));
 
         return Employee::query()
-            ->with(['position:id,title', 'department:id,department_name'])
-            ->active()
-            ->matchingSearchTerm($term)
-            ->orderBy('last_name')
-            ->limit($limit)
+            ->forNavbarSearch($term, $limit)
             ->get()
             ->map(fn (Employee $employee) => [
                 'id' => $employee->id,

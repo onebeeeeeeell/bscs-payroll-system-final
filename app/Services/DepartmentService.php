@@ -19,7 +19,7 @@ class DepartmentService
         return Department::query()
             ->withEmployeesCount()
             ->search($this->sanitizeSearch($search))
-            ->latest()
+            ->latestFirst()
             ->paginate($perPage)
             ->withQueryString(); // keep ?search= when changing pages
     }
@@ -29,10 +29,7 @@ class DepartmentService
     {
         $data = $this->sanitizeFields($data);
 
-        // transaction so nothing is saved if something fails in the middle
-        return DB::transaction(
-            fn () => Department::create($data)
-        );
+        return Department::create($data);
     }
 
 
@@ -40,26 +37,33 @@ class DepartmentService
     {
         $data = $this->sanitizeFields($data);
 
-        return DB::transaction(function () use ($department, $data) {
-            $department->update($data);
+        $department->update($data);
 
-            return $department;
-        });
+        return $department;
     }
 
 
     public function delete(Department $department): void
     {
-        DB::transaction(function () use ($department) {
-            // RESTRICT ang FK sa employees: kapag may employee pa, mag-eerror ang
-            // database (500). Mas malinaw na validation message ang ibinabalik dito.
-            if ($department->employees()->lockForUpdate()->exists()) {
-                throw ValidationException::withMessages([
-                    'department' => 'This department still has employees and cannot be deleted.',
-                ]);
+        if (! $this->deleteIfUnused($department)) {
+            throw ValidationException::withMessages([
+                'department' => 'This department still has employees and cannot be deleted.',
+            ]);
+        }
+    }
+
+    public function deleteIfUnused(Department $department): bool
+    {
+        return DB::transaction(function () use ($department) {
+            Department::query()->whereKey($department->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($department->employees()->exists()) {
+                return false;
             }
 
             $department->delete();
+
+            return true;
         });
     }
 
@@ -72,7 +76,4 @@ class DepartmentService
     {
         return $this->sanitizeStringFields($data, self::SANITIZED_FIELDS);
     }
-
-
-    // diriiiiiiiiiiiiiiiiii sugpon if may ano sa controller na logic
 }

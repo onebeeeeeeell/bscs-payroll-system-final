@@ -19,7 +19,7 @@ class ContributionTypeService
         return ContributionType::query()
             ->withRates()
             ->search($this->sanitizeSearch($search))
-            ->latest()
+            ->latestFirst()
             ->paginate($perPage)
             ->withQueryString(); // keep ?search= when changing pages
     }
@@ -29,10 +29,7 @@ class ContributionTypeService
     {
         $data = $this->sanitizeFields($data);
 
-        // transaction so nothing is saved if something fails in the middle
-        return DB::transaction(
-            fn () => ContributionType::create($data)
-        );
+        return ContributionType::create($data);
     }
 
 
@@ -40,11 +37,9 @@ class ContributionTypeService
     {
         $data = $this->sanitizeFields($data);
 
-        return DB::transaction(function () use ($contributionType, $data) {
-            $contributionType->update($data);
+        $contributionType->update($data);
 
-            return $contributionType;
-        });
+        return $contributionType;
     }
 
 
@@ -73,7 +68,4 @@ class ContributionTypeService
     {
         return $this->sanitizeStringFields($data, self::SANITIZED_FIELDS);
     }
-
-
-    // diriiiiiiiiiiiiiiiiiiii sugpon if may ano sa controller na logic
 }

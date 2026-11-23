@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\PayrollPeriod;
 use App\Services\Concerns\SanitizesText;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class PayrollPeriodService
@@ -19,8 +18,7 @@ class PayrollPeriodService
         return PayrollPeriod::query()
             ->withPayrollsCount()
             ->forFilters($this->sanitizeFilters($filters))
-            ->latest('start_date')
-            ->latest('id')
+            ->latestFirst()
             ->paginate($perPage)
             ->withQueryString(); // keep the filters when changing pages
     }
@@ -28,20 +26,15 @@ class PayrollPeriodService
 
     public function create(array $data): PayrollPeriod
     {
-        // transaction so nothing is saved if something fails in the middle
-        return DB::transaction(
-            fn () => PayrollPeriod::create($data)
-        );
+        return PayrollPeriod::create($data);
     }
 
 
     public function update(PayrollPeriod $payrollPeriod, array $data): PayrollPeriod
     {
-        return DB::transaction(function () use ($payrollPeriod, $data) {
-            $payrollPeriod->update($data);
+        $payrollPeriod->update($data);
 
-            return $payrollPeriod;
-        });
+        return $payrollPeriod;
     }
 
 

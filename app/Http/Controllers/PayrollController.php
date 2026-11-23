@@ -4,9 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Payroll\PayrollIndexRequest;
 use App\Http\Requests\Payroll\PayrollRequest;
-use App\Models\Department;
 use App\Models\Payroll;
-use App\Models\Position;
 use App\Services\PayrollService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -22,12 +20,7 @@ class PayrollController extends Controller
     {
         $filters = $request->filters();
 
-        return Inertia::render('payroll/index', [
-            'payrolls' => $this->payrollService->paginate($filters),
-            'departments' => Department::options(),
-            'positions' => Position::options(),
-            'filters' => $filters,
-        ]);
+        return Inertia::render('payroll/index', $this->payrollService->indexData($filters));
     }
 
     public function show(Payroll $payroll): Response

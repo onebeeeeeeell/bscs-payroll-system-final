@@ -19,7 +19,7 @@ class PositionService
         return Position::query()
             ->withEmployeesCount()
             ->search($this->sanitizeSearch($search))
-            ->latest()
+            ->latestFirst()
             ->paginate($perPage)
             ->withQueryString(); // it keep ?search= when changing pages
     }
@@ -29,10 +29,7 @@ class PositionService
     {
         $data = $this->sanitizeFields($data);
 
-        // transaction, so nothing is saved if something fails in the middle
-        return DB::transaction(
-            fn () => Position::create($data)
-        );
+        return Position::create($data);
     }
 
 
@@ -40,26 +37,33 @@ class PositionService
     {
         $data = $this->sanitizeFields($data);
 
-        return DB::transaction(function () use ($position, $data) {
-            $position->update($data);
+        $position->update($data);
 
-            return $position;
-        });
+        return $position;
     }
 
 
     public function delete(Position $position): void
     {
-        DB::transaction(function () use ($position) {
-            // RESTRICT ang FK sa employees: kapag may employee pa, mag-eerror ang
-            // database (500). Mas malinaw na validation message ang ibinabalik dito.
-            if ($position->employees()->lockForUpdate()->exists()) {
-                throw ValidationException::withMessages([
-                    'position' => 'This position still has employees and cannot be deleted.',
-                ]);
+        if (! $this->deleteIfUnused($position)) {
+            throw ValidationException::withMessages([
+                'position' => 'This position still has employees and cannot be deleted.',
+            ]);
+        }
+    }
+
+    public function deleteIfUnused(Position $position): bool
+    {
+        return DB::transaction(function () use ($position) {
+            Position::query()->whereKey($position->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($position->employees()->exists()) {
+                return false;
             }
 
             $position->delete();
+
+            return true;
         });
     }
 
@@ -72,7 +76,4 @@ class PositionService
     {
         return $this->sanitizeStringFields($data, self::SANITIZED_FIELDS);
     }
-
-
-    // diriiiiiiiiiiiiiiiiiiiiiii sugpon if may ano sa controller na logic
 }

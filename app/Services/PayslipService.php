@@ -4,11 +4,12 @@ namespace App\Services;
 
 use App\Models\Attendance;
 use App\Models\ContributionRate;
+use App\Models\Department;
 use App\Models\Payroll;
+use App\Models\Position;
 use App\Models\Payslip;
 use App\Services\Concerns\SanitizesText;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class PayslipService
@@ -23,10 +24,19 @@ class PayslipService
         return Payslip::query()
             ->withDetails()
             ->forFilters($this->sanitizeFilters($filters))
-            ->latest('date_generated')
-            ->latest('id')
+            ->latestFirst()
             ->paginate($perPage)
             ->withQueryString(); // keep the filters when changing pages
+    }
+
+    public function indexData(array $filters): array
+    {
+        return [
+            'payslips' => $this->paginate($filters),
+            'departments' => Department::options(),
+            'positions' => Position::options(),
+            'filters' => $filters,
+        ];
     }
 
     /*
@@ -41,10 +51,7 @@ class PayslipService
 
     public function create(array $data): Payslip
     {
-        // transaction, so nothing is saved if something fails in the middle
-        return DB::transaction(
-            fn () => Payslip::create($data)
-        );
+        return Payslip::create($data);
     }
 
     /*
@@ -75,15 +82,7 @@ class PayslipService
      */
     public function statement(Payslip $payslip): array
     {
-        $payslip->load([
-            'payroll.employee:id,first_name,last_name,suffix,position_id,department_id,daily_rate',
-            'payroll.employee.position:id,title',
-            'payroll.employee.department:id,department_name',
-            'payroll.payrollPeriod:id,start_date,end_date,pay_date,status',
-            'payroll.user:id,name',
-            'payroll.deductions.contributionRate:id,contribution_type_id,calculation_type,rate',
-            'payroll.deductions.contributionRate.contributionType:id,name',
-        ]);
+        $payslip->loadStatementDetails();
 
         $payroll = $payslip->payroll;
 
@@ -153,6 +152,4 @@ class PayslipService
     {
         return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
     }
-
-    // diriiiiiiiiiiiiiiiiiiiii sugpon if may ano sa controller na logic
 }

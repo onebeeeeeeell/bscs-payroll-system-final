@@ -43,7 +43,7 @@ class DashboardService
                 'active_employees' => (int) $departments->sum('employees_count'),
                 'pending_periods' => (int) ($periodTotals['Pending'] ?? 0),
                 'payrolls' => (int) $summary->payrolls,
-                'awaiting_payslip' => Payroll::query()->active()->withoutPayslip()->count(),
+                'awaiting_payslip' => (int) $summary->awaiting_payslip,
                 'gross_pay' => (float) $summary->gross_pay,
                 'total_deductions' => (float) $summary->total_deductions,
                 'net_pay' => (float) $summary->net_pay,

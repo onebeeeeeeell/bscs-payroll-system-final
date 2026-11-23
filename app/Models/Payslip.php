@@ -33,6 +33,11 @@ class Payslip extends Model
         ]);
     }
 
+    public function scopeLatestFirst(Builder $query): void
+    {
+        $query->latest('date_generated')->latest('id');
+    }
+
     /*
      * LABEL: Filters scope
      * Purpose: status ('active' / 'archived'), date (eksaktong araw ng
@@ -46,6 +51,19 @@ class Payslip extends Model
             ->withArchiveStatus($filters['status'] ?? null)
             ->onDay('date_generated', $filters['date'] ?? null)
             ->forEmployeeFilters('payroll.employee', $filters);
+    }
+
+    public function loadStatementDetails(): static
+    {
+        return $this->loadMissing([
+            'payroll.employee:id,first_name,last_name,suffix,position_id,department_id,daily_rate',
+            'payroll.employee.position:id,title',
+            'payroll.employee.department:id,department_name',
+            'payroll.payrollPeriod:id,start_date,end_date,pay_date,status',
+            'payroll.user:id,name',
+            'payroll.deductions.contributionRate:id,contribution_type_id,calculation_type,rate',
+            'payroll.deductions.contributionRate.contributionType:id,name',
+        ]);
     }
 
     public function payroll(): BelongsTo

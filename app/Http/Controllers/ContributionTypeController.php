@@ -13,7 +13,7 @@ use Inertia\Response;
 class ContributionTypeController extends Controller
 {
     public function __construct(
-        private \App\Services\ContributionTypeService $contributionTypeService,
+        private ContributionTypeService $contributionTypeService,
     ) {}
 
     public function index(ListSearchRequest $request): Response

@@ -5,9 +5,7 @@ namespace App\Services;
 use App\Models\EmploymentStatus;
 use App\Models\Employee;
 use App\Services\Concerns\SanitizesText;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 class EmploymentStatusService
 {
@@ -19,9 +17,7 @@ class EmploymentStatusService
     {
         $data = $this->sanitizeFields($data);
 
-        return DB::transaction(
-            fn () => EmploymentStatus::create($data)
-        );
+        return EmploymentStatus::create($data);
     }
 
 
@@ -33,10 +29,11 @@ class EmploymentStatusService
             $oldName = $status->name;
             $status->update($data);
 
-
-            Employee::query()
-                ->withStatus($oldName)
-                ->update(['status' => $status->name]);
+            if ($oldName !== $status->name) {
+                Employee::query()
+                    ->withStatus($oldName)
+                    ->update(['status' => $status->name]);
+            }
 
 
             return $status;
@@ -44,20 +41,18 @@ class EmploymentStatusService
     }
 
 
-    public function deleteIfUnused(Model $model, callable $isInUse, string $label): void
+    public function deleteIfUnused(EmploymentStatus $status): bool
     {
-        DB::transaction(function () use ($model, $isInUse, $label) {
-            $model->newQuery()->whereKey($model->getKey())->lockForUpdate()->firstOrFail();
+        return DB::transaction(function () use ($status) {
+            EmploymentStatus::query()->whereKey($status->getKey())->lockForUpdate()->firstOrFail();
 
-
-            if ($isInUse()) {
-                throw ValidationException::withMessages([
-                    'message' => "This {$label} cannot be deleted because employee records are using it.",
-                ]);
+            if (Employee::query()->withStatus($status->name)->exists()) {
+                return false;
             }
 
+            $status->delete();
 
-            $model->delete();
+            return true;
         });
     }
 

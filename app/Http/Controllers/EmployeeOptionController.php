@@ -6,16 +6,12 @@ use App\Http\Requests\Department\DepartmentRequest;
 use App\Http\Requests\EmploymentStatus\EmploymentStatusRequest;
 use App\Http\Requests\Position\PositionRequest;
 use App\Models\Department;
-use App\Models\Employee;
 use App\Models\EmploymentStatus;
 use App\Models\Position;
 use App\Services\DepartmentService;
 use App\Services\EmploymentStatusService;
 use App\Services\PositionService;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
 
 class EmployeeOptionController extends Controller
 {
@@ -69,36 +65,26 @@ class EmployeeOptionController extends Controller
 
     public function destroyDepartment(Department $department): JsonResponse
     {
-        return $this->deleteIfUnused($department, fn () => $department->employees()->exists(), 'department');
+        return $this->deleteResult($this->departmentService->deleteIfUnused($department), 'department');
     }
 
     public function destroyPosition(Position $position): JsonResponse
     {
-        return $this->deleteIfUnused($position, fn () => $position->employees()->exists(), 'position');
+        return $this->deleteResult($this->positionService->deleteIfUnused($position), 'position');
     }
 
     public function destroyStatus(EmploymentStatus $status): JsonResponse
     {
-        return $this->deleteIfUnused(
-            $status,
-            fn () => Employee::withStatus($status->name)->exists(),
-            'status',
-        );
+        return $this->deleteResult($this->employmentStatusService->deleteIfUnused($status), 'status');
     }
 
-    private function deleteIfUnused(Model $model, callable $isInUse, string $label): JsonResponse
+    private function deleteResult(bool $deleted, string $label): JsonResponse
     {
-        DB::transaction(function () use ($model, $isInUse, $label) {
-            $model->newQuery()->whereKey($model->getKey())->lockForUpdate()->firstOrFail();
-
-            if ($isInUse()) {
-                throw new HttpResponseException(response()->json([
-                    'message' => "This {$label} cannot be deleted because employee records are using it.",
-                ], 409));
-            }
-
-            $model->delete();
-        });
+        if (! $deleted) {
+            return response()->json([
+                'message' => "This {$label} cannot be deleted because employee records are using it.",
+            ], 409);
+        }
 
         return response()->json(['deleted' => true]);
     }

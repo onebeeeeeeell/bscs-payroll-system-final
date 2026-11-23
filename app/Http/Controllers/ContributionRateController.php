@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ListSearchRequest;
-use App\Http\Requests\ContributionRate\ContributionRateRequest;
-use App\Models\ContributionRate;
-use App\Services\ContributionRateService;
-use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\ContributionRate;
+use Illuminate\Http\RedirectResponse;
+use App\Http\Requests\ListSearchRequest;
+use App\Services\ContributionRateService;
+use App\Http\Requests\ContributionRate\ContributionRateRequest;
 
 class ContributionRateController extends Controller
 {
@@ -20,8 +20,6 @@ class ContributionRateController extends Controller
     {
         return Inertia::render('contribution-rate/index', [
             'contributionRates' => $this->contributionRateService->paginate($request->validated('search')),
-            // Ang pinakabagong rate ng bawat type ang ginagamit sa payroll
-            'currentRateIds' => $this->contributionRateService->currentRateIds(),
         ]);
     }
 
@@ -39,13 +37,9 @@ class ContributionRateController extends Controller
         return to_route('contribution_rates.index')->with('success', 'Contribution rate created successfully.');
     }
 
-    public function edit(ContributionRate $contributionRate): Response
+    public function edit(int $contributionRateId): Response
     {
-        return Inertia::render('contribution-rate/edit', [
-            'contributionRate' => $contributionRate->load('contributionType'),
-            // True kapag nagamit na sa payroll: view lang, hindi na mababago
-            'locked' => $contributionRate->isUsed(),
-        ]);
+        return Inertia::render('contribution-rate/edit', $this->contributionRateService->editData($contributionRateId));
     }
 
     public function update(ContributionRateRequest $request, ContributionRate $contributionRate): RedirectResponse

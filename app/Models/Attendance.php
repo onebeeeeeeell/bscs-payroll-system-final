@@ -61,6 +61,11 @@ class Attendance extends Model
         $query->with(['employee:id,first_name,last_name,suffix']);
     }
 
+    public function loadEditDetails(): static
+    {
+        return $this->loadMissing('employee');
+    }
+
     /*
      * LABEL: Latest first scope
      * Purpose: Sorting ng attendance list: pinakabagong work_date muna,
@@ -73,15 +78,23 @@ class Attendance extends Model
 
     /*
      * LABEL: Summary scope
-     * Purpose: Aggregates para sa status cards, ISANG query lang:
-     * records (total), employees (distinct), with_overtime (may OT).
+     * Purpose: Aggregates para sa status cards, kasama ang active attendance
+     * ngayon sa isang database round trip.
      */
     public function scopeSummary(Builder $query): void
     {
         $query
             ->selectRaw('COUNT(*) AS records')
             ->selectRaw('COUNT(DISTINCT employee_id) AS employees')
-            ->selectRaw('COUNT(CASE WHEN overtime_hours > 0 THEN 1 END) AS with_overtime');
+            ->selectRaw('COUNT(CASE WHEN overtime_hours > 0 THEN 1 END) AS with_overtime')
+            ->selectSub(
+                static::query()
+                    ->forActiveEmployees()
+                    ->today()
+                    ->select([])
+                    ->selectRaw('COUNT(*)'),
+                'today',
+            );
     }
 
     /*
@@ -91,6 +104,15 @@ class Attendance extends Model
     public function scopeForEmployee(Builder $query, int $employeeId): void
     {
         $query->where('employee_id', $employeeId);
+    }
+
+    public function scopeForPunch(Builder $query, int $employeeId, string $date): void
+    {
+        $query
+            ->withTrashed()
+            ->forEmployee($employeeId)
+            ->forDate($date)
+            ->lockForUpdate();
     }
 
     /*

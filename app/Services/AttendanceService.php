@@ -9,6 +9,7 @@ use App\Models\Position;
 use App\Services\Concerns\SanitizesText;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -65,6 +66,17 @@ class AttendanceService
             ->get();
     }
 
+    /**
+     * @return array{attendance: Attendance, employees: Collection}
+     */
+    public function editData(Attendance $attendance): array
+    {
+        return [
+            'attendance' => $attendance->loadEditDetails(),
+            'employees' => $this->activeEmployeesForSelection(),
+        ];
+    }
+
 
     /**
      * Numbers for the status cards above the table.
@@ -84,10 +96,7 @@ class AttendanceService
             'records' => (int) $summary->records,
             'employees' => (int) $summary->employees,
             'with_overtime' => (int) $summary->with_overtime,
-            'today' => Attendance::query()
-                ->forActiveEmployees()
-                ->today()
-                ->count(),
+            'today' => (int) $summary->today,
         ];
     }
 
@@ -135,13 +144,10 @@ class AttendanceService
 
     public function create(array $data): Attendance
     {
+        $data = Arr::only($data, ['employee_id', 'work_date', 'time_in', 'time_out']);
         $data = $this->calculateWorkedHours($data);
 
-
-        // transaction so nothing is saved if something fails in the middle
-        return DB::transaction(
-            fn () => Attendance::create($data)
-        );
+        return Attendance::create($data);
     }
 
     public function punch(string $fullName, string $pin, string $action): Attendance
@@ -150,9 +156,7 @@ class AttendanceService
 
         return DB::transaction(function () use ($fullName, $pin, $action) {
             $employees = Employee::query()
-                ->active()
-                ->matchingFullName($fullName)
-                ->lockForUpdate()
+                ->forTimeClock($fullName)
                 ->get();
 
             if ($employees->isEmpty()) {
@@ -179,10 +183,8 @@ class AttendanceService
 
             $employee = $matchingEmployees->first();
 
-            $attendance = Attendance::withTrashed()
-                ->where('employee_id', $employee->id)
-                ->forDate(today()->toDateString())
-                ->lockForUpdate()
+            $attendance = Attendance::query()
+                ->forPunch($employee->id, today()->toDateString())
                 ->first();
 
             if ($action === 'time_in') {
@@ -237,31 +239,31 @@ class AttendanceService
 
     public function update(Attendance $attendance, array $data): Attendance
     {
+        $data = Arr::only($data, ['employee_id', 'work_date', 'time_in', 'time_out']);
         $data = $this->calculateWorkedHours($data);
 
+        $attendance->update($data);
 
-        return DB::transaction(function () use ($attendance, $data) {
-            $attendance->update($data);
-
-            return $attendance;
-        });
+        return $attendance;
     }
 
 
     // soft delete: only fills deleted_at, the record is kept and can be restored
     public function delete(Attendance $attendance): void
     {
-        DB::transaction(
-            fn () => $attendance->delete()
-        );
+        $attendance->delete();
     }
 
 
     public function restore(Attendance $attendance): void
     {
-        DB::transaction(
-            fn () => $attendance->restore()
-        );
+        $attendance->restore();
+    }
+
+    public function restoreById(int $attendanceId): void
+    {
+        $attendance = Attendance::withTrashed()->findOrFail($attendanceId);
+        $this->restore($attendance);
     }
 
 

@@ -6,9 +6,6 @@ use App\Http\Requests\Attendance\AttendanceEmployeeRecordsRequest;
 use App\Http\Requests\Attendance\AttendanceIndexRequest;
 use App\Http\Requests\Attendance\AttendanceRequest;
 use App\Models\Attendance;
-use App\Models\Department;
-use App\Models\Employee;
-use App\Models\Position;
 use App\Services\AttendanceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,23 +49,13 @@ class AttendanceController extends Controller
         ));
     }
 
-    public function edit(int $attendanceId): Response
+    public function edit(Attendance $attendance): Response
     {
-        $attendance = Attendance::withTrashed()->findOrFail($attendanceId);
-        abort_if($attendance->trashed(), 404);
-        $attendance->load('employee');
-
-        return Inertia::render('attendance/edit', [
-            'attendance' => $attendance,
-            'employees' => $this->attendanceService->activeEmployeesForSelection(),
-        ]);
+        return Inertia::render('attendance/edit', $this->attendanceService->editData($attendance));
     }
 
-    public function update(AttendanceRequest $request, int $attendanceId): RedirectResponse
+    public function update(AttendanceRequest $request, Attendance $attendance): RedirectResponse
     {
-        $attendance = Attendance::withTrashed()->findOrFail($attendanceId);
-        abort_if($attendance->trashed(), 404);
-
         $this->attendanceService->update($attendance, $request->validated());
 
         return to_route('attendance.index')->with('success', 'Attendance updated successfully.');
@@ -88,8 +75,7 @@ class AttendanceController extends Controller
 
     public function restore(Request $request, int $attendanceId): RedirectResponse
     {
-        $attendance = Attendance::withTrashed()->findOrFail($attendanceId);
-        $this->attendanceService->restore($attendance);
+        $this->attendanceService->restoreById($attendanceId);
 
         return to_route('attendance.index', $request->only([
             'status',

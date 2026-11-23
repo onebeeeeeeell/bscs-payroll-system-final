@@ -20,7 +20,7 @@ class DeductionService
         return Deduction::query()
             ->withDetails()
             ->search($this->sanitizeSearch($search))
-            ->latest()
+            ->latestFirst()
             ->paginate($perPage)
             ->withQueryString(); // keep ?search= when changing pages
     }

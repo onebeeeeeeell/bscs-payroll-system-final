@@ -126,6 +126,11 @@ class Employee extends Model
         $query->with(['position:id,title', 'department:id,department_name']);
     }
 
+    public function scopeLatestFirst(Builder $query): void
+    {
+        $query->latest()->latest('id');
+    }
+
     public function scopeForSelection(Builder $query): void
     {
         $query->active()
@@ -144,6 +149,13 @@ class Employee extends Model
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->select(['id', 'first_name', 'last_name', 'suffix', 'daily_rate']);
+    }
+
+    public function scopeActiveForPayrollRecord(Builder $query, int $employeeId): void
+    {
+        $query->whereKey($employeeId)
+            ->active()
+            ->lockForUpdate();
     }
 
     /*
@@ -189,6 +201,13 @@ class Employee extends Model
         );
     }
 
+    public function scopeForTimeClock(Builder $query, string $fullName): void
+    {
+        $query->active()
+            ->matchingFullName($fullName)
+            ->lockForUpdate();
+    }
+
     /*
      * LABEL: Navbar search scope
      * Purpose: Hanap sa first name, last name, o "first last".
@@ -209,6 +228,24 @@ class Employee extends Model
                 ->orWhere('last_name', $operator, $like)
                 ->orWhereRaw("(first_name || ' ' || last_name) {$operator} ?", [$like]);
         });
+    }
+
+    public function scopeForNavbarSearch(Builder $query, string $term, int $limit = 8): void
+    {
+        $query
+            ->active()
+            ->matchingSearchTerm($term)
+            ->withListRelations()
+            ->orderBy('last_name')
+            ->limit($limit);
+    }
+
+    public function loadShowDetails(): static
+    {
+        return $this->loadMissing([
+            'position:id,title',
+            'department:id,department_name',
+        ]);
     }
 
     public function position(): BelongsTo

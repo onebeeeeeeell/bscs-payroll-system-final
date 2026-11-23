@@ -9,19 +9,17 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { MoreHorizontal, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
-// Ang service ay may withCount('deductions')
-type RateRow = ContributionRate & { deductions_count: number };
+type RateRow = ContributionRate & { deductions_count: number; is_current: boolean };
 
 type Props = {
     contributionRates: PaginatedData<RateRow>;
-    currentRateIds: number[];
 };
 
 function formatCurrency(value: string): string {
     return Number(value).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' });
 }
 
-export default function ContributionRateIndex({ contributionRates, currentRateIds }: Props) {
+export default function ContributionRateIndex({ contributionRates }: Props) {
     const { flash } = usePage<SharedData>().props;
     const { url } = usePage();
     const [deleteCandidate, setDeleteCandidate] = useState<RateRow | null>(null);
@@ -46,7 +44,7 @@ export default function ContributionRateIndex({ contributionRates, currentRateId
             preserveScroll: true,
             preserveState: true,
             replace: true,
-            only: ['contributionRates', 'currentRateIds'],
+            only: ['contributionRates'],
         });
     }
 
@@ -93,7 +91,7 @@ export default function ContributionRateIndex({ contributionRates, currentRateId
                             {
                                 header: 'Status',
                                 cell: (rate) =>
-                                    currentRateIds.includes(rate.id) ? (
+                                    rate.is_current ? (
                                         <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
                                             Current
                                         </span>

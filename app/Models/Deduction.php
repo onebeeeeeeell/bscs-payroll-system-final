@@ -33,6 +33,11 @@ class Deduction extends Model
         ]);
     }
 
+    public function scopeLatestFirst(Builder $query): void
+    {
+        $query->latest()->latest('id');
+    }
+
     /*
      * LABEL: Search scope
      * Purpose: Hanapin ayon sa first o last name ng employee ng payroll.

@@ -32,21 +32,28 @@ class ContributionRateService
         return ContributionRate::query()
             ->withType()
             ->withCount('deductions') // para malaman kung ginamit na sa payroll
+            ->withCurrentStatus()
             ->search($this->sanitizeSearch($search))
-            ->latest()
+            ->latestFirst()
             ->paginate($perPage)
             ->withQueryString();
     }
 
-
-    /*
-     * LABEL: Current rate ids
-     * Purpose: Ang pinakabagong rate ng bawat type ang ginagamit sa payroll.
+    /**
+     * @return array{contributionRate: ContributionRate, locked: bool}
      */
-    public function currentRateIds(): \Illuminate\Support\Collection
+    public function editData(int $contributionRateId): array
     {
-        return ContributionRate::query()->latestPerType()->pluck('id');
+        $contributionRate = ContributionRate::query()
+            ->forEdit()
+            ->findOrFail($contributionRateId);
+
+        return [
+            'contributionRate' => $contributionRate,
+            'locked' => $contributionRate->isUsed(),
+        ];
     }
+
 
     public function typeOptions(): Collection
     {
@@ -58,10 +65,7 @@ class ContributionRateService
         $data = $this->sanitizeAmountFields(Arr::only($data, self::CREATE_FIELDS), ['rate']);
         $this->assertAmountsFilled($data, ['rate']);
 
-        // transaction so nothing is saved if something fails in the middle
-        return DB::transaction(
-            fn () => ContributionRate::create($data)
-        );
+        return ContributionRate::create($data);
     }
 
 

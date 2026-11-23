@@ -33,6 +33,11 @@ class PayrollPeriod extends Model
         $query->withCount('payrolls');
     }
 
+    public function scopeLatestFirst(Builder $query): void
+    {
+        $query->latest('start_date')->latest('id');
+    }
+
     /*
      * LABEL: Filters scope
      * Purpose: status ('active' / 'archived'), search (status ng period), at

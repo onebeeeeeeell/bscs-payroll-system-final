@@ -36,6 +36,11 @@ class ContributionType extends Model
         $query->orderBy('name')->select(['id', 'name']);
     }
 
+    public function scopeLatestFirst(Builder $query): void
+    {
+        $query->latest()->latest('id');
+    }
+
     protected function searchColumn(): string
     {
         return 'name';

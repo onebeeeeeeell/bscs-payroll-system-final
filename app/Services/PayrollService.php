@@ -4,8 +4,11 @@ namespace App\Services;
 
 use App\Models\Payroll;
 use App\Models\Employee;
+use App\Models\Department;
+use App\Models\Position;
 use App\Models\PayrollPeriod;
 use App\Services\Concerns\SanitizesText;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -23,20 +26,38 @@ class PayrollService
         return Payroll::query()
             ->withDetails()
             ->forFilters($this->sanitizeFilters($filters))
-            ->latest('date_processed')
-            ->latest('id')
+            ->latestFirst()
             ->paginate($perPage)
             ->withQueryString(); // keep the filters when changing pages
+    }
+
+    public function indexData(array $filters): array
+    {
+        return [
+            'payrolls' => $this->paginate($filters),
+            'departments' => Department::options(),
+            'positions' => Position::options(),
+            'filters' => $filters,
+        ];
     }
 
 
     public function create(array $data): Payroll
     {
+        $data = Arr::only($data, [
+            'employee_id',
+            'payroll_period_id',
+            'user_id',
+            'gross_pay',
+            'total_deductions',
+            'date_processed',
+        ]);
+        $data = $this->sanitizeAmountFields($data, ['gross_pay', 'total_deductions']);
+        $this->assertAmountsFilled($data, ['gross_pay', 'total_deductions']);
+
         return DB::transaction(function () use ($data) {
             $employeeIsActive = Employee::query()
-                ->whereKey($data['employee_id'])
-                ->active()
-                ->lockForUpdate()
+                ->activeForPayrollRecord((int) $data['employee_id'])
                 ->exists();
 
 
@@ -115,8 +136,7 @@ class PayrollService
         }
 
         $status = PayrollPeriod::query()
-            ->whereKey($payroll->payroll_period_id)
-            ->lockForUpdate()
+            ->lockById((int) $payroll->payroll_period_id)
             ->value('status');
 
         if (in_array($status, Payroll::LOCKED_PERIOD_STATUSES, true)) {

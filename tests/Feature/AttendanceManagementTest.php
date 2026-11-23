@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\User;
+use App\Services\AttendanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class AttendanceManagementTest extends TestCase
@@ -163,6 +165,17 @@ class AttendanceManagementTest extends TestCase
             'employee_id' => $otherEmployee->id,
             'overtime_hours' => 2,
         ]);
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        try {
+            $stats = app(AttendanceService::class)->stats();
+            $this->assertCount(1, DB::getQueryLog());
+            $this->assertSame(2, $stats['today']);
+        } finally {
+            DB::disableQueryLog();
+        }
 
         $this->get(route('attendance.index'))
             ->assertOk()

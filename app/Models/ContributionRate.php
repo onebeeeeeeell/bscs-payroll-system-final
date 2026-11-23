@@ -49,6 +49,23 @@ class ContributionRate extends Model
         $query->with(['contributionType:id,name']);
     }
 
+    public function scopeLatestFirst(Builder $query): void
+    {
+        $query->latest()->latest('id');
+    }
+
+    public function scopeWithCurrentStatus(Builder $query): void
+    {
+        $query->selectRaw(
+            'contribution_rates.id = (SELECT MAX(current_rates.id) FROM contribution_rates AS current_rates WHERE current_rates.contribution_type_id = contribution_rates.contribution_type_id) AS is_current',
+        );
+    }
+
+    public function scopeForEdit(Builder $query): void
+    {
+        $query->withType()->withExists('deductions');
+    }
+
     /*
      * LABEL: Latest rate per type scope
      * Purpose: Ang pinakabagong rate (pinakamataas na id) ng bawat contribution
@@ -75,7 +92,7 @@ class ContributionRate extends Model
      */
     public function isUsed(): bool
     {
-        return $this->deductions()->exists();
+        return (bool) ($this->deductions_exists ?? $this->deductions()->exists());
     }
 
     public function contributionType(): BelongsTo
@@ -86,6 +103,13 @@ class ContributionRate extends Model
     public function deductions(): HasMany
     {
         return $this->hasMany(Deduction::class, 'contribution_rate_id', 'id');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'is_current' => 'boolean',
+        ];
     }
 
 }

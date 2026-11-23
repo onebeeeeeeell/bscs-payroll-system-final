@@ -85,15 +85,14 @@ class EmployeeService
          * LABEL: Employee list
          * Purpose: Nasa Employee model na ang logic (filters at eager load).
          * Dito, tinatawag na lang ang mga scopes.
-         * - latest()->latest('id'): ORDER BY created_at DESC, with id as a tiebreaker
+         * - latestFirst(): ORDER BY created_at DESC, with id as a tiebreaker
          * - withQueryString(): ini-keep ang filters sa pagination links
          *   para hindi mag-reset pag nag-page 2.
          */
         return Employee::query()
             ->forFilters($filters)
             ->withListRelations()
-            ->latest()
-            ->latest('id')
+            ->latestFirst()
             ->paginate($perPage)
             ->withQueryString();
     }
@@ -121,10 +120,7 @@ class EmployeeService
     {
         $fields = $this->sanitizeFields($data);
 
-        // LABEL: Transaction; puwedeng tanggalin kung walang idadagdag na related writes sa susunod.
-        return DB::transaction(
-            fn () => Employee::create($fields)
-        );
+        return Employee::create($fields);
     }
 
     /*
@@ -136,11 +132,9 @@ class EmployeeService
     {
         $fields = $this->sanitizeFields($data);
 
-        // LABEL: Transaction; puwedeng tanggalin kung walang idadagdag na related writes sa susunod.
-        return DB::transaction(function () use ($employee, $fields) {
-            $employee->update($fields);
-            return $employee;
-        });
+        $employee->update($fields);
+
+        return $employee;
     }
 
     // LABEL: Main sanitization point; dito nililinis ang fields bago i-save.
