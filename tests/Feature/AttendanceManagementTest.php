@@ -88,26 +88,7 @@ class AttendanceManagementTest extends TestCase
         $this->assertDatabaseCount('attendances', 0);
     }
 
-    public function test_attendance_accepts_december_work_dates_in_the_current_year(): void
-    {
-        $employee = Employee::factory()->create();
-
-        $this->actingAs(User::factory()->create())
-            ->post(route('attendance.store'), [
-                'employee_id' => $employee->id,
-                'work_date' => today()->endOfYear()->toDateString(),
-                'time_in' => '08:00',
-                'time_out' => '17:00',
-            ])
-            ->assertRedirect(route('attendance.index'));
-
-        $this->assertDatabaseHas('attendances', [
-            'employee_id' => $employee->id,
-            'work_date' => today()->endOfYear()->toDateString(),
-        ]);
-    }
-
-    public function test_attendance_rejects_work_dates_after_the_current_year(): void
+    public function test_attendance_rejects_future_work_dates(): void
     {
         $employee = Employee::factory()->create();
 
@@ -115,7 +96,7 @@ class AttendanceManagementTest extends TestCase
             ->from(route('attendance.create'))
             ->post(route('attendance.store'), [
                 'employee_id' => $employee->id,
-                'work_date' => today()->endOfYear()->addDay()->toDateString(),
+                'work_date' => today()->addDay()->toDateString(),
                 'time_in' => '08:00',
                 'time_out' => '17:00',
             ]);

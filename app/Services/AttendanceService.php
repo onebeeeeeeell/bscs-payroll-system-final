@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\Position;
 use App\Services\Concerns\SanitizesText;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
@@ -24,6 +25,8 @@ class AttendanceService
 
     // One message for "unknown name" and "wrong PIN" so the time clock does not reveal which names exist.
     private const INVALID_CREDENTIALS = 'Name or PIN is incorrect.';
+
+    private const DUPLICATE_DAY = 'This employee already has an attendance record for that date.';
 
     /**
      * @param array{status?: 'active'|'deleted', department_id?: int|null, position_id?: int|null, date?: string|null} $filters
@@ -150,7 +153,12 @@ class AttendanceService
         $data = Arr::only($data, ['employee_id', 'work_date', 'time_in', 'time_out']);
         $data = $this->calculateWorkedHours($data);
 
-        return Attendance::create($data);
+        try {
+            return Attendance::create($data);
+        } catch (UniqueConstraintViolationException) {
+            // dalawang sabay na submit: ang database index ang nahuli (hindi ang validation)
+            throw ValidationException::withMessages(['work_date' => self::DUPLICATE_DAY]);
+        }
     }
 
     public function punch(string $fullName, string $pin, string $action): Attendance
@@ -198,12 +206,18 @@ class AttendanceService
                     ]);
                 }
 
-                return Attendance::create([
-                    'employee_id' => $employee->id,
-                    'work_date' => today()->toDateString(),
-                    'time_in' => now()->format('H:i:s'),
-                    'time_out' => null,
-                ]);
+                try {
+                    return Attendance::create([
+                        'employee_id' => $employee->id,
+                        'work_date' => today()->toDateString(),
+                        'time_in' => now()->format('H:i:s'),
+                        'time_out' => null,
+                    ]);
+                } catch (UniqueConstraintViolationException) {
+                    throw ValidationException::withMessages([
+                        'action' => 'A time-in has already been recorded for today.',
+                    ]);
+                }
             }
 
             if (! $attendance || $attendance->trashed()) {
@@ -267,6 +281,19 @@ class AttendanceService
     public function restoreById(int $attendanceId): void
     {
         $attendance = Attendance::withTrashed()->findOrFail($attendanceId);
+
+        // Kapag may active na record na ang employee sa araw na 'yon, hindi pwedeng i-restore
+        // (magiging dalawa ang record at madodoble ang paid days).
+        $hasActiveRecord = Attendance::query()
+            ->forEmployee($attendance->employee_id)
+            ->forDate($attendance->work_date)
+            ->whereKeyNot($attendance->getKey())
+            ->exists();
+
+        if ($hasActiveRecord) {
+            throw ValidationException::withMessages(['attendance' => self::DUPLICATE_DAY]);
+        }
+
         $this->restore($attendance);
     }
 

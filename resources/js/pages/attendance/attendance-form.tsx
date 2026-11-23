@@ -221,7 +221,8 @@ function toMinutes(time: string): number | null {
 export default function AttendanceForm({ attendance, employees }: Props) {
     const now = new Date();
     const minWorkDate = `${now.getFullYear()}-01-01`;
-    const maxWorkDate = `${now.getFullYear()}-12-31`;
+    // hindi pwede ang petsa sa hinaharap (local date ng browser)
+    const maxWorkDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const form = useForm({
         employee_id: attendance ? String(attendance.employee_id) : '',
         work_date: attendance?.work_date ?? '',

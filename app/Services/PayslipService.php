@@ -11,6 +11,8 @@ use App\Models\Payslip;
 use App\Services\Concerns\SanitizesText;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 
 class PayslipService
 {
@@ -49,8 +51,17 @@ class PayslipService
         return Payroll::query()->awaitingPayslip()->get();
     }
 
+    /*
+     * LABEL: Create payslip
+     * Purpose: Arr::only para ang payroll_id at date_generated lang ang pumasok
+     * (hindi ang archived_at). Ang petsa ay na-validate na ng request; dito
+     * ginagawa lang itong database format.
+     */
     public function create(array $data): Payslip
     {
+        $data = Arr::only($data, ['payroll_id', 'date_generated']);
+        $data['date_generated'] = Carbon::createFromFormat('Y-m-d\TH:i', $data['date_generated'])->toDateTimeString();
+
         return Payslip::create($data);
     }
 
