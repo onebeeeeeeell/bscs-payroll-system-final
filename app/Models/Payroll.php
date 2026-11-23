@@ -36,6 +36,8 @@ class Payroll extends Model
     // ang period. Maglagay ulit ng ['Paid'] dito para ibalik ang lock.
     public const LOCKED_PERIOD_STATUSES = [];
 
+    public const MAX_GROSS_PAY = 30000;
+
     /*
      * LABEL: Eager load details
      * Purpose: I-load na agad ang employee, payrollPeriod, at user

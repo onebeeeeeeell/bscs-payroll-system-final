@@ -35,11 +35,14 @@ class PayrollProcessingService
 
     public const STATUS_DEDUCTIONS_EXCEED_GROSS = 'deductions_exceed_gross';
 
+    public const STATUS_GROSS_PAY_EXCEEDS_LIMIT = 'gross_pay_exceeds_limit';
+
     // Hinaharang ang pag-save hangga't may ganitong row. Ang no_attendance
     // ay hindi block: hindi lang siya isasama sa payroll.
     private const BLOCKING_STATUSES = [
         self::STATUS_OPEN_TIME_OUT,
         self::STATUS_DEDUCTIONS_EXCEED_GROSS,
+        self::STATUS_GROSS_PAY_EXCEEDS_LIMIT,
     ];
 
     /*
@@ -237,6 +240,7 @@ class PayrollProcessingService
             $status = match (true) {
                 (int) ($attendance->open_records ?? 0) > 0 => self::STATUS_OPEN_TIME_OUT,
                 $gross <= 0 => self::STATUS_NO_ATTENDANCE,
+                $gross > Payroll::MAX_GROSS_PAY => self::STATUS_GROSS_PAY_EXCEEDS_LIMIT,
                 $gross < $deductions => self::STATUS_DEDUCTIONS_EXCEED_GROSS,
                 default => self::STATUS_READY,
             };

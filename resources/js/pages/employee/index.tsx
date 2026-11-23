@@ -212,7 +212,7 @@ export default function EmployeeIndex({ employees, departments, positions, hireY
                                             <DropdownMenuItem asChild>
                                                 <Link href={route('employees.show', employee.id)}>View</Link>
                                             </DropdownMenuItem>
-                                            {filters.status === 'active' ? (
+                                            {employee.archived_at === null ? (
                                                 <>
                                                     <DropdownMenuItem asChild>
                                                         <Link href={route('employees.edit', employee.id)}>Edit</Link>

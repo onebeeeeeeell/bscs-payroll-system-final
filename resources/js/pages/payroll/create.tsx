@@ -23,6 +23,7 @@ const statusLabels: Record<PayrollRowStatus, string> = {
     no_attendance: 'No attendance',
     open_time_out: 'Open time-out',
     deductions_exceed_gross: 'Deductions exceed pay',
+    gross_pay_exceeds_limit: 'Gross pay exceeds limit',
 };
 
 function formatCurrency(value: number): string {
@@ -125,8 +126,8 @@ export default function CreatePayroll({ periods, preview, filters }: Props) {
                                         {summary.blocked} {summary.blocked === 1 ? 'employee needs' : 'employees need'} attention
                                     </AlertTitle>
                                     <AlertDescription>
-                                        Fix open time-outs in attendance, or check the contribution rates, then reload this page. Saving is blocked
-                                        until none are flagged.
+                                        Fix open time-outs, check contribution rates, and ensure gross pay does not exceed ₱30,000.00. Saving is
+                                        blocked until none are flagged.
                                     </AlertDescription>
                                 </Alert>
                             )}

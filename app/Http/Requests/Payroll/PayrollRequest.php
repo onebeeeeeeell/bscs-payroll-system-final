@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Payroll;
 
 use App\Http\Requests\Concerns\ValidatesInput;
+use App\Models\Payroll;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -31,7 +32,7 @@ class PayrollRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'gross_pay' => $this->amountRules(),
+            'gross_pay' => [...$this->amountRules(), 'max:'.Payroll::MAX_GROSS_PAY],
             'total_deductions' => $this->amountRules(),
             'date_processed' => $this->presentDateRules(required: true),
         ];
@@ -44,6 +45,7 @@ class PayrollRequest extends FormRequest
     {
         return [
             'gross_pay.regex' => 'Gross pay must be a number with up to 2 decimal places.',
+            'gross_pay.max' => 'Gross pay cannot exceed 30,000.00.',
             'total_deductions.regex' => 'Total deductions must be a number with up to 2 decimal places.',
             'date_processed.date_equals' => 'Date processed must be today.',
             'date_processed.date_format' => 'Date processed must be today.',

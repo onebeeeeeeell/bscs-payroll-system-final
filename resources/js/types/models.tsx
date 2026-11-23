@@ -106,7 +106,7 @@ export interface Deduction {
     created_at: string;
 }
 
-export type PayrollRowStatus = 'ready' | 'no_attendance' | 'open_time_out' | 'deductions_exceed_gross';
+export type PayrollRowStatus = 'ready' | 'no_attendance' | 'open_time_out' | 'deductions_exceed_gross' | 'gross_pay_exceeds_limit';
 
 export interface PayrollPreviewRow {
     employee_id: number;

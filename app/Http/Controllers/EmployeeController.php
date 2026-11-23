@@ -19,10 +19,9 @@ class EmployeeController extends Controller
 
     public function index(EmployeeIndexRequest $request): Response
     {
-        $validated = $request->validated();
         $filters = $request->filters();
 
-        return Inertia::render('employee/index', $this->employeeService->indexData($validated, $filters));
+        return Inertia::render('employee/index', $this->employeeService->indexData($filters));
     }
 
     public function create(): Response

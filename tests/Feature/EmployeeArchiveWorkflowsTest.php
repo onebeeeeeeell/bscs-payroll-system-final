@@ -16,6 +16,33 @@ class EmployeeArchiveWorkflowsTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_employee_index_defaults_to_active_and_returns_active_archive_state(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $employee = Employee::factory()->create();
+
+        $this->get(route('employees.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.status', 'active')
+                ->where('employees.data.0.id', $employee->id)
+                ->where('employees.data.0.archived_at', null)
+            );
+    }
+
+    public function test_employee_archive_filter_returns_archived_archive_state(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $employee = Employee::factory()->create(['archived_at' => now()]);
+
+        $this->get(route('employees.index', ['status' => 'archived']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.status', 'archived')
+                ->where('employees.data.0.id', $employee->id)
+            );
+    }
+
     public function test_archived_employees_are_hidden_from_attendance_and_cannot_be_assigned(): void
     {
         $this->actingAs(User::factory()->create());

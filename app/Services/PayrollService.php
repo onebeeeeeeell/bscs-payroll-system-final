@@ -54,6 +54,7 @@ class PayrollService
         ]);
         $data = $this->sanitizeAmountFields($data, ['gross_pay', 'total_deductions']);
         $this->assertAmountsFilled($data, ['gross_pay', 'total_deductions']);
+        $this->assertGrossPayWithinLimit($data['gross_pay']);
 
         return DB::transaction(function () use ($data) {
             $employeeIsActive = Employee::query()
@@ -84,6 +85,7 @@ class PayrollService
     {
         $data = $this->sanitizeAmountFields($data, ['gross_pay', 'total_deductions']);
         $this->assertAmountsFilled($data, ['gross_pay', 'total_deductions']);
+        $this->assertGrossPayWithinLimit($data['gross_pay']);
 
         return DB::transaction(function () use ($payroll, $data) {
             $this->assertNotLocked($payroll, 'gross_pay');
@@ -170,5 +172,14 @@ class PayrollService
         }
 
         return $net;
+    }
+
+    private function assertGrossPayWithinLimit(float|int|string $grossPay): void
+    {
+        if ((float) $grossPay > Payroll::MAX_GROSS_PAY) {
+            throw ValidationException::withMessages([
+                'gross_pay' => 'Gross pay cannot exceed 30,000.00.',
+            ]);
+        }
     }
 }

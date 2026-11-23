@@ -13,6 +13,8 @@ type Props = {
     payroll: Payroll;
 };
 
+const MAX_GROSS_PAY = 30000;
+
 function formatCurrency(value: number): string {
     return value.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' });
 }
@@ -40,11 +42,12 @@ export default function EditPayroll({ payroll }: Props) {
     // Net pay ay laging gross - deductions; hindi ito tina-type ng user
     const net = Math.round((toAmount(form.data.gross_pay) - toAmount(form.data.total_deductions)) * 100) / 100;
     const netIsNegative = net < 0;
+    const grossPayExceedsLimit = toAmount(form.data.gross_pay) > MAX_GROSS_PAY;
 
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
-        if (netIsNegative) {
+        if (netIsNegative || grossPayExceedsLimit) {
             return;
         }
 
@@ -64,7 +67,10 @@ export default function EditPayroll({ payroll }: Props) {
                 <div className="space-y-1 rounded-2xl border border-emerald-800/10 bg-white/80 p-5 shadow-sm sm:p-6 dark:border-emerald-400/15 dark:bg-[#07130f]">
                     <p className="text-xs font-semibold tracking-[0.16em] text-emerald-700 uppercase dark:text-emerald-400">Payroll</p>
                     <h1 className="text-2xl font-semibold tracking-tight">Edit Payroll</h1>
-                    <p className="text-muted-foreground text-sm">Adjust the amounts for this payroll record. Numbers only, up to 2 decimals. Net pay is computed for you.</p>
+                    <p className="text-muted-foreground text-sm">
+                        Adjust the amounts for this payroll record. Gross pay cannot exceed ₱30,000.00. Numbers only, up to 2 decimals. Net pay is
+                        computed for you.
+                    </p>
                 </div>
 
                 <form
@@ -89,15 +95,19 @@ export default function EditPayroll({ payroll }: Props) {
                                 id="gross_pay"
                                 type="text"
                                 inputMode="decimal"
-                                maxLength={11}
+                                maxLength={8}
                                 autoComplete="off"
                                 value={form.data.gross_pay}
                                 onChange={(event) => form.setData('gross_pay', sanitizeAmount(event.target.value))}
                                 required
                                 disabled={form.processing}
-                                aria-invalid={Boolean(form.errors.gross_pay)}
+                                aria-invalid={grossPayExceedsLimit || Boolean(form.errors.gross_pay)}
                             />
-                            <InputError message={form.errors.gross_pay} />
+                            {grossPayExceedsLimit ? (
+                                <p className="text-destructive text-sm">Gross pay cannot exceed {formatCurrency(MAX_GROSS_PAY)}.</p>
+                            ) : (
+                                <InputError message={form.errors.gross_pay} />
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -158,7 +168,7 @@ export default function EditPayroll({ payroll }: Props) {
                         <Button
                             className="bg-emerald-700 text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"
                             type="submit"
-                            disabled={form.processing || netIsNegative}
+                            disabled={form.processing || netIsNegative || grossPayExceedsLimit}
                         >
                             {form.processing ? 'Saving...' : 'Update Payroll'}
                         </Button>
