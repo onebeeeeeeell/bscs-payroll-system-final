@@ -13,7 +13,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 #[Fillable([
     'payroll_id',
     'date_generated',
-    'archived_at',
 ])]
 
 class Payslip extends Model

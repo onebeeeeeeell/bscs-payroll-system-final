@@ -112,6 +112,18 @@ class EmployeeService
     }
 
     /*
+     * LABEL: Edit page data
+     * Purpose: Employee at mga option ng edit form. Ang naka-archive na employee
+     * ay 404 (restore muna), kaya hindi na ito nasa controller.
+     */
+    public function editData(Employee $employee): array
+    {
+        $this->assertEditable($employee);
+
+        return ['employee' => $employee] + $this->employeeEditOptions();
+    }
+
+    /*
      * LABEL: Create employee
      * Purpose: I-sanitize muna ang fields, tapos insert sa loob ng
      * transaction (atomic: kapag may pumalpak, rollback).
@@ -130,11 +142,19 @@ class EmployeeService
      */
     public function update(Employee $employee, array $data): Employee
     {
+        $this->assertEditable($employee);
+
         $fields = $this->sanitizeFields($data);
 
         $employee->update($fields);
 
         return $employee;
+    }
+
+    // Hindi puwedeng i-edit ang naka-archive na employee, kahit gawan ng request nang mano-mano.
+    private function assertEditable(Employee $employee): void
+    {
+        abort_if($employee->archived_at !== null, 404);
     }
 
     // LABEL: Main sanitization point; dito nililinis ang fields bago i-save.

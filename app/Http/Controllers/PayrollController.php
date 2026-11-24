@@ -32,8 +32,10 @@ class PayrollController extends Controller
 
     public function edit(Payroll $payroll): Response|RedirectResponse
     {
+        $payroll = $this->payrollService->forEdit($payroll);
+
         // Naka-lock lang kapag may laman ang Payroll::LOCKED_PERIOD_STATUSES.
-        if ($payroll->loadEditDetails()->isLocked()) {
+        if ($payroll->isLocked()) {
             return to_route('payrolls.show', $payroll);
         }
 

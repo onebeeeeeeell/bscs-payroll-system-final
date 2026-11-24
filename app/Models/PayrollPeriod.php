@@ -15,7 +15,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
     'end_date',
     'pay_date',
     'status',
-    'archived_at',
 ])]
 
 class PayrollPeriod extends Model

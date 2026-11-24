@@ -36,6 +36,16 @@ class ContributionType extends Model
         $query->orderBy('name')->select(['id', 'name']);
     }
 
+    /*
+     * LABEL: Named scope
+     * Purpose: Type na may eksaktong pangalan, hindi sensitive sa laki ng letra.
+     * Ginagamit ng unique check sa ContributionTypeRequest.
+     */
+    public function scopeNamed(Builder $query, string $name): void
+    {
+        $query->whereRaw('lower(name) = ?', [mb_strtolower($name)]);
+    }
+
     public function scopeLatestFirst(Builder $query): void
     {
         $query->latest()->latest('id');

@@ -20,7 +20,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
     'total_deductions',
     'net_pay',
     'date_processed',
-    'archived_at',
 ])]
 
 class Payroll extends Model

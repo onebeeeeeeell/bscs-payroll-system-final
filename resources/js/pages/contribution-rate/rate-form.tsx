@@ -126,7 +126,7 @@ export default function RateForm({ contributionTypes = [], contributionRate, loc
                         Numbers only, up to 2 decimals.{' '}
                         {isPercent
                             ? "Deducted as this percentage of each employee's gross pay for the period (max 100). The newest rate of each type is the one used."
-                            : "A flat amount deducted from every employee's pay. The newest rate of each type is the one used."}
+                            : "A flat amount deducted from every employee's pay (max 30,000). The newest rate of each type is the one used."}
                     </p>
                     <InputError message={form.errors.rate} />
                 </div>

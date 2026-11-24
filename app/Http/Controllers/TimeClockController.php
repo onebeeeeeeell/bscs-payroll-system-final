@@ -4,9 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\TimeClockRequest;
 use App\Services\AttendanceService;
+use App\Services\TimeClockThrottle;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,6 +14,7 @@ class TimeClockController extends Controller
 {
     public function __construct(
         private AttendanceService $attendanceService,
+        private TimeClockThrottle $throttle,
     ) {}
 
     public function index(): Response
@@ -25,14 +25,8 @@ class TimeClockController extends Controller
     public function store(TimeClockRequest $request): RedirectResponse
     {
         $validated = $request->validated();
-        $nameKey = hash('sha256', mb_strtolower(Str::squish($validated['full_name'])));
-        $limiterKey = "time-clock:failed:{$request->ip()}:{$nameKey}";
 
-        if (RateLimiter::tooManyAttempts($limiterKey, 5)) {
-            throw ValidationException::withMessages([
-                'pin' => 'Too many unsuccessful attempts. Please wait one minute before trying again.',
-            ]);
-        }
+        $this->throttle->ensureAllowed($request->ip(), $validated['full_name']);
 
         try {
             $this->attendanceService->punch(
@@ -42,7 +36,7 @@ class TimeClockController extends Controller
             );
         } catch (ValidationException $exception) {
             if (isset($exception->errors()['full_name']) || isset($exception->errors()['pin'])) {
-                RateLimiter::hit($limiterKey, 60);
+                $this->throttle->recordFailure($request->ip(), $validated['full_name']);
             }
 
             throw $exception;

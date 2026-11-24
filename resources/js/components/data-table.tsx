@@ -19,7 +19,7 @@ type DataTableProps<T> = {
     searchPlaceholder: string;
     emptyMessage: string;
     maxSearchLength?: number;
-    // Search box accepts letters and spaces only (no numbers or special characters)
+    // Search box accepts letters, spaces, and . ' - only (same characters as employee names)
     lettersOnly?: boolean;
     toolbar?: ReactNode;
     /*
@@ -84,7 +84,7 @@ export function DataTable<T>({
                         type="search"
                         value={search}
                         onChange={(event) => {
-                            const value = lettersOnly ? event.target.value.replace(/[^\p{L} ]/gu, '') : event.target.value;
+                            const value = lettersOnly ? event.target.value.replace(/[^\p{L}\p{M}.'\- ]/gu, '') : event.target.value;
 
                             setSearch(value.slice(0, maxSearchLength));
                         }}

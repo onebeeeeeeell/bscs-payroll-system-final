@@ -10,13 +10,17 @@ namespace App\Http\Requests\Concerns;
 trait ValidatesInput
 {
     /**
-     * ?search= : letters at spaces lang, hanggang 30 characters.
+     * ?search= : letters (kasama ang accents), spaces, at . ' - lang, hanggang
+     * 30 characters. Pareho ng characters na pinapayagan sa pangalan ng employee
+     * (EmployeeRequest), kaya mahahanap ang "O'Brien", "Anne-Marie" at "Jr.".
+     * \z (hindi $) para ang trailing newline ay hindi makalusot. Ang % at _ ay
+     * hindi pinapayagan dito at ine-escape pa rin ng Like::contains() sa model.
      *
      * @return list<string>
      */
     protected function searchRules(): array
     {
-        return ['nullable', 'string', 'max:30', 'regex:/^[\pL ]*$/u'];
+        return ['nullable', 'string', 'max:30', 'regex:/^[\p{L}\p{M}.\'\- ]*\z/u'];
     }
 
     /**

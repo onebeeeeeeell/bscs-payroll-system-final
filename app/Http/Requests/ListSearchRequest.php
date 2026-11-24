@@ -17,8 +17,8 @@ class ListSearchRequest extends FormRequest
     /*
      * LABEL: ?search= validation
      * Purpose: Para sa mga index page na may search (departments, positions,
-     * contribution types/rates, deductions). Letters at spaces lang, hanggang
-     * 30 characters (pareho ng search box sa frontend). 'string' ang humaharang
+     * contribution types/rates, deductions). Letters, spaces at . ' - lang,
+     * hanggang 30 characters (pareho ng search box sa frontend). 'string' ang humaharang
      * sa ?search[]=x.
      */
     public function rules(): array

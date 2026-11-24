@@ -42,6 +42,12 @@ class PayrollService
     }
 
 
+    // Payroll na may employee, period, at user para sa edit page.
+    public function forEdit(Payroll $payroll): Payroll
+    {
+        return $payroll->loadEditDetails();
+    }
+
     public function create(array $data): Payroll
     {
         $data = Arr::only($data, [

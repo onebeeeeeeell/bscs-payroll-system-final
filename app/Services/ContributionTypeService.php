@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ContributionType;
 use App\Services\Concerns\SanitizesText;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
@@ -29,7 +30,12 @@ class ContributionTypeService
     {
         $data = $this->sanitizeFields($data);
 
-        return ContributionType::create($data);
+        try {
+            return ContributionType::create($data);
+        } catch (UniqueConstraintViolationException) {
+            // sabay na submit na lumusot sa validation: ang unique index ang humarang
+            throw $this->duplicateName();
+        }
     }
 
 
@@ -37,7 +43,11 @@ class ContributionTypeService
     {
         $data = $this->sanitizeFields($data);
 
-        $contributionType->update($data);
+        try {
+            $contributionType->update($data);
+        } catch (UniqueConstraintViolationException) {
+            throw $this->duplicateName();
+        }
 
         return $contributionType;
     }
@@ -59,6 +69,13 @@ class ContributionTypeService
         });
     }
 
+
+    private function duplicateName(): ValidationException
+    {
+        return ValidationException::withMessages([
+            'name' => 'A contribution type with this name already exists.',
+        ]);
+    }
 
     /**
      * @param array<string, mixed> $data

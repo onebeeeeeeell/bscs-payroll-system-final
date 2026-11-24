@@ -48,7 +48,7 @@ class ModelFactoriesTest extends TestCase
         $this->assertTrue($payslip->payroll()->exists());
         $this->assertNotEmpty($department->department_name);
         $this->assertNotEmpty($position->title);
-        $this->assertContains($contributionType->name, ['SSS', 'PhilHealth', 'Pag-IBIG']);
+        $this->assertMatchesRegularExpression('/^(SSS|PhilHealth|Pag-IBIG)( [a-j]+)?$/', $contributionType->name);
         $this->assertTrue($contributionRate->contributionType()->exists());
         $this->assertTrue($deduction->payroll()->exists());
         $this->assertTrue($deduction->contributionRate()->exists());

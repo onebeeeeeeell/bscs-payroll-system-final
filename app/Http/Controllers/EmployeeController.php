@@ -44,17 +44,11 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee): Response
     {
-        abort_if($employee->archived_at !== null, 404);
-
-        return Inertia::render('employee/edit', array_merge([
-            'employee' => $employee,
-        ], $this->employeeService->employeeEditOptions()));
+        return Inertia::render('employee/edit', $this->employeeService->editData($employee));
     }
 
     public function update(EmployeeRequest $request, Employee $employee): RedirectResponse
     {
-        abort_if($employee->archived_at !== null, 404);
-
         $this->employeeService->update($employee, $request->validated());
 
         return to_route('employees.index')->with('success', 'Employee updated successfully.');
