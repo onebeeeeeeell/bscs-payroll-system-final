@@ -96,25 +96,50 @@ class PresentDateAndAmountInputTest extends TestCase
         }
     }
 
-    public function test_services_clean_amounts_even_when_called_directly(): void
+    public function test_services_normalize_valid_amounts_when_called_directly(): void
     {
         $type = ContributionType::factory()->create();
 
-        $rate = app(ContributionRateService::class)->create([
-            'contribution_type_id' => $type->id,
-            'calculation_type' => ContributionRate::TYPE_FIXED,
-            'rate' => ' 1,500.5abc ',
-        ]);
+        foreach ([[' 1500.5 ', 1500.5], ['15', 15.0], ['0007.25', 7.25], [1500, 1500.0], [12.5, 12.5]] as [$input, $expected]) {
+            $rate = app(ContributionRateService::class)->create([
+                'contribution_type_id' => $type->id,
+                'calculation_type' => ContributionRate::TYPE_FIXED,
+                'rate' => $input,
+            ]);
 
-        $this->assertEquals(1500.5, (float) $rate->fresh()->rate);
+            $this->assertEquals($expected, (float) $rate->fresh()->rate);
+        }
+    }
 
-        $this->expectException(ValidationException::class);
+    public function test_services_reject_garbage_amounts_instead_of_repairing_them(): void
+    {
+        $type = ContributionType::factory()->create();
 
-        app(PayrollService::class)->update(Payroll::factory()->create(), [
-            'gross_pay' => '-100',
-            'total_deductions' => '0',
-            'date_processed' => today()->toDateString(),
-        ]);
+        foreach ([' 1,500.5abc ', 'abc12', '-100', '12.345', '1e3', '', null, ['1']] as $bad) {
+            try {
+                app(ContributionRateService::class)->create([
+                    'contribution_type_id' => $type->id,
+                    'calculation_type' => ContributionRate::TYPE_FIXED,
+                    'rate' => $bad,
+                ]);
+                $this->fail('Rate accepted '.json_encode($bad));
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('rate', $exception->errors());
+            }
+
+            try {
+                app(PayrollService::class)->update(Payroll::factory()->create(), [
+                    'gross_pay' => $bad,
+                    'total_deductions' => '0',
+                    'date_processed' => today()->toDateString(),
+                ]);
+                $this->fail('Gross pay accepted '.json_encode($bad));
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('gross_pay', $exception->errors());
+            }
+        }
+
+        $this->assertDatabaseCount('contribution_rates', 0);
     }
 
     public function test_payslip_edit_and_notifications_are_gone(): void

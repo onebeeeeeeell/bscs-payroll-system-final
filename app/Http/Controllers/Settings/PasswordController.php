@@ -7,7 +7,6 @@ use App\Http\Requests\Settings\PasswordUpdateRequest;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,10 +28,9 @@ class PasswordController extends Controller
      */
     public function update(PasswordUpdateRequest $request): RedirectResponse
     {
-        $validated = $request->validated();
-
+        // Ang hashing ay nasa User model na ('password' => 'hashed' cast)
         $request->user()->update([
-            'password' => Hash::make($validated['password']),
+            'password' => $request->validated('password'),
         ]);
 
         return back();

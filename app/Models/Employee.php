@@ -81,13 +81,6 @@ class Employee extends Model
         $query->selectRaw('MIN(date_hired) AS first_hire_date, MAX(date_hired) AS last_hire_date');
     }
 
-    public function scopeCountsByStatus(Builder $query): void
-    {
-        $query->select('status')
-            ->selectRaw('COUNT(*) AS total')
-            ->groupBy('status');
-    }
-
     /*
      * LABEL: Hire date scope
      * Purpose: I-filter by year at/o month ng date_hired.

@@ -58,8 +58,7 @@ class PayrollService
             'total_deductions',
             'date_processed',
         ]);
-        $data = $this->sanitizeAmountFields($data, ['gross_pay', 'total_deductions']);
-        $this->assertAmountsFilled($data, ['gross_pay', 'total_deductions']);
+        $data = $this->normalizeAmounts($data, ['gross_pay', 'total_deductions']);
         $this->assertGrossPayWithinLimit($data['gross_pay']);
 
         return DB::transaction(function () use ($data) {
@@ -91,8 +90,7 @@ class PayrollService
     {
         $this->assertNotArchived($payroll, 'gross_pay');
 
-        $data = $this->sanitizeAmountFields($data, ['gross_pay', 'total_deductions']);
-        $this->assertAmountsFilled($data, ['gross_pay', 'total_deductions']);
+        $data = $this->normalizeAmounts($data, ['gross_pay', 'total_deductions']);
         $this->assertGrossPayWithinLimit($data['gross_pay']);
 
         return DB::transaction(function () use ($payroll, $data) {

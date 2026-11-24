@@ -62,8 +62,7 @@ class ContributionRateService
 
     public function create(array $data): ContributionRate
     {
-        $data = $this->sanitizeAmountFields(Arr::only($data, self::CREATE_FIELDS), ['rate']);
-        $this->assertAmountsFilled($data, ['rate']);
+        $data = $this->normalizeAmounts(Arr::only($data, self::CREATE_FIELDS), ['rate']);
 
         return ContributionRate::create($data);
     }
@@ -71,8 +70,7 @@ class ContributionRateService
 
     public function update(ContributionRate $contributionRate, array $data): ContributionRate
     {
-        $data = $this->sanitizeAmountFields(Arr::only($data, self::UPDATE_FIELDS), ['rate']);
-        $this->assertAmountsFilled($data, ['rate']);
+        $data = $this->normalizeAmounts(Arr::only($data, self::UPDATE_FIELDS), ['rate']);
 
         return DB::transaction(function () use ($contributionRate, $data) {
             $this->assertUnused($contributionRate, 'rate');

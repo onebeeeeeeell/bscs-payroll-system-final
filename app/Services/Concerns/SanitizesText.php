@@ -48,60 +48,50 @@ trait SanitizesText
     }
 
     /*
-     * Halaga (gross pay, rate, atbp.): numbers at isang decimal point lang ang
-     * itinitira, tapos 2 decimal places (hal. "1,500.5abc" -> "1500.50").
-     * Ang laman na walang numero (o may minus sign) ay ginagawang blangko, hindi
-     * 0.00 at hindi positibo; ang assertAmountsFilled() ang tumatanggi roon.
+     * Halaga (gross pay, rate, atbp.): hindi inaayos ang maling laman, tinatanggihan.
+     * Ang "abc12" ay hindi ginagawang 12.00 at ang "-100" ay hindi ginagawang 100.00:
+     * pera ito, kaya mas ligtas ang error kaysa sa hulaan. Ang tama lang ang
+     * ino-normalize: numbers lang, hanggang 2 decimal places, tapos laging 2 decimal
+     * places ang itatabi (hal. 1500.5 -> "1500.50", " 15 " -> "15.00").
+     * Pareho ng rule ng amountRules() sa FormRequest, kaya sa HTTP ay hindi ito aabot
+     * dito nang mali; ito ang bantay kapag direktang tinawag ang service.
      *
      * @param array<string, mixed> $data
      * @param list<string> $fields
      * @return array<string, mixed>
-     */
-    protected function sanitizeAmountFields(array $data, array $fields): array
-    {
-        foreach ($fields as $field) {
-            if (! isset($data[$field]) || ! is_scalar($data[$field])) {
-                continue;
-            }
-
-            if (str_contains((string) $data[$field], '-')) {
-                $data[$field] = '';
-
-                continue;
-            }
-
-            $clean = preg_replace('/[^\d.]/', '', (string) $data[$field]) ?? '';
-            // isang decimal point lang: ang mga sumunod na tuldok ay tinatanggal
-            [$whole, $decimals] = array_pad(explode('.', $clean, 2), 2, '');
-            $decimals = str_replace('.', '', $decimals);
-
-            $data[$field] = ($whole === '' && $decimals === '')
-                ? ''
-                : (ltrim($whole, '0') ?: '0').'.'.substr($decimals.'00', 0, 2);
-        }
-
-        return $data;
-    }
-
-    /**
-     * Itinatapon ang halagang blangko pagkatapos linisin (hindi tunay na numero).
      *
-     * @param array<string, mixed> $data
-     * @param list<string> $fields
+     * @throws ValidationException
      */
-    protected function assertAmountsFilled(array $data, array $fields): void
+    protected function normalizeAmounts(array $data, array $fields): array
     {
         $errors = [];
 
         foreach ($fields as $field) {
-            if (($data[$field] ?? '') === '') {
-                $errors[$field] = 'Enter a valid amount (numbers only, up to 2 decimal places).';
+            $value = $data[$field] ?? null;
+
+            if (is_int($value) || (is_float($value) && is_finite($value))) {
+                $value = $value >= 0 ? number_format($value, 2, '.', '') : null;
+            } elseif (is_string($value) && preg_match('/^\d+(?:\.\d{1,2})?$/', trim($value)) === 1) {
+                [$whole, $decimals] = array_pad(explode('.', trim($value), 2), 2, '');
+                $value = (ltrim($whole, '0') ?: '0').'.'.str_pad($decimals, 2, '0');
+            } else {
+                $value = null;
             }
+
+            if ($value === null) {
+                $errors[$field] = 'Enter a valid amount (numbers only, up to 2 decimal places).';
+
+                continue;
+            }
+
+            $data[$field] = $value;
         }
 
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
         }
+
+        return $data;
     }
 
     /*
