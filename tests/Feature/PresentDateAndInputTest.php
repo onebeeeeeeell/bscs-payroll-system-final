@@ -14,7 +14,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
-class PresentDateAndAmountInputTest extends TestCase
+class PresentDateAndInputTest extends TestCase
 {
     use RefreshDatabase;
 

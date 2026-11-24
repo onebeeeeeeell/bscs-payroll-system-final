@@ -178,10 +178,11 @@ class Employee extends Model
     public function scopeMatchingFirstOrLastName(Builder $query, string $search): void
     {
         $like = Like::contains(trim($search));
+        $operator = Like::operator($query);
 
-        $query->where(function (Builder $query) use ($like) {
-            $query->where('first_name', 'ilike', $like)
-                ->orWhere('last_name', 'ilike', $like);
+        $query->where(function (Builder $query) use ($like, $operator) {
+            $query->where('first_name', $operator, $like)
+                ->orWhere('last_name', $operator, $like);
         });
     }
 
@@ -213,7 +214,7 @@ class Employee extends Model
     public function scopeMatchingSearchTerm(Builder $query, string $term): void
     {
         $like = Like::contains(trim($term));
-        $operator = $query->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+        $operator = Like::operator($query);
 
         $query->where(function (Builder $query) use ($like, $operator) {
             $query->where('first_name', $operator, $like)

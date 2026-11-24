@@ -2,8 +2,21 @@
 
 namespace App\Support;
 
+use Illuminate\Database\Eloquent\Builder;
+
 class Like
 {
+    /*
+     * LABEL: Case-insensitive operator
+     * Purpose: PostgreSQL = ilike (kayang gumamit ng pg_trgm indexes). Ang ibang
+     * database (SQLite sa tests, MySQL) ay walang ilike: like na lang, na
+     * case-insensitive na doon. Dito lang dapat nakasulat ang pagpili.
+     */
+    public static function operator(Builder $query): string
+    {
+        return $query->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+    }
+
     /*
      * LABEL: Escape LIKE wildcards
      * Purpose: I-escape ang \, % at _ para literal ang hanap ng user.

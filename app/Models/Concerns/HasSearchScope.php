@@ -15,7 +15,7 @@ trait HasSearchScope
     /*
      * LABEL: Search scope
      * Purpose: Isang search scope para sa lahat ng model na may simpleng
-     * "ilike" na hanap (Department, Position, ContributionType, PayrollPeriod).
+     * "ilike/like" na hanap (Department, Position, ContributionType, PayrollPeriod).
      * Naka-escape ang % at _ at naka-trim ang term, kaya blank o spaces
      * lang = walang filter.
      */
@@ -24,7 +24,7 @@ trait HasSearchScope
         $search = trim((string) $search);
 
         if ($search !== '') {
-            $query->where($this->searchColumn(), 'ilike', Like::contains($search));
+            $query->where($this->searchColumn(), Like::operator($query), Like::contains($search));
         }
     }
 }
