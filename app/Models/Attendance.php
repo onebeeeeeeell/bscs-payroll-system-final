@@ -98,6 +98,16 @@ class Attendance extends Model
     }
 
     /*
+     * LABEL: Work date bounds scope
+     * Purpose: Pinakauna at pinakahuling work_date (kasama ang archived records),
+     * para sa year range ng calendar. ISANG query lang.
+     */
+    public function scopeWorkDateBounds(Builder $query): void
+    {
+        $query->withTrashed()->selectRaw('MIN(work_date) AS first_date, MAX(work_date) AS last_date');
+    }
+
+    /*
      * LABEL: Employee scope
      * Purpose: I-filter by employee_id. Tinatawag bilang ->forEmployee($id).
      */

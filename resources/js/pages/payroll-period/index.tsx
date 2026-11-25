@@ -22,6 +22,7 @@ type Filters = {
 type Props = {
     payrollPeriods: PaginatedData<PeriodRow>;
     filters: Filters;
+    dateBounds: { min: string; max: string };
 };
 
 const PROCESSABLE = ['Pending', 'Failed'];
@@ -37,7 +38,7 @@ function periodLabel(period: PayrollPeriod): string {
     return `${period.start_date.slice(0, 10)} – ${period.end_date.slice(0, 10)}`;
 }
 
-export default function PayrollPeriodIndex({ payrollPeriods, filters }: Props) {
+export default function PayrollPeriodIndex({ payrollPeriods, filters, dateBounds }: Props) {
     const { flash } = usePage<SharedData>().props;
     const [archiveCandidate, setArchiveCandidate] = useState<PeriodRow | null>(null);
     const [isArchiving, setIsArchiving] = useState(false);
@@ -106,7 +107,13 @@ export default function PayrollPeriodIndex({ payrollPeriods, filters }: Props) {
                     initialSearch={filters.search}
                     toolbar={
                         <div className="flex w-full flex-wrap gap-2">
-                            <DateFilter label="Filter by period date" presentOnly value={filters.date} onChange={(value) => applyFilters({ date: value })} />
+                            <DateFilter
+                                label="Filter by period date"
+                                min={dateBounds.min}
+                                max={dateBounds.max}
+                                value={filters.date}
+                                onChange={(value) => applyFilters({ date: value })}
+                            />
                             <ArchiveStatusFilter
                                 label="Filter by archive status"
                                 value={filters.status}

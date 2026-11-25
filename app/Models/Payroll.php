@@ -83,6 +83,16 @@ class Payroll extends Model
     }
 
     /*
+     * LABEL: Date bounds scope
+     * Purpose: Pinakauna at pinakahuling date_processed (kasama ang archived),
+     * para sa year range ng date filter. ISANG query lang.
+     */
+    public function scopeDateBounds(Builder $query): void
+    {
+        $query->selectRaw('MIN(date_processed) AS first_date, MAX(date_processed) AS last_date');
+    }
+
+    /*
      * LABEL: Without payslip scope
      * Purpose: Mga payroll na wala pang payslip. Ginagamit ng awaitingPayslip()
      * at ng dashboard count, kaya iisa lang ang logic.

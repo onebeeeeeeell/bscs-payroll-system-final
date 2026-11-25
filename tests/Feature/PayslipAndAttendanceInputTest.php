@@ -21,39 +21,27 @@ class PayslipAndAttendanceInputTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->post(route('payslips.store'), [
                 'payroll_id' => $payroll->id,
-                'date_generated' => now()->format('Y-m-d\TH:i'),
             ])
             ->assertSessionHasErrors('payroll_id');
 
         $this->assertDatabaseCount('payslips', 0);
     }
 
-    public function test_payslip_rejects_loose_and_future_dates(): void
+    public function test_payslip_date_generated_is_set_automatically_and_cannot_be_chosen(): void
     {
-        $payroll = Payroll::factory()->create();
-        $user = User::factory()->create();
-
-        foreach (['next monday', now()->addDays(5)->format('Y-m-d\TH:i')] as $value) {
-            $this->actingAs($user)
-                ->post(route('payslips.store'), ['payroll_id' => $payroll->id, 'date_generated' => $value])
-                ->assertSessionHasErrors('date_generated');
-        }
-
-        $this->assertDatabaseCount('payslips', 0);
-    }
-
-    public function test_payslip_is_created_for_active_payroll_with_valid_date(): void
-    {
+        $this->travelTo(now()->setTime(9, 30));
         $payroll = Payroll::factory()->create();
 
         $this->actingAs(User::factory()->create())
             ->post(route('payslips.store'), [
                 'payroll_id' => $payroll->id,
-                'date_generated' => now()->format('Y-m-d\TH:i'),
+                'date_generated' => now()->subYears(3)->toDateTimeString(), // ignored
             ])
             ->assertSessionHasNoErrors();
 
-        $this->assertSame(1, Payslip::query()->where('payroll_id', $payroll->id)->count());
+        $payslip = Payslip::query()->where('payroll_id', $payroll->id)->firstOrFail();
+
+        $this->assertSame(now()->toDateTimeString(), \Illuminate\Support\Carbon::parse($payslip->date_generated)->toDateTimeString());
     }
 
     public function test_attendance_rejects_a_second_record_for_the_same_employee_and_day(): void

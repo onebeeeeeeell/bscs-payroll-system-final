@@ -23,6 +23,7 @@ type Props = {
     departments: Pick<Department, 'id' | 'department_name'>[];
     positions: Pick<Position, 'id' | 'title'>[];
     filters: Filters;
+    dateBounds: { min: string; max: string };
 };
 
 function formatCurrency(value: string | undefined): string {
@@ -41,7 +42,7 @@ function employeeName(payslip: Payslip): string {
     );
 }
 
-export default function PayslipIndex({ payslips, departments, positions, filters }: Props) {
+export default function PayslipIndex({ payslips, departments, positions, filters, dateBounds }: Props) {
     const { flash } = usePage<SharedData>().props;
     const [archiveCandidate, setArchiveCandidate] = useState<Payslip | null>(null);
     const [isArchiving, setIsArchiving] = useState(false);
@@ -110,7 +111,13 @@ export default function PayslipIndex({ payslips, departments, positions, filters
                     initialSearch={filters.search}
                     toolbar={
                         <div className="flex w-full flex-wrap gap-2">
-                            <DateFilter label="Filter by date generated" presentOnly value={filters.date} onChange={(value) => applyFilters({ date: value })} />
+                            <DateFilter
+                                label="Filter by date generated"
+                                min={dateBounds.min}
+                                max={dateBounds.max}
+                                value={filters.date}
+                                onChange={(value) => applyFilters({ date: value })}
+                            />
                             <FilterSelect
                                 label="Filter by department"
                                 value={filters.department_id}

@@ -68,7 +68,7 @@ class EmployeeNameValidationTest extends TestCase
         ]);
     }
 
-    public function test_suffix_rejects_numbers_and_special_characters_when_creating_or_editing(): void
+    public function test_suffix_only_allows_jr_sr_or_iii_when_creating_or_editing(): void
     {
         $position = Position::factory()->create();
         $department = Department::factory()->create();
@@ -78,7 +78,7 @@ class EmployeeNameValidationTest extends TestCase
             'suffix' => null,
         ]);
 
-        foreach (['Jr.2', 'III!'] as $suffix) {
+        foreach (['Jr.2', 'III!', 'Jr.', 'IV', 'abc'] as $suffix) {
             $createResponse = $this->from(route('employees.create'))->post(route('employees.store'), [
                 'first_name' => 'Alex',
                 'last_name' => 'Santos',
@@ -92,12 +92,12 @@ class EmployeeNameValidationTest extends TestCase
 
             $createResponse->assertRedirect(route('employees.create'))
                 ->assertSessionHasErrors([
-                    'suffix' => 'The suffix may only contain letters, spaces, hyphens, apostrophes, and periods.',
+                    'suffix' => 'The suffix must be Jr, Sr, or III.',
                 ]);
 
             $this->patch(route('employees.update', $employee), ['suffix' => $suffix])
                 ->assertSessionHasErrors([
-                    'suffix' => 'The suffix may only contain letters, spaces, hyphens, apostrophes, and periods.',
+                    'suffix' => 'The suffix must be Jr, Sr, or III.',
                 ]);
         }
 
@@ -105,7 +105,7 @@ class EmployeeNameValidationTest extends TestCase
         $this->assertDatabaseHas('employees', ['id' => $employee->id, 'suffix' => null]);
     }
 
-    public function test_suffix_accepts_letters_within_the_five_character_limit(): void
+    public function test_suffix_accepts_jr_sr_and_iii(): void
     {
         $position = Position::factory()->create();
         $department = Department::factory()->create();

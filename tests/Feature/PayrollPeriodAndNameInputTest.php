@@ -38,15 +38,51 @@ class PayrollPeriodAndNameInputTest extends TestCase
 
     public function test_paid_period_cannot_be_flipped_back(): void
     {
-        $period = PayrollPeriod::factory()->create(['status' => 'Paid']);
+        $paidDates = [
+            'start_date' => today()->subDays(20)->toDateString(),
+            'end_date' => today()->subDays(7)->toDateString(),
+            'pay_date' => today()->subDays(6)->toDateString(),
+        ];
+        $period = PayrollPeriod::factory()->create($paidDates + ['status' => 'Paid']);
 
-        $this->patch(route('payroll_periods.update', $period), $this->dates(0, ['status' => 'Pending']))
+        $this->patch(route('payroll_periods.update', $period), $paidDates + ['status' => 'Pending'])
             ->assertSessionHasErrors('status');
 
         $this->assertSame('Paid', $period->fresh()->status);
 
-        $this->patch(route('payroll_periods.update', $period), $this->dates(0, ['status' => 'Paid']))
+        $this->patch(route('payroll_periods.update', $period), $paidDates + ['status' => 'Paid'])
             ->assertSessionHasNoErrors();
+    }
+
+    public function test_period_cannot_be_marked_paid_before_its_pay_date(): void
+    {
+        $period = PayrollPeriod::factory()->create();
+
+        $this->patch(route('payroll_periods.update', $period), $this->dates(0, ['status' => 'Paid']))
+            ->assertSessionHasErrors('status');
+
+        $this->assertSame('Pending', $period->fresh()->status);
+    }
+
+    public function test_paid_period_with_a_future_pay_date_is_not_locked_and_can_be_fixed(): void
+    {
+        // wrong data: Paid, but the pay date is still in the future
+        $period = PayrollPeriod::factory()->create(['status' => 'Paid']);
+
+        $this->patch(route('payroll_periods.update', $period), $this->dates(0, ['status' => 'Pending']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('Pending', $period->fresh()->status);
+    }
+
+    public function test_new_period_dates_must_be_within_the_current_year(): void
+    {
+        foreach (['start_date', 'end_date', 'pay_date'] as $field) {
+            $this->post(route('payroll_periods.store'), $this->dates(0, [$field => now()->addYear()->startOfYear()->addDays(10)->toDateString()]))
+                ->assertSessionHasErrors($field);
+        }
+
+        $this->assertDatabaseCount('payroll_periods', 0);
     }
 
     public function test_period_dates_must_be_exact_y_m_d(): void
@@ -146,10 +182,10 @@ class PayrollPeriodAndNameInputTest extends TestCase
         $this->post(route('employees.store'), $this->employeeData($position, $department, [
             'first_name' => 'Anne-Marie',
             'last_name' => "O'Brien",
-            'suffix' => 'Jr.',
+            'suffix' => 'Jr',
         ]))->assertRedirect(route('employees.index'));
 
-        $this->assertDatabaseHas('employees', ['first_name' => 'Anne-Marie', 'last_name' => "O'Brien", 'suffix' => 'Jr.']);
+        $this->assertDatabaseHas('employees', ['first_name' => 'Anne-Marie', 'last_name' => "O'Brien", 'suffix' => 'Jr']);
     }
 
     /**

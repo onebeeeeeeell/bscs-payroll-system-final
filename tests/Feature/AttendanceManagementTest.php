@@ -292,4 +292,41 @@ class AttendanceManagementTest extends TestCase
                 ->where('employees.0.id', $employee->id)
             );
     }
+
+    public function test_date_filter_only_covers_the_current_year_unless_records_exist_in_other_years(): void
+    {
+        $year = now()->year;
+        $user = User::factory()->create();
+
+        // no records: current year only (no past or future years)
+        $this->actingAs($user)
+            ->get(route('attendance.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('dateBounds.min', "$year-01-01")
+                ->where('dateBounds.max', "$year-12-31")
+            );
+
+        // a record in another year widens the range to that year
+        Attendance::factory()->create(['work_date' => now()->subYears(2)->toDateString()]);
+
+        $this->actingAs($user)
+            ->get(route('attendance.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('dateBounds.min', ($year - 2).'-01-01')
+                ->where('dateBounds.max', "$year-12-31")
+            );
+    }
+
+    public function test_attendance_can_be_archived_from_the_employee_records_page(): void
+    {
+        $attendance = Attendance::factory()->create();
+        $recordsUrl = route('attendance.employee-records', $attendance->employee_id);
+
+        $this->actingAs(User::factory()->create())
+            ->from($recordsUrl)
+            ->delete(route('attendance.destroy', $attendance))
+            ->assertRedirect($recordsUrl);
+
+        $this->assertSoftDeleted('attendances', ['id' => $attendance->id]);
+    }
 }

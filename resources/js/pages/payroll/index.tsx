@@ -23,6 +23,7 @@ type Props = {
     departments: Pick<Department, 'id' | 'department_name'>[];
     positions: Pick<Position, 'id' | 'title'>[];
     filters: Filters;
+    dateBounds: { min: string; max: string };
 };
 
 function formatCurrency(value: string): string {
@@ -36,7 +37,7 @@ function employeeName(payroll: Payroll): string {
     return [payroll.employee?.first_name, payroll.employee?.last_name, payroll.employee?.suffix].filter(Boolean).join(' ') || '—';
 }
 
-export default function PayrollIndex({ payrolls, departments, positions, filters }: Props) {
+export default function PayrollIndex({ payrolls, departments, positions, filters, dateBounds }: Props) {
     const { flash } = usePage<SharedData>().props;
     const [archiveCandidate, setArchiveCandidate] = useState<Payroll | null>(null);
     const [isArchiving, setIsArchiving] = useState(false);
@@ -104,7 +105,13 @@ export default function PayrollIndex({ payrolls, departments, positions, filters
                     initialSearch={filters.search}
                     toolbar={
                         <div className="flex w-full flex-wrap gap-2">
-                            <DateFilter label="Filter by date processed" presentOnly value={filters.date} onChange={(value) => applyFilters({ date: value })} />
+                            <DateFilter
+                                label="Filter by date processed"
+                                min={dateBounds.min}
+                                max={dateBounds.max}
+                                value={filters.date}
+                                onChange={(value) => applyFilters({ date: value })}
+                            />
                             <FilterSelect
                                 label="Filter by department"
                                 value={filters.department_id}

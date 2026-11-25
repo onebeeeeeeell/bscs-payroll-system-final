@@ -60,17 +60,19 @@ class AttendanceController extends Controller
         return to_route('attendance.index')->with('success', 'Attendance updated successfully.');
     }
 
-    public function destroy(AttendanceIndexRequest $request, Attendance $attendance): RedirectResponse
+    // Archive and restore are used on the list and on the employee records page,
+    // so they go back to whichever page (and filters) the request came from.
+    public function destroy(Attendance $attendance): RedirectResponse
     {
         $this->attendanceService->delete($attendance);
 
-        return to_route('attendance.index', $request->redirectFilters())->with('success', 'Attendance deleted successfully.');
+        return back()->with('success', 'Attendance archived successfully.');
     }
 
-    public function restore(AttendanceIndexRequest $request, int $attendanceId): RedirectResponse
+    public function restore(int $attendanceId): RedirectResponse
     {
         $this->attendanceService->restoreById($attendanceId);
 
-        return to_route('attendance.index', $request->redirectFilters())->with('success', 'Attendance restored successfully.');
+        return back()->with('success', 'Attendance restored successfully.');
     }
 }

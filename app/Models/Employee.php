@@ -31,6 +31,9 @@ class Employee extends Model
 {
     use HasFactory;
 
+    // Allowed suffixes. Used by the request (validation) and the form (dropdown).
+    public const SUFFIXES = ['Jr', 'Sr', 'III'];
+
     protected $hidden = [
         'pin',
     ];

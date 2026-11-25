@@ -43,7 +43,6 @@ class ArchiveAndFiltersTest extends TestCase
         $position = Position::factory()->create();
         $employee = Employee::factory()->create(['department_id' => $department->id, 'position_id' => $position->id]);
 
-        // Date filter is today only, so the matching records are processed today
         $match = Payroll::factory()->create(['employee_id' => $employee->id, 'date_processed' => now()]);
         Payroll::factory()->create(['date_processed' => now()]);
         Payroll::factory()->create(['employee_id' => $employee->id, 'date_processed' => now()->subYear()]);
@@ -71,6 +70,52 @@ class ArchiveAndFiltersTest extends TestCase
         $this->assertNull($period->fresh()->archived_at);
     }
 
+    public function test_payroll_date_filter_finds_past_records_and_covers_the_current_year_unless_records_exist_earlier(): void
+    {
+        $year = now()->year;
+
+        $this->get(route('payrolls.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('dateBounds.min', "$year-01-01")
+                ->where('dateBounds.max', "$year-12-31")
+            );
+
+        $employee = Employee::factory()->create();
+        $past = Payroll::factory()->create(['employee_id' => $employee->id, 'date_processed' => now()->subYears(2)]);
+        Payroll::factory()->create(['date_processed' => now()]);
+
+        // a past date is accepted and finds the past record
+        $this->get(route('payrolls.index', ['date' => now()->subYears(2)->toDateString()]))
+            ->assertSessionHasNoErrors()
+            ->assertInertia(fn ($page) => $page
+                ->has('payrolls.data', 1)
+                ->where('payrolls.data.0.id', $past->id)
+                ->where('dateBounds.min', ($year - 2).'-01-01')
+            );
+    }
+
+    public function test_payslip_date_filter_finds_past_payslips_and_covers_the_current_year_unless_payslips_exist_earlier(): void
+    {
+        $year = now()->year;
+
+        $this->get(route('payslips.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('dateBounds.min', "$year-01-01")
+                ->where('dateBounds.max', "$year-12-31")
+            );
+
+        $past = Payslip::factory()->create(['date_generated' => now()->subYears(2)]);
+        Payslip::factory()->create(['date_generated' => now()]);
+
+        $this->get(route('payslips.index', ['date' => now()->subYears(2)->toDateString()]))
+            ->assertSessionHasNoErrors()
+            ->assertInertia(fn ($page) => $page
+                ->has('payslips.data', 1)
+                ->where('payslips.data.0.id', $past->id)
+                ->where('dateBounds.min', ($year - 2).'-01-01')
+            );
+    }
+
     public function test_payroll_periods_filter_by_date(): void
     {
         $match = PayrollPeriod::factory()->create([
@@ -84,6 +129,26 @@ class ArchiveAndFiltersTest extends TestCase
 
         $this->get(route('payroll_periods.index', ['date' => today()->toDateString()]))
             ->assertInertia(fn ($page) => $page->has('payrollPeriods.data', 1)->where('payrollPeriods.data.0.id', $match->id));
+    }
+
+    public function test_payroll_period_date_filter_only_covers_the_current_year_unless_periods_exist_in_other_years(): void
+    {
+        $year = now()->year;
+
+        $this->get(route('payroll_periods.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('dateBounds.min', "$year-01-01")
+                ->where('dateBounds.max', "$year-12-31")
+            );
+
+        PayrollPeriod::factory()->create([
+            'start_date' => today()->subYears(2)->toDateString(),
+            'end_date' => today()->subYears(2)->addDays(13)->toDateString(),
+            'pay_date' => today()->subYears(2)->addDays(14)->toDateString(),
+        ]);
+
+        $this->get(route('payroll_periods.index'))
+            ->assertInertia(fn ($page) => $page->where('dateBounds.min', ($year - 2).'-01-01'));
     }
 
     public function test_archived_periods_cannot_be_processed(): void

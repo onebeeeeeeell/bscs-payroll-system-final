@@ -9,10 +9,11 @@ type Props = {
     positions: Pick<Position, 'id' | 'title'>[];
     departments: Pick<Department, 'id' | 'department_name'>[];
     statuses: EmploymentStatus[];
+    suffixes: string[];
 };
 
 // store() - ui
-export default function CreateEmployee({ positions, departments, statuses }: Props) {
+export default function CreateEmployee({ positions, departments, statuses, suffixes }: Props) {
     return (
         <AppLayout>
             <Head title="Create Employee" />
@@ -22,7 +23,7 @@ export default function CreateEmployee({ positions, departments, statuses }: Pro
                     <h1 className="text-2xl font-semibold tracking-tight">Create Employee</h1>
                     <p className="text-muted-foreground text-sm">Enter the employee's details below.</p>
                 </div>
-                <EmployeeForm positions={positions} departments={departments} statuses={statuses} />
+                <EmployeeForm positions={positions} departments={departments} statuses={statuses} suffixes={suffixes} />
             </div>
         </AppLayout>
     );

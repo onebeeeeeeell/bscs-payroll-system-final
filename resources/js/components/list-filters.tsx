@@ -1,7 +1,5 @@
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import type { SharedData } from '@/types';
-import { usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 
 const selectClass = 'border-input bg-background h-10 rounded-md border px-3 text-sm';
@@ -28,19 +26,21 @@ export function FilterSelect({ label, value, onChange, children, className }: Fi
 }
 
 // One date picker. Empty = no date filter.
-// presentOnly = only today's date (server date) can be picked; typed-in past or future dates are ignored.
+// min/max (YYYY-MM-DD) limit the dates that can be applied; a typed date outside them is ignored.
 export function DateFilter({
     value,
     onChange,
     label,
-    presentOnly = false,
+    min,
+    max,
 }: {
     value: string;
     onChange: (value: string) => void;
     label: string;
-    presentOnly?: boolean;
+    min?: string;
+    max?: string;
 }) {
-    const { today } = usePage<SharedData>().props;
+    const isRejected = (date: string) => date !== '' && ((min !== undefined && date < min) || (max !== undefined && date > max));
 
     return (
         <Input
@@ -50,24 +50,21 @@ export function DateFilter({
             // because a half-typed date reads as '' (or a wrong year like 0002)
             key={value}
             defaultValue={value}
-            min={presentOnly ? today : undefined}
-            max={presentOnly ? today : undefined}
+            min={min}
+            max={max}
             onChange={(event) => {
                 const next = event.target.value;
 
                 // half-typed date: let the person keep typing
                 if (event.target.validity.badInput) return;
 
-                // only today (or cleared) is applied when presentOnly; other dates are ignored
-                if (presentOnly && next !== '' && next !== today) return;
+                if (isRejected(next) || next === value) return;
 
-                if (next !== value) onChange(next);
+                onChange(next);
             }}
             onBlur={(event) => {
                 // leaving the field with a rejected date: put back the applied one
-                const next = event.target.value;
-
-                if (presentOnly && next !== '' && next !== today) event.target.value = value;
+                if (isRejected(event.target.value)) event.target.value = value;
             }}
             className="h-10 w-44"
         />

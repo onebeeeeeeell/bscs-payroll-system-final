@@ -64,12 +64,10 @@ export default function TimeClock() {
                             autoComplete="name"
                             maxLength={30}
                             value={form.data.full_name}
-                            onChange={(event) =>
-                                form.setData(
-                                    'full_name',
-                                    event.target.value.replace(/[^\p{L}\s]/gu, '').replace(/\s+/g, ' ').slice(0, 30),
-                                )
-                            }
+                            onChange={(event) => {
+                                form.setData('full_name', event.target.value.replace(/[^\p{L}\s]/gu, '').replace(/\s+/g, ' ').slice(0, 30));
+                                form.clearErrors('full_name');
+                            }}
                             required
                             disabled={form.processing}
                             aria-invalid={Boolean(form.errors.full_name)}
@@ -87,7 +85,10 @@ export default function TimeClock() {
                             maxLength={6}
                             autoComplete="current-password"
                             value={form.data.pin}
-                            onChange={(event) => form.setData('pin', event.target.value.replace(/\D/g, '').slice(0, 6))}
+                            onChange={(event) => {
+                                form.setData('pin', event.target.value.replace(/\D/g, '').slice(0, 6));
+                                form.clearErrors('pin');
+                            }}
                             required
                             disabled={form.processing}
                             aria-invalid={Boolean(form.errors.pin)}

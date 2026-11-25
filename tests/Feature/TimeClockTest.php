@@ -116,15 +116,27 @@ class TimeClockTest extends TestCase
         $this->assertDatabaseCount('attendances', 0);
     }
 
-    public function test_unmatched_employee_name_gets_the_same_error_as_a_wrong_pin(): void
+    public function test_unknown_name_is_reported_on_the_name_field_and_wrong_pin_on_the_pin_field(): void
     {
-        $this->employeeWithPin();
+        $employee = $this->employeeWithPin();
 
+        // wrong name: the warning belongs to the name field, not the PIN
         $this->post(route('time-clock.store'), [
             'full_name' => 'John Doe',
             'pin' => '123456',
             'action' => 'time_in',
-        ])->assertSessionHasErrors(['pin' => 'Name or PIN is incorrect.']);
+        ])
+            ->assertSessionHasErrors(['full_name' => 'No employee found with that name.'])
+            ->assertSessionDoesntHaveErrors('pin');
+
+        // right name, wrong PIN: the warning belongs to the PIN field
+        $this->post(route('time-clock.store'), [
+            'full_name' => $employee->first_name.' '.$employee->last_name,
+            'pin' => '000000',
+            'action' => 'time_in',
+        ])
+            ->assertSessionHasErrors(['pin' => 'Incorrect PIN.'])
+            ->assertSessionDoesntHaveErrors('full_name');
 
         $this->assertDatabaseCount('attendances', 0);
     }

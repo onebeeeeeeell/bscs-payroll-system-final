@@ -11,7 +11,7 @@ class PayslipIndexRequest extends ListFiltersRequest
         return [
             'search' => $this->searchRules(),
             'status' => ['nullable', 'in:active,archived'],
-            'date' => $this->presentDateRules(),
+            'date' => ['nullable', 'date_format:Y-m-d'],
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'position_id' => ['nullable', 'integer', 'exists:positions,id'],
         ];

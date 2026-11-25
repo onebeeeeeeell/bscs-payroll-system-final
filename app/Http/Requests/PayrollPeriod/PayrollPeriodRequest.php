@@ -25,9 +25,9 @@ class PayrollPeriodRequest extends FormRequest
         $required = $this->isMethod('PATCH') ? 'sometimes' : 'required';
 
         return [
-            'start_date' => [$required, 'date_format:Y-m-d', ...$this->notInThePastRules('start_date')],
-            'end_date' => [$required, 'date_format:Y-m-d', ...$this->notInThePastRules('end_date')],
-            'pay_date' => [$required, 'date_format:Y-m-d', ...$this->notInThePastRules('pay_date')],
+            'start_date' => [$required, 'date_format:Y-m-d', ...$this->changedDateRules('start_date')],
+            'end_date' => [$required, 'date_format:Y-m-d', ...$this->changedDateRules('end_date')],
+            'pay_date' => [$required, 'date_format:Y-m-d', ...$this->changedDateRules('pay_date')],
             'status' => $this->statusRules($required),
         ];
     }
@@ -63,6 +63,13 @@ class PayrollPeriodRequest extends FormRequest
                 $validator->errors()->add('pay_date', 'The pay date cannot be before the end date.');
             }
 
+            // Paid means the pay date has come. A future pay date (e.g. year 2134) cannot be Paid yet.
+            $status = $this->input('status') ?? $this->period()?->status;
+
+            if ($status === 'Paid' && $pay > today()->toDateString() && ! $validator->errors()->has('status')) {
+                $validator->errors()->add('status', 'A period can only be marked Paid on or after its pay date.');
+            }
+
             if ($validator->errors()->isNotEmpty()) {
                 return;
             }
@@ -88,12 +95,12 @@ class PayrollPeriodRequest extends FormRequest
     }
 
     /*
-     * Ang "hindi pwedeng nakaraan" na rule ay sa bagong petsa lang. Kapag hindi
+     * Ang bagong petsa ay dapat today hanggang katapusan ng taong ito. Kapag hindi
      * binago ang petsa ng period na nagsimula na, pwede pa rin itong i-edit.
      *
      * @return list<string>
      */
-    private function notInThePastRules(string $field): array
+    private function changedDateRules(string $field): array
     {
         $period = $this->period();
 
@@ -101,7 +108,19 @@ class PayrollPeriodRequest extends FormRequest
             return [];
         }
 
-        return ['after_or_equal:today'];
+        return ['after_or_equal:today', 'before_or_equal:'.now()->endOfYear()->toDateString()];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'start_date.before_or_equal' => 'The start date must be within the current year.',
+            'end_date.before_or_equal' => 'The end date must be within the current year.',
+            'pay_date.before_or_equal' => 'The pay date must be within the current year.',
+        ];
     }
 
     /**
@@ -120,7 +139,7 @@ class PayrollPeriodRequest extends FormRequest
             $required,
             Rule::in(PayrollPeriod::STATUSES),
             function (string $attribute, mixed $value, \Closure $fail) use ($period): void {
-                if (in_array($period->status, PayrollPeriod::FINAL_STATUSES, true) && $value !== $period->status) {
+                if ($period->isLocked() && $value !== $period->status) {
                     $fail("A {$period->status} period cannot be changed to another status.");
                 }
             },

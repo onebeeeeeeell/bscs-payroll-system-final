@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Position;
 use App\Services\Concerns\SanitizesText;
+use App\Support\YearBounds;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -23,8 +24,10 @@ class AttendanceService
 
     private const STANDARD_WORK_HOURS = 8;
 
-    // One message for "unknown name" and "wrong PIN" so the time clock does not reveal which names exist.
-    private const INVALID_CREDENTIALS = 'Name or PIN is incorrect.';
+    // Each warning is shown under the field it is about: name -> full_name, PIN -> pin.
+    private const UNKNOWN_NAME = 'No employee found with that name.';
+
+    private const WRONG_PIN = 'Incorrect PIN.';
 
     private const DUPLICATE_DAY = 'This employee already has an attendance record for that date.';
 
@@ -43,6 +46,7 @@ class AttendanceService
             'departments' => Department::options(),
             'positions' => Position::options(),
             'filters' => $filters,
+            'dateBounds' => $this->dateBounds(),
         ];
     }
 
@@ -144,6 +148,7 @@ class AttendanceService
                 'open_records' => (int) $summary->open_records,
             ],
             'filters' => $filters,
+            'dateBounds' => $this->dateBounds($employee),
         ];
     }
 
@@ -171,9 +176,8 @@ class AttendanceService
                 ->get();
 
             if ($employees->isEmpty()) {
-                // same message as a wrong PIN, so outsiders cannot tell which names exist
                 throw ValidationException::withMessages([
-                    'pin' => self::INVALID_CREDENTIALS,
+                    'full_name' => self::UNKNOWN_NAME,
                 ]);
             }
 
@@ -183,13 +187,13 @@ class AttendanceService
 
             if ($matchingEmployees->isEmpty()) {
                 throw ValidationException::withMessages([
-                    'pin' => self::INVALID_CREDENTIALS,
+                    'pin' => self::WRONG_PIN,
                 ]);
             }
 
             if ($matchingEmployees->count() > 1) {
                 throw ValidationException::withMessages([
-                    'pin' => 'The name and PIN do not uniquely identify one employee. Contact an administrator.',
+                    'full_name' => 'More than one employee has this name and PIN. Contact an administrator.',
                 ]);
             }
 
@@ -318,6 +322,33 @@ class AttendanceService
 
 
         return $data;
+    }
+
+
+    /*
+     * Year range of the date filter: current year, plus any year that has an
+     * attendance record or a hire date. For one employee, only their own records
+     * and hire date count.
+     *
+     * @return array{min: string, max: string}
+     */
+    private function dateBounds(?Employee $employee = null): array
+    {
+        $workDates = Attendance::query()
+            ->when($employee, fn ($query) => $query->forEmployee($employee->id))
+            ->workDateBounds()
+            ->first();
+
+        $hireDates = $employee
+            ? (object) ['first_hire_date' => $employee->date_hired, 'last_hire_date' => $employee->date_hired]
+            : Employee::query()->hireDateBounds()->first();
+
+        return YearBounds::covering([
+            $workDates->first_date,
+            $workDates->last_date,
+            $hireDates->first_hire_date,
+            $hireDates->last_hire_date,
+        ]);
     }
 
 

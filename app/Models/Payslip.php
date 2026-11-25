@@ -52,6 +52,16 @@ class Payslip extends Model
             ->forEmployeeFilters('payroll.employee', $filters);
     }
 
+    /*
+     * LABEL: Date bounds scope
+     * Purpose: Pinakauna at pinakahuling date_generated (kasama ang archived),
+     * para sa year range ng date filter. ISANG query lang.
+     */
+    public function scopeDateBounds(Builder $query): void
+    {
+        $query->selectRaw('MIN(date_generated) AS first_date, MAX(date_generated) AS last_date');
+    }
+
     public function loadStatementDetails(): static
     {
         return $this->loadMissing([

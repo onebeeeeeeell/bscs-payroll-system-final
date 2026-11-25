@@ -116,6 +116,27 @@ class PayrollPeriod extends Model
         $query->whereKey($periodId)->lockForUpdate();
     }
 
+    /*
+     * LABEL: Date bounds scope
+     * Purpose: Pinakauna at pinakahuling petsa ng mga period (kasama ang archived),
+     * para sa year range ng date filter. ISANG query lang.
+     */
+    public function scopeDateBounds(Builder $query): void
+    {
+        $query->selectRaw('MIN(start_date) AS first_date, MAX(pay_date) AS last_date');
+    }
+
+    /*
+     * Final na ang Paid period kapag dumating na ang pay date. Kapag Paid pero
+     * nasa hinaharap pa ang pay date, mali ang status (hindi pa nababayaran),
+     * kaya hindi ito naka-lock at pwede pang ayusin.
+     */
+    public function isLocked(): bool
+    {
+        return in_array($this->status, self::FINAL_STATUSES, true)
+            && substr((string) $this->pay_date, 0, 10) <= today()->toDateString();
+    }
+
     public function isProcessable(): bool
     {
         return in_array($this->status, self::PROCESSABLE_STATUSES, true);

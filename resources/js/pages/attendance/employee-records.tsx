@@ -2,8 +2,9 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
 import { DataTable, type DataTableColumn } from '@/components/data-table';
+import { DateFilter } from '@/components/list-filters';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import type { SharedData } from '@/types';
 import type { Attendance, Employee, PaginatedData } from '@/types/models';
@@ -26,6 +27,7 @@ type Props = {
     attendances: PaginatedData<Attendance>;
     stats: Stats;
     filters: Filters;
+    dateBounds: { min: string; max: string };
 };
 
 const emptyFilters: Filters = { date: '', status: 'active' };
@@ -74,10 +76,12 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint: 
     );
 }
 
-export default function AttendanceEmployeeRecords({ employee, attendances, stats, filters: initialFilters }: Props) {
+export default function AttendanceEmployeeRecords({ employee, attendances, stats, filters: initialFilters, dateBounds }: Props) {
     const [filters, setFilters] = useState(initialFilters);
-    // only today's date (server date) can be used in the date filter
-    const { today } = usePage<SharedData>().props;
+    const { flash } = usePage<SharedData>().props;
+    const [archiveCandidate, setArchiveCandidate] = useState<Attendance | null>(null);
+    const [isArchiving, setIsArchiving] = useState(false);
+    const [restoringId, setRestoringId] = useState<number | null>(null);
     const employeeName = [employee.first_name, employee.last_name, employee.suffix].filter(Boolean).join(' ');
 
     useEffect(() => {
@@ -97,6 +101,30 @@ export default function AttendanceEmployeeRecords({ employee, attendances, stats
 
     function updateFilter<K extends keyof Filters>(name: K, value: Filters[K]) {
         applyFilters({ ...filters, [name]: value });
+    }
+
+    function archiveAttendance() {
+        if (!archiveCandidate) return;
+
+        setIsArchiving(true);
+        router.delete(route('attendance.destroy', archiveCandidate.id), {
+            preserveScroll: true,
+            onSuccess: () => setArchiveCandidate(null),
+            onFinish: () => setIsArchiving(false),
+        });
+    }
+
+    function restoreAttendance(attendance: Attendance) {
+        setRestoringId(attendance.id);
+
+        router.patch(
+            route('attendance.restore', attendance.id),
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setRestoringId(null),
+            },
+        );
     }
 
     return (
@@ -125,6 +153,15 @@ export default function AttendanceEmployeeRecords({ employee, attendances, stats
                         className="rounded-lg border border-amber-600/30 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-950/30 dark:text-amber-200"
                     >
                         This employee is archived.
+                    </div>
+                )}
+
+                {flash.success && (
+                    <div
+                        role="status"
+                        className="rounded-lg border border-emerald-700/20 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-950/30 dark:text-emerald-200"
+                    >
+                        {flash.success}
                     </div>
                 )}
 
@@ -167,33 +204,12 @@ export default function AttendanceEmployeeRecords({ employee, attendances, stats
                                 <option value="deleted">Archived</option>
                             </select>
 
-                            <Input
-                                type="date"
-                                aria-label="Filter by date"
-                                // uncontrolled on purpose: a controlled date input gets wiped while
-                                // typing, because a half-typed date reads as '' (or a wrong year)
-                                key={filters.date}
-                                defaultValue={filters.date}
-                                min={today}
-                                max={today}
-                                onChange={(event) => {
-                                    const next = event.target.value;
-
-                                    // half-typed date: let the person keep typing
-                                    if (event.target.validity.badInput) return;
-
-                                    // only today (or cleared) is applied; any other date is ignored
-                                    if (next !== '' && next !== today) return;
-
-                                    if (next !== filters.date) updateFilter('date', next);
-                                }}
-                                onBlur={(event) => {
-                                    // leaving the field with a wrong date: put back the applied one
-                                    const next = event.target.value;
-
-                                    if (next !== '' && next !== today) event.target.value = filters.date;
-                                }}
-                                className="h-10 w-44"
+                            <DateFilter
+                                label="Filter by date"
+                                value={filters.date}
+                                min={dateBounds.min}
+                                max={dateBounds.max}
+                                onChange={(date) => updateFilter('date', date)}
                             />
 
                             {hasFilters && (
@@ -213,14 +229,25 @@ export default function AttendanceEmployeeRecords({ employee, attendances, stats
                             {
                                 header: 'Actions',
                                 className: 'text-right',
-                                // archived records can't be edited, restore them from the Attendance list
                                 cell: (attendance) =>
                                     filters.status === 'active' ? (
-                                        <Button variant="ghost" size="sm" asChild>
-                                            <Link href={route('attendance.edit', attendance.id)}>Edit</Link>
-                                        </Button>
+                                        <div className="flex justify-end gap-1">
+                                            <Button variant="ghost" size="sm" asChild>
+                                                <Link href={route('attendance.edit', attendance.id)}>Edit</Link>
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-destructive hover:text-destructive"
+                                                onClick={() => setArchiveCandidate(attendance)}
+                                            >
+                                                Archive
+                                            </Button>
+                                        </div>
                                     ) : (
-                                        '—'
+                                        <Button variant="ghost" size="sm" disabled={restoringId === attendance.id} onClick={() => restoreAttendance(attendance)}>
+                                            {restoringId === attendance.id ? 'Restoring...' : 'Restore'}
+                                        </Button>
                                     ),
                             },
                         ] satisfies DataTableColumn<Attendance>[]
@@ -248,6 +275,30 @@ export default function AttendanceEmployeeRecords({ employee, attendances, stats
                         );
                     })}
                 </nav>
+
+                <Dialog
+                    open={archiveCandidate !== null}
+                    onOpenChange={(open) => {
+                        if (!open && !isArchiving) setArchiveCandidate(null);
+                    }}
+                >
+                    <DialogContent>
+                        <DialogTitle>Archive attendance record?</DialogTitle>
+                        <DialogDescription>
+                            {archiveCandidate
+                                ? `${employeeName}'s attendance on ${formatWorkDate(archiveCandidate.work_date)} will be removed from the active list. You can restore it later from Archived records.`
+                                : ''}
+                        </DialogDescription>
+                        <DialogFooter>
+                            <Button variant="outline" disabled={isArchiving} onClick={() => setArchiveCandidate(null)}>
+                                Cancel
+                            </Button>
+                            <Button variant="destructive" disabled={isArchiving} onClick={archiveAttendance}>
+                                {isArchiving ? 'Archiving...' : 'Archive record'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </AppLayout>
     );

@@ -21,16 +21,6 @@ abstract class ListFiltersRequest extends FormRequest
     }
 
     /**
-     * @return array<string, string>
-     */
-    public function messages(): array
-    {
-        return [
-            'date.date_equals' => 'Only today\'s date can be used.',
-        ];
-    }
-
-    /**
      * Lahat ng filter key at ang default nito (string).
      *
      * @return array<string, string>

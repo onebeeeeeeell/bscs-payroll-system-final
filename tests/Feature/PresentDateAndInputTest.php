@@ -28,12 +28,12 @@ class PresentDateAndInputTest extends TestCase
         $this->actingAs(User::factory()->create());
     }
 
-    public function test_date_filters_only_accept_today(): void
+    public function test_date_filters_accept_any_real_date_but_not_loose_text(): void
     {
         foreach (['payrolls.index', 'payslips.index', 'payroll_periods.index'] as $routeName) {
-            $this->get(route($routeName, ['date' => today()->subDay()->toDateString()]))->assertSessionHasErrors('date');
-            $this->get(route($routeName, ['date' => today()->addDay()->toDateString()]))->assertSessionHasErrors('date');
+            $this->get(route($routeName, ['date' => today()->subYear()->toDateString()]))->assertSessionHasNoErrors();
             $this->get(route($routeName, ['date' => today()->toDateString()]))->assertOk();
+            $this->get(route($routeName, ['date' => 'next monday']))->assertSessionHasErrors('date');
         }
     }
 

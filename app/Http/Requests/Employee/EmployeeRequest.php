@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Employee;
 
+use App\Models\Employee;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -34,7 +35,7 @@ class EmployeeRequest extends FormRequest
         return [
             'first_name' => $this->nameRules([$required], 50),
             'last_name' => $this->nameRules([$required], 50),
-            'suffix' => $this->nameRules(['nullable'], 5),
+            'suffix' => ['nullable', 'string', Rule::in(Employee::SUFFIXES)],
             'position_id' => [$required, 'integer', 'exists:positions,id'],
             'department_id' => [$required, 'integer', 'exists:departments,id'],
             'date_hired' => $dateHiredRules,
@@ -86,7 +87,7 @@ class EmployeeRequest extends FormRequest
             'date_hired.before_or_equal' => 'The hire date must be within the current year.',
             'first_name.regex' => 'The first name may only contain letters, spaces, hyphens, apostrophes, and periods.',
             'last_name.regex' => 'The last name may only contain letters, spaces, hyphens, apostrophes, and periods.',
-            'suffix.regex' => 'The suffix may only contain letters, spaces, hyphens, apostrophes, and periods.',
+            'suffix.in' => 'The suffix must be Jr, Sr, or III.',
             'sss_no.digits' => 'The SSS number must be 10 digits.',
             'philhealth_no.digits' => 'The PhilHealth number must be 12 digits.',
             'pagibig_no.digits' => 'The Pag-IBIG number must be 12 digits.',

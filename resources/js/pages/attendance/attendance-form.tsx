@@ -94,13 +94,31 @@ function EmployeeCombobox({
     );
 }
 
-type TimeParts = {
-    hour: string;
-    minute: string;
-    period: 'AM' | 'PM' | '';
-};
+// Typed 12-hour time, e.g. "8:30 AM", "830am", "08:30 pm". The form keeps it as 24-hour "HH:mm".
+function parseTime(text: string): string | null {
+    const match = /^\s*(\d{1,2})(?::?(\d{2}))?\s*([AaPp])\.?[Mm]?\.?\s*$/.exec(text);
+    if (!match) return null;
 
-type TwelveHourTimeInputProps = {
+    const hour = Number(match[1]);
+    const minute = Number(match[2] ?? '0');
+    if (hour < 1 || hour > 12 || minute > 59) return null;
+
+    const hour24 = (hour % 12) + (match[3].toLowerCase() === 'p' ? 12 : 0);
+
+    return `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+// "13:05" -> "01:05 PM" (what the box shows)
+function formatTime(value: string): string {
+    const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value);
+    if (!match) return '';
+
+    const hour24 = Number(match[1]);
+
+    return `${String(hour24 % 12 || 12).padStart(2, '0')}:${match[2]} ${hour24 >= 12 ? 'PM' : 'AM'}`;
+}
+
+type TimeInputProps = {
     id: string;
     label: string;
     value: string;
@@ -109,104 +127,41 @@ type TwelveHourTimeInputProps = {
     error?: string;
 };
 
-function getTimeParts(value: string): TimeParts | null {
-    const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value);
-    if (!match) return null;
-
-    const hour24 = Number(match[1]);
-
-    return {
-        hour: String(hour24 % 12 || 12).padStart(2, '0'),
-        minute: match[2],
-        period: hour24 >= 12 ? 'PM' : 'AM',
-    };
-}
-
-function get24HourTime(parts: TimeParts & { period: 'AM' | 'PM' }): string {
-    const hour12 = Number(parts.hour) % 12;
-    const hour24 = parts.period === 'PM' ? hour12 + 12 : hour12;
-
-    return `${String(hour24).padStart(2, '0')}:${parts.minute}`;
-}
-
-function TwelveHourTimeInput({ id, label, value, onChange, disabled, error }: TwelveHourTimeInputProps) {
-    const [parts, setParts] = useState<TimeParts | null>(() => getTimeParts(value));
-    const updatePart = (key: keyof TimeParts, nextValue: string) => {
-        const hour = key === 'hour' ? nextValue : (parts?.hour ?? '');
-        const minute = key === 'minute' ? nextValue : (parts?.minute ?? '');
-        const period: TimeParts['period'] = key === 'period' ? (nextValue === 'PM' ? 'PM' : 'AM') : (parts?.period ?? '');
-        const nextParts: TimeParts = {
-            hour,
-            minute,
-            period,
-        };
-
-        setParts(nextParts);
-        if (hour && minute && (period === 'AM' || period === 'PM')) {
-            onChange(get24HourTime({ hour, minute, period }));
-        } else {
-            onChange('');
-        }
-    };
+function TimeInput({ id, label, value, onChange, disabled, error }: TimeInputProps) {
+    const [text, setText] = useState(() => formatTime(value));
+    const [touched, setTouched] = useState(false);
+    const invalidText = touched && text.trim() !== '' && parseTime(text) === null;
 
     return (
         <div className="space-y-2">
-            <Label htmlFor={`${id}-hour`}>{label}</Label>
-            <div className="flex items-center gap-2">
-                <select
-                    id={`${id}-hour`}
-                    value={parts?.hour ?? ''}
-                    onChange={(event) => updatePart('hour', event.target.value)}
-                    required
-                    disabled={disabled}
-                    aria-label={`${label} hour`}
-                    aria-invalid={Boolean(error)}
-                    className="border-input bg-background flex h-10 min-w-0 flex-1 rounded-md border px-3 py-2 text-sm"
-                >
-                    <option value="" disabled>
-                        Hour
-                    </option>
-                    {Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0')).map((hour) => (
-                        <option key={hour} value={hour}>
-                            {hour}
-                        </option>
-                    ))}
-                </select>
-                <span aria-hidden="true">:</span>
-                <select
-                    value={parts?.minute ?? ''}
-                    onChange={(event) => updatePart('minute', event.target.value)}
-                    required
-                    disabled={disabled}
-                    aria-label={`${label} minute`}
-                    aria-invalid={Boolean(error)}
-                    className="border-input bg-background flex h-10 min-w-0 flex-1 rounded-md border px-3 py-2 text-sm"
-                >
-                    <option value="" disabled>
-                        Minute
-                    </option>
-                    {Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0')).map((minute) => (
-                        <option key={minute} value={minute}>
-                            {minute}
-                        </option>
-                    ))}
-                </select>
-                <select
-                    value={parts?.period ?? ''}
-                    onChange={(event) => updatePart('period', event.target.value)}
-                    required
-                    disabled={disabled}
-                    aria-label={`${label} AM or PM`}
-                    aria-invalid={Boolean(error)}
-                    className="border-input bg-background flex h-10 w-20 shrink-0 rounded-md border px-2 py-2 text-sm"
-                >
-                    <option value="" disabled>
-                        AM/PM
-                    </option>
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                </select>
-            </div>
+            <Label htmlFor={id}>{label}</Label>
+            <Input
+                id={id}
+                type="text"
+                inputMode="text"
+                autoComplete="off"
+                placeholder="hh:mm AM/PM (e.g. 8:30 AM)"
+                maxLength={8}
+                value={text}
+                onChange={(event) => {
+                    // only digits, colon, A/P/M and space can be typed
+                    const next = event.target.value.replace(/[^0-9:apmAPM\s]/g, '');
+
+                    setText(next);
+                    onChange(parseTime(next) ?? '');
+                }}
+                onBlur={() => {
+                    setTouched(true);
+
+                    const parsed = parseTime(text);
+                    if (parsed) setText(formatTime(parsed));
+                }}
+                required
+                disabled={disabled}
+                aria-invalid={Boolean(error) || invalidText}
+                className="h-10"
+            />
+            {invalidText && <p className="text-destructive text-sm">Enter a valid time, like 8:30 AM.</p>}
             {error && <p className="text-destructive text-sm">{error}</p>}
         </div>
     );
@@ -297,7 +252,7 @@ export default function AttendanceForm({ attendance, employees }: Props) {
                     {fieldError('work_date')}
                 </div>
 
-                <TwelveHourTimeInput
+                <TimeInput
                     id="time_in"
                     label="Time in"
                     value={form.data.time_in}
@@ -306,7 +261,7 @@ export default function AttendanceForm({ attendance, employees }: Props) {
                     error={form.errors.time_in}
                 />
 
-                <TwelveHourTimeInput
+                <TimeInput
                     id="time_out"
                     label="Time out"
                     value={form.data.time_out}

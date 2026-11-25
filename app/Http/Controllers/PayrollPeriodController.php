@@ -18,12 +18,7 @@ class PayrollPeriodController extends Controller
 
     public function index(PayrollPeriodIndexRequest $request): Response
     {
-        $filters = $request->filters();
-
-        return Inertia::render('payroll-period/index', [
-            'payrollPeriods' => $this->payrollPeriodService->paginate($filters),
-            'filters' => $filters,
-        ]);
+        return Inertia::render('payroll-period/index', $this->payrollPeriodService->indexData($request->filters()));
     }
 
     public function create(): Response
@@ -40,9 +35,7 @@ class PayrollPeriodController extends Controller
 
     public function edit(PayrollPeriod $payrollPeriod): Response
     {
-        return Inertia::render('payroll-period/edit', [
-            'payrollPeriod' => $payrollPeriod,
-        ]);
+        return Inertia::render('payroll-period/edit', $this->payrollPeriodService->editData($payrollPeriod));
     }
 
     public function update(PayrollPeriodRequest $request, PayrollPeriod $payrollPeriod): RedirectResponse

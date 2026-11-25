@@ -38,7 +38,7 @@ class TimeClockThrottleTest extends TestCase
 
         for ($i = 0; $i < 5; $i++) {
             $this->punch('10.0.0.1', 'Jane Doe', '000000');
-            $this->assertSame('Name or PIN is incorrect.', $this->pinError());
+            $this->assertSame('Incorrect PIN.', $this->pinError());
         }
 
         $this->punch('10.0.0.1', 'Jane Doe', '123456');

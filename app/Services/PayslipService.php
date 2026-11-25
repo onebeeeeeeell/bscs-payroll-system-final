@@ -9,10 +9,9 @@ use App\Models\Payroll;
 use App\Models\Position;
 use App\Models\Payslip;
 use App\Services\Concerns\SanitizesText;
+use App\Support\YearBounds;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Carbon;
 
 class PayslipService
 {
@@ -38,6 +37,8 @@ class PayslipService
             'departments' => Department::options(),
             'positions' => Position::options(),
             'filters' => $filters,
+            // closure: only computed when the page asks for it (not on filter reloads)
+            'dateBounds' => fn () => $this->dateBounds(),
         ];
     }
 
@@ -53,16 +54,15 @@ class PayslipService
 
     /*
      * LABEL: Create payslip
-     * Purpose: Arr::only para ang payroll_id at date_generated lang ang pumasok
-     * (hindi ang archived_at). Ang petsa ay na-validate na ng request; dito
-     * ginagawa lang itong database format.
+     * Purpose: Ang payroll_id lang ang galing sa user. Ang date_generated ay
+     * awtomatikong ang oras ng pag-generate (hindi pinipili).
      */
     public function create(array $data): Payslip
     {
-        $data = Arr::only($data, ['payroll_id', 'date_generated']);
-        $data['date_generated'] = Carbon::createFromFormat('Y-m-d\TH:i', $data['date_generated'])->toDateTimeString();
-
-        return Payslip::create($data);
+        return Payslip::create([
+            'payroll_id' => $data['payroll_id'],
+            'date_generated' => now(),
+        ]);
     }
 
     /*
@@ -162,5 +162,18 @@ class PayslipService
     private function trimNumber(float $value): string
     {
         return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
+    }
+
+    /*
+     * Year range of the date filter: current year, plus any year that has a
+     * payslip (archived ones too), so past payslips can always be found.
+     *
+     * @return array{min: string, max: string}
+     */
+    private function dateBounds(): array
+    {
+        $dates = Payslip::query()->dateBounds()->first();
+
+        return YearBounds::covering([$dates->first_date, $dates->last_date]);
     }
 }

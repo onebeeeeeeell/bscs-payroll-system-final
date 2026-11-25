@@ -3,6 +3,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Department, Employee, EmploymentStatus, Position } from '@/types/models';
 import { Link, useForm } from '@inertiajs/react';
 import { CalendarDays, Check, ChevronsUpDown } from 'lucide-react';
@@ -13,6 +14,7 @@ type Props = {
     positions: Pick<Position, 'id' | 'title'>[];
     departments: Pick<Department, 'id' | 'department_name'>[];
     statuses: EmploymentStatus[];
+    suffixes: string[];
 };
 
 type ComboboxOption = {
@@ -114,7 +116,7 @@ function getCurrentYearEnd(): string {
     return `${new Date().getFullYear()}-12-31`;
 }
 
-export default function EmployeeForm({ employee, positions, departments, statuses }: Props) {
+export default function EmployeeForm({ employee, positions, departments, statuses, suffixes }: Props) {
     const editing = Boolean(employee);
     const today = getTodayDate();
     const currentYearEnd = getCurrentYearEnd();
@@ -221,16 +223,27 @@ export default function EmployeeForm({ employee, positions, departments, statuse
 
                 <div className="space-y-2">
                     <Label htmlFor="suffix">Suffix</Label>
-                    <Input
-                        id="suffix"
-                        value={form.data.suffix}
-                        onChange={(event) => form.setData('suffix', filterName(event.target.value))}
-                        maxLength={3}
-                        className="h-10"
-                        title="Only letters and spaces are allowed."
+                    {/* "none" is only a placeholder value: Radix Select can't use an empty string, so we map it back to '' */}
+                    <Select
+                        value={form.data.suffix === '' ? 'none' : form.data.suffix}
+                        onValueChange={(value) => {
+                            form.setData('suffix', value === 'none' ? '' : value);
+                            form.clearErrors('suffix');
+                        }}
                         disabled={form.processing}
-                        aria-invalid={Boolean(form.errors.suffix)}
-                    />
+                    >
+                        <SelectTrigger id="suffix" className="h-10 w-full" aria-invalid={Boolean(form.errors.suffix)}>
+                            <SelectValue placeholder="None" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            {suffixes.map((suffix) => (
+                                <SelectItem key={suffix} value={suffix}>
+                                    {suffix}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     {fieldError('suffix')}
                 </div>
 

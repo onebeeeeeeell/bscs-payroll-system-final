@@ -108,6 +108,7 @@ class EmployeeService
             'positions' => Position::options(),
             'departments' => Department::options(),
             'statuses' => EmploymentStatus::query()->alphabetical()->get(['id', 'name']),
+            'suffixes' => Employee::SUFFIXES,
         ];
     }
 

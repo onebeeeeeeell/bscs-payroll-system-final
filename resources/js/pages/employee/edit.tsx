@@ -10,10 +10,11 @@ type Props = {
     positions: Pick<Position, 'id' | 'title'>[];
     departments: Pick<Department, 'id' | 'department_name'>[];
     statuses: EmploymentStatus[];
+    suffixes: string[];
 };
 
 // update() - ui
-export default function EditEmployee({ employee, positions, departments, statuses }: Props) {
+export default function EditEmployee({ employee, positions, departments, statuses, suffixes }: Props) {
     return (
         <AppLayout>
             <Head title={`Edit ${employee.first_name} ${employee.last_name}`} />
@@ -25,7 +26,7 @@ export default function EditEmployee({ employee, positions, departments, statuse
                         Update {employee.first_name} {employee.last_name}&apos;s details.
                     </p>
                 </div>
-                <EmployeeForm employee={employee} positions={positions} departments={departments} statuses={statuses} />
+                <EmployeeForm employee={employee} positions={positions} departments={departments} statuses={statuses} suffixes={suffixes} />
             </div>
         </AppLayout>
     );

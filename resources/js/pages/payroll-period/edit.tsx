@@ -5,9 +5,10 @@ import PeriodForm from './period-form';
 
 type Props = {
     payrollPeriod: PayrollPeriod;
+    locked: boolean;
 };
 
-export default function EditPayrollPeriod({ payrollPeriod }: Props) {
+export default function EditPayrollPeriod({ payrollPeriod, locked }: Props) {
     return (
         <AppLayout>
             <Head title="Edit Payroll Period" />
@@ -18,7 +19,7 @@ export default function EditPayrollPeriod({ payrollPeriod }: Props) {
                     <p className="text-muted-foreground text-sm">Only Pending and Failed periods can be processed.</p>
                 </div>
 
-                <PeriodForm payrollPeriod={payrollPeriod} />
+                <PeriodForm payrollPeriod={payrollPeriod} locked={locked} />
             </div>
         </AppLayout>
     );

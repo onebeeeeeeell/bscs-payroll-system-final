@@ -3,10 +3,10 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
 import { DataTable, type DataTableColumn } from '@/components/data-table';
+import { DateFilter } from '@/components/list-filters';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import type { SharedData } from '@/types';
 import type { Attendance, Department, PaginatedData, Position } from '@/types/models';
@@ -32,6 +32,7 @@ type Props = {
     departments: Pick<Department, 'id' | 'department_name'>[];
     positions: Pick<Position, 'id' | 'title'>[];
     filters: Filters;
+    dateBounds: { min: string; max: string };
 };
 
 const emptyFilters: Filters = { department_id: '', position_id: '', date: '', status: 'active' };
@@ -76,7 +77,7 @@ function StatCard({ label, value, hint }: { label: string; value: number; hint: 
     );
 }
 
-export default function AttendanceIndex({ attendances, stats, departments, positions, filters: initialFilters }: Props) {
+export default function AttendanceIndex({ attendances, stats, departments, positions, filters: initialFilters, dateBounds }: Props) {
     const [filters, setFilters] = useState(initialFilters);
     const [deleteCandidate, setDeleteCandidate] = useState<Attendance | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -107,7 +108,6 @@ export default function AttendanceIndex({ attendances, stats, departments, posit
 
         setIsDeleting(true);
         router.delete(route('attendance.destroy', deleteCandidate.id), {
-            data: filters,
             preserveScroll: true,
             onSuccess: () => setDeleteCandidate(null),
             onFinish: () => setIsDeleting(false),
@@ -117,7 +117,7 @@ export default function AttendanceIndex({ attendances, stats, departments, posit
     function restoreAttendance(attendance: Attendance) {
         setRestoringId(attendance.id);
 
-        router.patch(route('attendance.restore', attendance.id), filters, {
+        router.patch(route('attendance.restore', attendance.id), {}, {
             preserveScroll: true,
             preserveState: false,
             replace: true,
@@ -145,14 +145,6 @@ export default function AttendanceIndex({ attendances, stats, departments, posit
                         <h1 className="text-2xl font-semibold tracking-tight">Attendance</h1>
                         <p className="text-muted-foreground text-sm">Review employee work hours and overtime records.</p>
                     </div>
-
-                    {/* // <Button
-                        className="w-full bg-emerald-700 text-white hover:bg-emerald-800 sm:w-auto dark:bg-emerald-600 dark:hover:bg-emerald-500"
-                        asChild
-                    >
-                        <Link href={route('attendance.create')}>Record Attendance</Link>
-                    </Button> */}
-                    
                 </header>
 
                 {flash.success && (
@@ -229,12 +221,12 @@ export default function AttendanceIndex({ attendances, stats, departments, posit
                                 <option value="deleted">Archived</option>
                             </select>
 
-                            <Input
-                                type="date"
-                                aria-label="Filter by date"
+                            <DateFilter
+                                label="Filter by date"
                                 value={filters.date}
-                                onChange={(event) => updateFilter('date', event.target.value)}
-                                className="h-10 w-44"
+                                min={dateBounds.min}
+                                max={dateBounds.max}
+                                onChange={(date) => updateFilter('date', date)}
                             />
 
                             {hasFilters && (

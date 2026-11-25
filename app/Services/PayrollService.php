@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\Position;
 use App\Models\PayrollPeriod;
 use App\Services\Concerns\SanitizesText;
+use App\Support\YearBounds;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -38,7 +39,23 @@ class PayrollService
             'departments' => Department::options(),
             'positions' => Position::options(),
             'filters' => $filters,
+            // closure: only computed when the page asks for it (not on filter reloads)
+            'dateBounds' => fn () => $this->dateBounds(),
         ];
+    }
+
+
+    /*
+     * Year range of the date filter: current year, plus any year that has a payroll
+     * record (archived ones too), so past records can always be found.
+     *
+     * @return array{min: string, max: string}
+     */
+    private function dateBounds(): array
+    {
+        $dates = Payroll::query()->dateBounds()->first();
+
+        return YearBounds::covering([$dates->first_date, $dates->last_date]);
     }
 
 
