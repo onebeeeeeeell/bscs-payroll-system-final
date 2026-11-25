@@ -171,7 +171,7 @@ export default function ShowPayslip({ payslip, earnings, deductions }: Props) {
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <Button variant="outline" asChild>
-                            <Link href={route('payslips.index')}>Back to payslips</Link>
+                            <Link href={route('payslips.employee-records', payslip.payroll?.employee_id ?? 0)}>Back to payslips</Link>
                         </Button>
                         <Button variant="outline" onClick={printPayslip}>
                             <Download className="size-4" aria-hidden="true" />

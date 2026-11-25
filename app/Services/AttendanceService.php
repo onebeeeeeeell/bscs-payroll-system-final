@@ -32,16 +32,22 @@ class AttendanceService
     private const DUPLICATE_DAY = 'This employee already has an attendance record for that date.';
 
     /**
-     * @param array{status?: 'active'|'deleted', department_id?: int|null, position_id?: int|null, date?: string|null} $filters
+     * One row per employee (the records of each employee are on the employee
+     * records page). Filters are cleaned here, the queries live in the
+     * Attendance scopes.
+     *
+     * @param array{status?: string|null, department_id?: int|string|null, position_id?: int|string|null, date?: string|null} $filters
      */
-    public function indexData(array $validated, array $filters): array
+    public function indexData(array $filters): array
     {
-        // stats() runs first: its "records" is COUNT(*) with the same filters as
-        // the list, so the paginator reuses it instead of running its own count.
-        $stats = $this->stats($validated);
+        $filters = $this->sanitizeIndexFilters($filters);
+
+        // stats() runs first: its "employees" is COUNT(DISTINCT employee_id) with the
+        // same filters as the list, so the paginator reuses it instead of its own count.
+        $stats = $this->stats($filters);
 
         return [
-            'attendances' => $this->paginate($validated, total: $stats['records']),
+            'attendances' => $this->paginate($filters, total: $stats['employees']),
             'stats' => $stats,
             'departments' => Department::options(),
             'positions' => Position::options(),
@@ -53,17 +59,19 @@ class AttendanceService
 
     /*
      * LABEL: Attendance list
-     * Purpose: Nasa Attendance model na ang lahat ng logic (filters, eager load,
-     * sorting). Dito, tinatawag na lang ang mga scopes.
+     * Purpose: Isang row bawat employee. Nasa Attendance model na ang lahat ng
+     * logic (filters, grouping, eager load, sorting). Dito, tinatawag na lang
+     * ang mga scopes.
      * withQueryString(): ini-keep ang filters sa pagination links.
      */
     public function paginate(array $filters = [], int $perPage = 10, ?int $total = null): LengthAwarePaginator
     {
-        // $total: kung alam na ang bilang ng rows, hindi na mag-COUNT ang paginator.
+        // $total: kung alam na ang bilang ng employees, hindi na mag-COUNT ang paginator.
         return Attendance::query()
             ->forFilters($filters)
+            ->summaryPerEmployee()
             ->withEmployee()
-            ->latestFirst()
+            ->latestActivityFirst()
             ->paginate($perPage, total: $total)
             ->withQueryString();
     }
@@ -352,6 +360,17 @@ class AttendanceService
     }
 
 
+    // department and position can only be a positive whole number (else blank)
+    private function sanitizeIndexFilters(array $filters): array
+    {
+        return [
+            'department_id' => $this->sanitizeId($filters['department_id'] ?? null),
+            'position_id' => $this->sanitizeId($filters['position_id'] ?? null),
+            ...$this->sanitizeRecordFilters($filters),
+        ];
+    }
+
+
     // status can only be active or deleted, date must be a real Y-m-d (else blank)
     private function sanitizeRecordFilters(array $filters): array
     {
@@ -359,6 +378,14 @@ class AttendanceService
             'status' => ($filters['status'] ?? 'active') === 'deleted' ? 'deleted' : 'active',
             'date' => $this->sanitizeDate($filters['date'] ?? null),
         ];
+    }
+
+
+    private function sanitizeId(int|string|null $id): string
+    {
+        $id = filter_var($id, FILTER_VALIDATE_INT);
+
+        return $id !== false && $id > 0 ? (string) $id : '';
     }
 
 

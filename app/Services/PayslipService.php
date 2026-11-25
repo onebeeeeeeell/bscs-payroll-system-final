@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Attendance;
 use App\Models\ContributionRate;
 use App\Models\Department;
+use App\Models\Employee;
 use App\Models\Payroll;
 use App\Models\Position;
 use App\Models\Payslip;
@@ -18,14 +19,18 @@ class PayslipService
     use SanitizesText;
 
     /**
+     * One row per employee (the payslips of each employee are on the employee
+     * payslips page).
+     *
      * @param array<string, mixed> $filters search, status, date, department_id, position_id
      */
     public function paginate(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
         return Payslip::query()
-            ->withDetails()
             ->forFilters($this->sanitizeFilters($filters))
-            ->latestFirst()
+            ->summaryPerEmployee()
+            ->withEmployee()
+            ->latestActivityFirst()
             ->paginate($perPage)
             ->withQueryString(); // keep the filters when changing pages
     }
@@ -39,6 +44,49 @@ class PayslipService
             'filters' => $filters,
             // closure: only computed when the page asks for it (not on filter reloads)
             'dateBounds' => fn () => $this->dateBounds(),
+        ];
+    }
+
+    /*
+     * LABEL: Employee payslips
+     * Purpose: Data ng employee payslips page (View sa payslip list): ang
+     * employee, ang mga payslip niya, at ang summary cards. Nililinis dito ang
+     * filters, nasa Payslip scopes ang mga query. Ang "payslips_count" ng
+     * aggregate query ay ginagamit din na total ng paginator.
+     *
+     * @param array{status?: string|null, date?: string|null} $filters
+     */
+    public function employeeData(int $employeeId, array $filters): array
+    {
+        $employee = Employee::query()
+            ->withListRelations()
+            ->findOrFail($employeeId);
+
+        $filters = $this->sanitizeEmployeeFilters($filters);
+
+        $summary = Payslip::query()
+            ->forEmployeeRecords($employee->id, $filters)
+            ->totalsSummary()
+            ->first();
+
+        $count = (int) $summary->payslips_count;
+
+        return [
+            'employee' => $employee,
+            'payslips' => Payslip::query()
+                ->forEmployeeRecords($employee->id, $filters)
+                ->withPayrollPeriod()
+                ->latestFirst()
+                ->paginate(10, total: $count)
+                ->withQueryString(),
+            'stats' => [
+                'payslips' => $count,
+                'total_net_pay' => (float) $summary->total_net_pay,
+                'last_generated' => $summary->last_generated,
+            ],
+            'filters' => $filters,
+            // closure: only computed when the page asks for it (not on filter reloads)
+            'dateBounds' => fn () => $this->dateBounds($employee),
         ];
     }
 
@@ -167,13 +215,27 @@ class PayslipService
     /*
      * Year range of the date filter: current year, plus any year that has a
      * payslip (archived ones too), so past payslips can always be found.
+     * For one employee, only their own payslips count.
      *
      * @return array{min: string, max: string}
      */
-    private function dateBounds(): array
+    private function dateBounds(?Employee $employee = null): array
     {
-        $dates = Payslip::query()->dateBounds()->first();
+        $dates = Payslip::query()
+            ->when($employee, fn ($query) => $query->forEmployee($employee->id))
+            ->dateBounds()
+            ->first();
 
         return YearBounds::covering([$dates->first_date, $dates->last_date]);
+    }
+
+
+    // status can only be active or archived, date must be a real Y-m-d (else blank)
+    private function sanitizeEmployeeFilters(array $filters): array
+    {
+        return [
+            'status' => ($filters['status'] ?? 'active') === 'archived' ? 'archived' : 'active',
+            'date' => $this->sanitizeDate($filters['date'] ?? null),
+        ];
     }
 }

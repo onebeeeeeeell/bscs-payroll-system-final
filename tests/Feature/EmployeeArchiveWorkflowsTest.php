@@ -56,7 +56,7 @@ class EmployeeArchiveWorkflowsTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('attendances.data', 1)
-                ->where('attendances.data.0.id', $activeAttendance->id)
+                ->where('attendances.data.0.employee_id', $activeAttendance->employee_id)
             );
 
         $this->get(route('attendance.create'))
@@ -88,7 +88,7 @@ class EmployeeArchiveWorkflowsTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('attendances.data', 1)
-                ->where('attendances.data.0.id', $attendance->id)
+                ->where('attendances.data.0.employee_id', $attendance->employee_id)
             );
     }
 
@@ -109,7 +109,7 @@ class EmployeeArchiveWorkflowsTest extends TestCase
         $this->get(route('payslips.index'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('payslips.data.0.payroll.employee.id', $employee->id)
+                ->where('payslips.data.0.employee.id', $employee->id)
             );
     }
 

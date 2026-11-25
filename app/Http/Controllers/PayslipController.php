@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Payslip\PayslipEmployeeRecordsRequest;
 use App\Http\Requests\Payslip\PayslipIndexRequest;
 use App\Http\Requests\Payslip\PayslipRequest;
 use App\Models\Payslip;
@@ -21,6 +22,15 @@ class PayslipController extends Controller
         $filters = $request->filters();
 
         return Inertia::render('payslip/index', $this->payslipService->indexData($filters));
+    }
+
+    // View in the payslip list: all payslips of one employee
+    public function employeeRecords(PayslipEmployeeRecordsRequest $request, int $employeeId): Response
+    {
+        return Inertia::render('payslip/employee-records', $this->payslipService->employeeData(
+            $employeeId,
+            $request->filters(),
+        ));
     }
 
     public function create(): Response
@@ -52,18 +62,20 @@ class PayslipController extends Controller
     /*
      * LABEL: Archive payslip
      * Purpose: Ang DELETE route ay nag-a-archive na (walang permanenteng burahan).
+     * Archive at restore ay nasa employee payslips page, kaya bumabalik sa
+     * page (at filters) na pinanggalingan.
      */
-    public function destroy(PayslipIndexRequest $request, Payslip $payslip): RedirectResponse
+    public function destroy(Payslip $payslip): RedirectResponse
     {
         $this->payslipService->archive($payslip);
 
-        return to_route('payslips.index', $request->redirectFilters())->with('success', 'Payslip archived successfully.');
+        return back()->with('success', 'Payslip archived successfully.');
     }
 
-    public function restore(PayslipIndexRequest $request, Payslip $payslip): RedirectResponse
+    public function restore(Payslip $payslip): RedirectResponse
     {
         $this->payslipService->restore($payslip);
 
-        return to_route('payslips.index', $request->redirectFilters())->with('success', 'Payslip restored successfully.');
+        return back()->with('success', 'Payslip restored successfully.');
     }
 }

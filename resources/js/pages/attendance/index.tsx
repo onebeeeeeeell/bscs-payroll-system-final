@@ -1,15 +1,12 @@
-import { MoreHorizontal, RotateCcw, Trash2 } from 'lucide-react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
 import { DataTable, type DataTableColumn } from '@/components/data-table';
 import { DateFilter } from '@/components/list-filters';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import AppLayout from '@/layouts/app-layout';
 import type { SharedData } from '@/types';
-import type { Attendance, Department, PaginatedData, Position } from '@/types/models';
+import type { AttendanceEmployeeSummary, Department, PaginatedData, Position } from '@/types/models';
 
 // Types
 type Filters = {
@@ -27,7 +24,7 @@ type Stats = {
 };
 
 type Props = {
-    attendances: PaginatedData<Attendance>;
+    attendances: PaginatedData<AttendanceEmployeeSummary>;
     stats: Stats;
     departments: Pick<Department, 'id' | 'department_name'>[];
     positions: Pick<Position, 'id' | 'title'>[];
@@ -38,28 +35,17 @@ type Props = {
 const emptyFilters: Filters = { department_id: '', position_id: '', date: '', status: 'active' };
 
 function formatWorkDate(date: string): string {
-    return new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+    return new Date(`${date.slice(0, 10)}T00:00:00`).toLocaleDateString(undefined, {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
     });
 }
 
-function formatTime(time: string | null): string {
-    const match = time?.match(/^([01]\d|2[0-3]):([0-5]\d)/);
-    if (!match) return '—';
+function employeeName(summary: AttendanceEmployeeSummary): string {
+    const employee = summary.employee;
 
-    const hour24 = Number(match[1]);
-    const hour12 = hour24 % 12 || 12;
-    const period = hour24 >= 12 ? 'PM' : 'AM';
-
-    return `${hour12}:${match[2]} ${period}`;
-}
-
-function employeeName(attendance: Attendance): string {
-    const employee = attendance.employee;
-
-    return employee ? [employee.first_name, employee.last_name, employee.suffix].filter(Boolean).join(' ') : `Employee #${attendance.employee_id}`;
+    return employee ? [employee.first_name, employee.last_name, employee.suffix].filter(Boolean).join(' ') : `Employee #${summary.employee_id}`;
 }
 
 function hours(value: string | number | null): string {
@@ -79,9 +65,6 @@ function StatCard({ label, value, hint }: { label: string; value: number; hint: 
 
 export default function AttendanceIndex({ attendances, stats, departments, positions, filters: initialFilters, dateBounds }: Props) {
     const [filters, setFilters] = useState(initialFilters);
-    const [deleteCandidate, setDeleteCandidate] = useState<Attendance | null>(null);
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [restoringId, setRestoringId] = useState<number | null>(null);
     const { flash } = usePage<SharedData>().props;
 
     useEffect(() => {
@@ -103,33 +86,12 @@ export default function AttendanceIndex({ attendances, stats, departments, posit
         applyFilters({ ...filters, [name]: value });
     }
 
-    function deleteAttendance() {
-        if (!deleteCandidate) return;
-
-        setIsDeleting(true);
-        router.delete(route('attendance.destroy', deleteCandidate.id), {
-            preserveScroll: true,
-            onSuccess: () => setDeleteCandidate(null),
-            onFinish: () => setIsDeleting(false),
-        });
-    }
-
-    function restoreAttendance(attendance: Attendance) {
-        setRestoringId(attendance.id);
-
-        router.patch(route('attendance.restore', attendance.id), {}, {
-            preserveScroll: true,
-            preserveState: false,
-            replace: true,
-            onSuccess: () => {
-                setRestoringId(null);
-            },
-            onError: () => {
-                setRestoringId(null);
-            },
-            onFinish: () => {
-                setRestoringId(null);
-            },
+    // View opens all the records of that employee, keeping the status and date filters
+    function recordsUrl(summary: AttendanceEmployeeSummary): string {
+        return route('attendance.employee-records', {
+            employee: summary.employee_id,
+            ...(filters.status !== 'active' && { status: filters.status }),
+            ...(filters.date !== '' && { date: filters.date }),
         });
     }
 
@@ -143,7 +105,7 @@ export default function AttendanceIndex({ attendances, stats, departments, posit
                             Time &amp; attendance
                         </p>
                         <h1 className="text-2xl font-semibold tracking-tight">Attendance</h1>
-                        <p className="text-muted-foreground text-sm">Review employee work hours and overtime records.</p>
+                        <p className="text-muted-foreground text-sm">Work hours and overtime of each employee. Use View to see all of their records.</p>
                     </div>
                 </header>
 
@@ -165,22 +127,11 @@ export default function AttendanceIndex({ attendances, stats, departments, posit
 
                 <DataTable
                     data={attendances.data}
-                    getRowId={(attendance) => attendance.id}
-                    getSearchValue={(attendance) =>
-                        [
-                            employeeName(attendance),
-                            attendance.work_date,
-                            attendance.time_in,
-                            attendance.time_out,
-                            attendance.hours_worked,
-                            attendance.overtime_hours,
-                        ]
-                            .filter(Boolean)
-                            .join(' ')
-                    }
-                    searchPlaceholder="Search attendance..."
+                    getRowId={(summary) => summary.employee_id}
+                    getSearchValue={(summary) => employeeName(summary)}
+                    searchPlaceholder="Search employee..."
                     maxSearchLength={30}
-                    emptyMessage={filters.status === 'deleted' ? 'No deleted attendance records.' : 'No attendance records yet.'}
+                    emptyMessage={filters.status === 'deleted' ? 'No archived attendance records.' : 'No attendance records yet.'}
                     toolbar={
                         <div className="flex w-full flex-wrap gap-2 sm:w-auto">
                             <select
@@ -239,66 +190,20 @@ export default function AttendanceIndex({ attendances, stats, departments, posit
                     columns={
                         [
                             { header: 'Employee', cell: employeeName },
-                            { header: 'Work date', cell: (attendance) => formatWorkDate(attendance.work_date) },
-                            { header: 'Time in', cell: (attendance) => formatTime(attendance.time_in) },
-                            { header: 'Time out', cell: (attendance) => formatTime(attendance.time_out) },
-                            {
-                                header: 'Hours worked',
-                                className: 'text-right',
-                                cell: (attendance) => hours(attendance.hours_worked),
-                            },
-                            {
-                                header: 'Overtime',
-                                className: 'text-right',
-                                cell: (attendance) => hours(attendance.overtime_hours),
-                            },
+                            { header: 'Records', className: 'text-right', cell: (summary) => summary.records.toLocaleString() },
+                            { header: 'Hours worked', className: 'text-right', cell: (summary) => hours(summary.total_hours) },
+                            { header: 'Overtime', className: 'text-right', cell: (summary) => hours(summary.total_overtime) },
+                            { header: 'Last attendance', cell: (summary) => formatWorkDate(summary.last_work_date) },
                             {
                                 header: 'Actions',
                                 className: 'text-right',
-                                cell: (attendance) => (
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" aria-label={`Actions for attendance ${attendance.id}`}>
-                                                <MoreHorizontal className="size-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem asChild>
-                                                <Link href={route('attendance.employee-records', attendance.employee_id)}>View</Link>
-                                            </DropdownMenuItem>
-
-                                            {filters.status === 'active' ? (
-                                                <>
-                                                    <DropdownMenuItem asChild>
-                                                        <Link href={route('attendance.edit', attendance.id)}>Edit</Link>
-                                                    </DropdownMenuItem>
-
-                                                    <DropdownMenuItem
-                                                        className="text-destructive focus:text-destructive"
-                                                        onSelect={() => setDeleteCandidate(attendance)}
-                                                    >
-                                                        <Trash2 aria-hidden="true" />
-                                                        Archive
-                                                    </DropdownMenuItem>
-                                                </>
-                                            ) : (
-                                                <DropdownMenuItem
-                                                    disabled={restoringId === attendance.id}
-                                                    onSelect={(event) => {
-                                                        event.preventDefault();
-                                                        restoreAttendance(attendance);
-                                                    }}
-                                                >
-                                                    <RotateCcw aria-hidden="true" />
-                                                    {restoringId === attendance.id ? 'Restoring...' : 'Restore'}
-                                                </DropdownMenuItem>
-                                            )}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                cell: (summary) => (
+                                    <Button variant="ghost" size="sm" asChild>
+                                        <Link href={recordsUrl(summary)}>View</Link>
+                                    </Button>
                                 ),
                             },
-                        ] satisfies DataTableColumn<Attendance>[]
+                        ] satisfies DataTableColumn<AttendanceEmployeeSummary>[]
                     }
                 />
 
@@ -325,30 +230,6 @@ export default function AttendanceIndex({ attendances, stats, departments, posit
                         );
                     })}
                 </nav>
-
-                <Dialog
-                    open={deleteCandidate !== null}
-                    onOpenChange={(open) => {
-                        if (!open && !isDeleting) setDeleteCandidate(null);
-                    }}
-                >
-                    <DialogContent>
-                        <DialogTitle>Archive attendance record?</DialogTitle>
-                        <DialogDescription>
-                            {deleteCandidate
-                                ? `${employeeName(deleteCandidate)}'s attendance on ${formatWorkDate(deleteCandidate.work_date)} will be removed from the active list. You can restore it later from Archived records.`
-                                : ''}
-                        </DialogDescription>
-                        <DialogFooter>
-                            <Button variant="outline" disabled={isDeleting} onClick={() => setDeleteCandidate(null)}>
-                                Cancel
-                            </Button>
-                            <Button variant="destructive" disabled={isDeleting} onClick={deleteAttendance}>
-                                {isDeleting ? 'Archiving...' : 'Archive record'}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
             </div>
         </AppLayout>
     );

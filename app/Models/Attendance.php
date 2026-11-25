@@ -98,6 +98,35 @@ class Attendance extends Model
     }
 
     /*
+     * LABEL: Summary per employee scope
+     * Purpose: Isang row bawat employee para sa attendance list (GROUP BY
+     * employee_id): records, total_hours, total_overtime, at last_work_date.
+     * Ang lahat ng records ng employee ay nasa employee records page (View).
+     * Sinusundan ang forFilters() kaya pareho ang bilang ng stats at ng list.
+     */
+    public function scopeSummaryPerEmployee(Builder $query): void
+    {
+        $query
+            ->select('employee_id')
+            ->selectRaw('COUNT(*) AS records')
+            ->selectRaw('COALESCE(SUM(hours_worked), 0) AS total_hours')
+            ->selectRaw('COALESCE(SUM(overtime_hours), 0) AS total_overtime')
+            ->selectRaw('MAX(work_date) AS last_work_date')
+            ->groupBy('employee_id');
+    }
+
+    /*
+     * LABEL: Latest activity first scope
+     * Purpose: Sorting ng summaryPerEmployee(): pinakabagong last_work_date
+     * muna. Hindi magagamit ang latestFirst() dito kasi ang time_in ay wala
+     * sa GROUP BY. employee_id ang tie-breaker para stable ang pages.
+     */
+    public function scopeLatestActivityFirst(Builder $query): void
+    {
+        $query->orderByDesc('last_work_date')->orderBy('employee_id');
+    }
+
+    /*
      * LABEL: Work date bounds scope
      * Purpose: Pinakauna at pinakahuling work_date (kasama ang archived records),
      * para sa year range ng calendar. ISANG query lang.

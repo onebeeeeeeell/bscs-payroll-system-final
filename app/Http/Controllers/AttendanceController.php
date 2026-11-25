@@ -19,10 +19,7 @@ class AttendanceController extends Controller
 
     public function index(AttendanceIndexRequest $request): Response
     {
-        $validated = $request->validated();
-        $filters = $request->filters();
-
-        return Inertia::render('attendance/index', $this->attendanceService->indexData($validated, $filters));
+        return Inertia::render('attendance/index', $this->attendanceService->indexData($request->filters()));
     }
 
     public function create(): Response

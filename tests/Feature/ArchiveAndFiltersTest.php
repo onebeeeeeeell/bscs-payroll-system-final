@@ -111,7 +111,7 @@ class ArchiveAndFiltersTest extends TestCase
             ->assertSessionHasNoErrors()
             ->assertInertia(fn ($page) => $page
                 ->has('payslips.data', 1)
-                ->where('payslips.data.0.id', $past->id)
+                ->where('payslips.data.0.employee_id', $past->payroll->employee_id)
                 ->where('dateBounds.min', ($year - 2).'-01-01')
             );
     }

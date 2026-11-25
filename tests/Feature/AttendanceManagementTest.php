@@ -329,4 +329,89 @@ class AttendanceManagementTest extends TestCase
 
         $this->assertSoftDeleted('attendances', ['id' => $attendance->id]);
     }
+
+    public function test_attendance_index_shows_one_row_per_employee_with_totals(): void
+    {
+        $employee = Employee::factory()->create();
+        $otherEmployee = Employee::factory()->create();
+
+        Attendance::factory()->create([
+            'employee_id' => $employee->id,
+            'work_date' => today()->toDateString(),
+            'hours_worked' => 8,
+            'overtime_hours' => 0,
+        ]);
+        Attendance::factory()->create([
+            'employee_id' => $employee->id,
+            'work_date' => today()->subDay()->toDateString(),
+            'hours_worked' => 10,
+            'overtime_hours' => 2,
+        ]);
+        Attendance::factory()->create(['employee_id' => $otherEmployee->id]);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('attendance.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('attendances.data', 2)
+                ->where('attendances.total', 2)
+                ->where('attendances.data.0.employee_id', $employee->id)
+                ->where('attendances.data.0.records', 2)
+                ->where('attendances.data.0.total_hours', fn ($value) => (float) $value === 18.0)
+                ->where('attendances.data.0.total_overtime', fn ($value) => (float) $value === 2.0)
+                ->where('attendances.data.0.last_work_date', fn ($value) => str_starts_with($value, today()->toDateString()))
+                ->where('stats.records', 3)
+                ->where('stats.employees', 2)
+            );
+    }
+
+    public function test_attendance_index_row_count_follows_the_filters(): void
+    {
+        $employee = Employee::factory()->create();
+        $otherEmployee = Employee::factory()->create();
+
+        Attendance::factory()->create(['employee_id' => $employee->id, 'work_date' => today()->toDateString()]);
+        Attendance::factory()->create(['employee_id' => $employee->id, 'work_date' => today()->subDay()->toDateString()]);
+        Attendance::factory()->create(['employee_id' => $otherEmployee->id, 'work_date' => today()->subDay()->toDateString()]);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('attendance.index', ['date' => today()->toDateString()]))
+            ->assertInertia(fn ($page) => $page
+                ->has('attendances.data', 1)
+                ->where('attendances.data.0.employee_id', $employee->id)
+                ->where('attendances.data.0.records', 1)
+            );
+    }
+
+    public function test_attendance_index_lists_employees_with_archived_records_in_the_archived_view(): void
+    {
+        $attendance = Attendance::factory()->create();
+        Attendance::factory()->create();
+        $attendance->delete();
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('attendance.index', ['status' => 'deleted']))
+            ->assertInertia(fn ($page) => $page
+                ->has('attendances.data', 1)
+                ->where('attendances.data.0.employee_id', $attendance->employee_id)
+                ->where('filters.status', 'deleted')
+            );
+    }
+
+    public function test_attendance_index_filters_are_sanitized_in_the_service(): void
+    {
+        $data = app(AttendanceService::class)->indexData([
+            'status' => 'hacked',
+            'department_id' => 'abc',
+            'position_id' => '-5',
+            'date' => '2026-13-45',
+        ]);
+
+        $this->assertSame([
+            'department_id' => '',
+            'position_id' => '',
+            'status' => 'active',
+            'date' => '',
+        ], $data['filters']);
+    }
 }

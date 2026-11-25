@@ -16,14 +16,15 @@ trait Archivable
         $this->mergeCasts(['archived_at' => 'datetime']);
     }
 
+    // qualifyColumn: payslips are joined with payrolls (both have archived_at) in the per-employee list
     public function scopeActive(Builder $query): void
     {
-        $query->whereNull('archived_at');
+        $query->whereNull($query->qualifyColumn('archived_at'));
     }
 
     public function scopeArchived(Builder $query): void
     {
-        $query->whereNotNull('archived_at');
+        $query->whereNotNull($query->qualifyColumn('archived_at'));
     }
 
     /*

@@ -63,6 +63,10 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('payrolls/{payroll}/restore', [PayrollController::class, 'restore'])->name('payrolls.restore');
     // Read-only: ang deductions ay awtomatikong ginagawa ng payroll processing
     Route::resource('deductions', DeductionController::class)->only(['index']);
+    // View in the payslip list: payslips of one employee (dapat nasa taas ng resource)
+    Route::get('payslips/employees/{employee}', [PayslipController::class, 'employeeRecords'])
+        ->whereNumber('employee')
+        ->name('payslips.employee-records');
     // Walang edit/update: ang payslip ay generate, view, at archive lang
     Route::resource('payslips', PayslipController::class)->except(['edit', 'update']);
     Route::patch('payslips/{payslip}/restore', [PayslipController::class, 'restore'])->name('payslips.restore');

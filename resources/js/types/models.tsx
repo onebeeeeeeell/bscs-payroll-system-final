@@ -65,6 +65,15 @@ export interface Attendance {
     employee?: Employee;
     created_at: string;
 }
+// one row of the attendance list: the totals of one employee (grouped query, no record id)
+export interface AttendanceEmployeeSummary {
+    employee_id: number;
+    records: number;
+    total_hours: string;
+    total_overtime: string;
+    last_work_date: string;
+    employee?: Employee;
+}
 export interface Payroll {
     id: number;
     employee_id: number;
@@ -87,6 +96,14 @@ export interface Payslip {
     archived_at?: string | null;
     payroll?: Payroll;
     created_at: string;
+}
+// one row of the payslip list: the totals of one employee (grouped query, no payslip id)
+export interface PayslipEmployeeSummary {
+    employee_id: number;
+    payslips_count: number;
+    total_net_pay: string;
+    last_generated: string;
+    employee?: Employee;
 }
 export interface ContributionRate {
     id: number;
