@@ -310,6 +310,59 @@ class AttendanceService
     }
 
 
+    /**
+     * Archive every active record of one employee that matches the date filter
+     * (all of them when there is no date). One UPDATE, no loop.
+     *
+     * @param array{date?: string|null} $filters
+     */
+    public function archiveEmployeeRecords(int $employeeId, array $filters): int
+    {
+        $employee = Employee::query()->findOrFail($employeeId, ['id']);
+        $filters = $this->sanitizeRecordFilters($filters);
+
+        return Attendance::query()
+            ->forEmployeeRecords($employee->id, ['status' => 'active', 'date' => $filters['date']])
+            ->delete();
+    }
+
+
+    /**
+     * Restore every archived record of one employee that matches the date filter.
+     * Same rule as restoreById(): nothing is restored if it would leave two
+     * active records on the same day.
+     *
+     * @param array{date?: string|null} $filters
+     */
+    public function restoreEmployeeRecords(int $employeeId, array $filters): int
+    {
+        $employee = Employee::query()->findOrFail($employeeId, ['id']);
+        $filters = $this->sanitizeRecordFilters($filters);
+
+        return DB::transaction(function () use ($employee, $filters) {
+            $archivedDates = Attendance::query()
+                ->forEmployeeRecords($employee->id, ['status' => 'deleted', 'date' => $filters['date']])
+                ->pluck('work_date', 'id')
+                ->map(fn ($date) => substr((string) $date, 0, 10));
+
+            if ($archivedDates->isEmpty()) {
+                return 0;
+            }
+
+            $activeDates = Attendance::query()
+                ->forEmployee($employee->id)
+                ->pluck('work_date')
+                ->map(fn ($date) => substr((string) $date, 0, 10));
+
+            if ($archivedDates->duplicates()->isNotEmpty() || $archivedDates->intersect($activeDates)->isNotEmpty()) {
+                throw ValidationException::withMessages(['attendance' => self::DUPLICATE_DAY]);
+            }
+
+            return Attendance::onlyTrashed()->whereKey($archivedDates->keys())->restore();
+        });
+    }
+
+
     private function calculateWorkedHours(array $data): array
     {
         if (! isset($data['time_in'], $data['time_out'])) {

@@ -91,6 +91,42 @@ class PayslipService
     }
 
     /*
+     * LABEL: Archive employee payslips
+     * Purpose: I-archive ang lahat ng active payslip ng isang employee na
+     * tumutugma sa date filter (lahat kung walang date). ISANG UPDATE lang,
+     * walang loop. Ang payroll ay hindi apektado.
+     *
+     * @param array{date?: string|null} $filters
+     */
+    public function archiveEmployeePayslips(int $employeeId, array $filters): int
+    {
+        $employee = Employee::query()->findOrFail($employeeId, ['id']);
+        $filters = $this->sanitizeEmployeeFilters($filters);
+
+        return Payslip::query()
+            ->forEmployeeRecords($employee->id, ['status' => 'active', 'date' => $filters['date']])
+            ->update(['archived_at' => now()]);
+    }
+
+    /*
+     * LABEL: Restore employee payslips
+     * Purpose: Ibalik ang lahat ng archived payslip ng isang employee na
+     * tumutugma sa date filter. Walang duplicate check na kailangan: isang
+     * payslip lang bawat payroll (unique ang payroll_id).
+     *
+     * @param array{date?: string|null} $filters
+     */
+    public function restoreEmployeePayslips(int $employeeId, array $filters): int
+    {
+        $employee = Employee::query()->findOrFail($employeeId, ['id']);
+        $filters = $this->sanitizeEmployeeFilters($filters);
+
+        return Payslip::query()
+            ->forEmployeeRecords($employee->id, ['status' => 'archived', 'date' => $filters['date']])
+            ->update(['archived_at' => null]);
+    }
+
+    /*
      * LABEL: Payroll options
      * Purpose: Mga payroll na wala pang payslip para sa Generate payslip
      * dropdown. Nasa Payroll model (awaitingPayslip scope) na ang query.

@@ -188,4 +188,57 @@ class PayslipEmployeeRecordsTest extends TestCase
             ->assertRedirect($recordsUrl);
         $this->assertNull($payslip->fresh()->archived_at);
     }
+
+    public function test_all_active_payslips_of_an_employee_can_be_archived_from_the_list(): void
+    {
+        $employee = Employee::factory()->create();
+        $first = $this->payslipFor($employee, 1000);
+        $second = $this->payslipFor($employee, 2000, now()->subDay());
+        $other = $this->payslipFor(Employee::factory()->create(), 500);
+
+        $this->from(route('payslips.index'))
+            ->delete(route('payslips.employee-records.archive', $employee->id))
+            ->assertRedirect(route('payslips.index'))
+            ->assertSessionHas('success', '2 payslips archived successfully.');
+
+        $this->assertNotNull($first->fresh()->archived_at);
+        $this->assertNotNull($second->fresh()->archived_at);
+        $this->assertNull($other->fresh()->archived_at);
+    }
+
+    public function test_archiving_payslips_from_the_list_only_touches_the_filtered_date(): void
+    {
+        $employee = Employee::factory()->create();
+        $today = $this->payslipFor($employee, 1000, now());
+        $earlier = $this->payslipFor($employee, 2000, now()->subDays(3));
+
+        $this->delete(route('payslips.employee-records.archive', $employee->id), ['date' => now()->toDateString()])
+            ->assertSessionHas('success', '1 payslip archived successfully.');
+
+        $this->assertNotNull($today->fresh()->archived_at);
+        $this->assertNull($earlier->fresh()->archived_at);
+    }
+
+    public function test_archived_payslips_of_an_employee_can_be_restored_from_the_list(): void
+    {
+        $employee = Employee::factory()->create();
+        $first = $this->payslipFor($employee, 1000);
+        $second = $this->payslipFor($employee, 2000, now()->subDay());
+        $first->archive();
+        $second->archive();
+
+        $this->patch(route('payslips.employee-records.restore', $employee->id))
+            ->assertSessionHas('success', '2 payslips restored successfully.');
+
+        $this->assertNull($first->fresh()->archived_at);
+        $this->assertNull($second->fresh()->archived_at);
+    }
+
+    public function test_archiving_payslips_from_the_list_rejects_bad_dates_and_unknown_employees(): void
+    {
+        $this->delete(route('payslips.employee-records.archive', Employee::factory()->create()->id), ['date' => 'next monday'])
+            ->assertSessionHasErrors('date');
+
+        $this->delete(route('payslips.employee-records.archive', 999999))->assertNotFound();
+    }
 }

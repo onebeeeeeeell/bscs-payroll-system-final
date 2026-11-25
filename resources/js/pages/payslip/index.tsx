@@ -1,10 +1,14 @@
 import { DataTable, type DataTableColumn } from '@/components/data-table';
 import { ArchiveStatusFilter, DateFilter, FilterSelect, cleanFilters } from '@/components/list-filters';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import AppLayout from '@/layouts/app-layout';
 import type { SharedData } from '@/types';
 import type { Department, PaginatedData, PayslipEmployeeSummary, Position } from '@/types/models';
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Archive, MoreHorizontal, RotateCcw } from 'lucide-react';
+import { useState } from 'react';
 
 type Filters = {
     search: string;
@@ -43,6 +47,10 @@ function employeeName(summary: PayslipEmployeeSummary): string {
 
 export default function PayslipIndex({ payslips, departments, positions, filters, dateBounds }: Props) {
     const { flash } = usePage<SharedData>().props;
+    const [archiveCandidate, setArchiveCandidate] = useState<PayslipEmployeeSummary | null>(null);
+    const [isArchiving, setIsArchiving] = useState(false);
+    const [restoringId, setRestoringId] = useState<number | null>(null);
+    const [actionError, setActionError] = useState('');
     const isArchivedView = filters.status === 'archived';
 
     // Every filter change goes back to the server (page 1); only the payslips are reloaded
@@ -52,6 +60,30 @@ export default function PayslipIndex({ payslips, departments, positions, filters
             preserveState: true,
             replace: true,
             only: ['payslips', 'filters'],
+        });
+    }
+
+    // Archive / Restore apply to the payslips of that employee that match the date filter
+    function archivePayslips() {
+        if (!archiveCandidate) return;
+
+        setIsArchiving(true);
+        router.delete(route('payslips.employee-records.archive', archiveCandidate.employee_id), {
+            data: filters.date !== '' ? { date: filters.date } : {},
+            preserveScroll: true,
+            onSuccess: () => setArchiveCandidate(null),
+            onFinish: () => setIsArchiving(false),
+        });
+    }
+
+    function restorePayslips(summary: PayslipEmployeeSummary) {
+        setRestoringId(summary.employee_id);
+        setActionError('');
+
+        router.patch(route('payslips.employee-records.restore', summary.employee_id), filters.date !== '' ? { date: filters.date } : {}, {
+            preserveScroll: true,
+            onError: (errors) => setActionError(Object.values(errors)[0] ?? 'Could not restore the payslips.'),
+            onFinish: () => setRestoringId(null),
         });
     }
 
@@ -87,6 +119,15 @@ export default function PayslipIndex({ payslips, departments, positions, filters
                         className="rounded-lg border border-emerald-700/20 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-950/30 dark:text-emerald-200"
                     >
                         {flash.success}
+                    </div>
+                )}
+
+                {actionError && (
+                    <div
+                        role="alert"
+                        className="rounded-lg border border-red-600/30 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-400/30 dark:bg-red-950/30 dark:text-red-200"
+                    >
+                        {actionError}
                     </div>
                 )}
 
@@ -152,9 +193,34 @@ export default function PayslipIndex({ payslips, departments, positions, filters
                                 header: 'Actions',
                                 className: 'text-right',
                                 cell: (summary) => (
-                                    <Button variant="ghost" size="sm" asChild>
-                                        <Link href={payslipsUrl(summary)}>View</Link>
-                                    </Button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" aria-label={`Actions for ${employeeName(summary)}`}>
+                                                <MoreHorizontal className="size-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem asChild>
+                                                <Link href={payslipsUrl(summary)}>View</Link>
+                                            </DropdownMenuItem>
+
+                                            {isArchivedView ? (
+                                                <DropdownMenuItem disabled={restoringId === summary.employee_id} onSelect={() => restorePayslips(summary)}>
+                                                    <RotateCcw aria-hidden="true" />
+                                                    {restoringId === summary.employee_id ? 'Restoring...' : 'Restore'}
+                                                </DropdownMenuItem>
+                                            ) : (
+                                                <DropdownMenuItem
+                                                    className="text-destructive focus:text-destructive"
+                                                    onSelect={() => setArchiveCandidate(summary)}
+                                                >
+                                                    <Archive aria-hidden="true" />
+                                                    Archive
+                                                </DropdownMenuItem>
+                                            )}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 ),
                             },
                         ] satisfies DataTableColumn<PayslipEmployeeSummary>[]
@@ -184,6 +250,30 @@ export default function PayslipIndex({ payslips, departments, positions, filters
                         );
                     })}
                 </nav>
+
+                <Dialog
+                    open={archiveCandidate !== null}
+                    onOpenChange={(open) => {
+                        if (!open && !isArchiving) setArchiveCandidate(null);
+                    }}
+                >
+                    <DialogContent>
+                        <DialogTitle>Archive payslips?</DialogTitle>
+                        <DialogDescription>
+                            {archiveCandidate
+                                ? `${archiveCandidate.payslips_count.toLocaleString()} ${archiveCandidate.payslips_count === 1 ? 'payslip' : 'payslips'} of ${employeeName(archiveCandidate)}${filters.date ? ` generated on ${formatDate(filters.date)}` : ''} will be moved to the archive. The payrolls are not affected, and you can restore the payslips anytime.`
+                                : ''}
+                        </DialogDescription>
+                        <DialogFooter>
+                            <Button variant="outline" disabled={isArchiving} onClick={() => setArchiveCandidate(null)}>
+                                Cancel
+                            </Button>
+                            <Button variant="destructive" disabled={isArchiving} onClick={archivePayslips}>
+                                {isArchiving ? 'Archiving...' : 'Archive payslips'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </AppLayout>
     );

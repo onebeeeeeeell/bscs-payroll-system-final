@@ -1,9 +1,12 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Archive, MoreHorizontal, RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { DataTable, type DataTableColumn } from '@/components/data-table';
 import { DateFilter } from '@/components/list-filters';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import AppLayout from '@/layouts/app-layout';
 import type { SharedData } from '@/types';
 import type { AttendanceEmployeeSummary, Department, PaginatedData, Position } from '@/types/models';
@@ -65,6 +68,10 @@ function StatCard({ label, value, hint }: { label: string; value: number; hint: 
 
 export default function AttendanceIndex({ attendances, stats, departments, positions, filters: initialFilters, dateBounds }: Props) {
     const [filters, setFilters] = useState(initialFilters);
+    const [archiveCandidate, setArchiveCandidate] = useState<AttendanceEmployeeSummary | null>(null);
+    const [isArchiving, setIsArchiving] = useState(false);
+    const [restoringId, setRestoringId] = useState<number | null>(null);
+    const [actionError, setActionError] = useState('');
     const { flash } = usePage<SharedData>().props;
 
     useEffect(() => {
@@ -84,6 +91,34 @@ export default function AttendanceIndex({ attendances, stats, departments, posit
 
     function updateFilter<K extends keyof Filters>(name: K, value: Filters[K]) {
         applyFilters({ ...filters, [name]: value });
+    }
+
+    // Archive / Restore apply to the records of that employee that match the date filter
+    function archiveRecords() {
+        if (!archiveCandidate) return;
+
+        setIsArchiving(true);
+        router.delete(route('attendance.employee-records.archive', archiveCandidate.employee_id), {
+            data: filters.date !== '' ? { date: filters.date } : {},
+            preserveScroll: true,
+            onSuccess: () => setArchiveCandidate(null),
+            onFinish: () => setIsArchiving(false),
+        });
+    }
+
+    function restoreRecords(summary: AttendanceEmployeeSummary) {
+        setRestoringId(summary.employee_id);
+        setActionError('');
+
+        router.patch(
+            route('attendance.employee-records.restore', summary.employee_id),
+            filters.date !== '' ? { date: filters.date } : {},
+            {
+                preserveScroll: true,
+                onError: (errors) => setActionError(Object.values(errors)[0] ?? 'Could not restore the records.'),
+                onFinish: () => setRestoringId(null),
+            },
+        );
     }
 
     // View opens all the records of that employee, keeping the status and date filters
@@ -115,6 +150,15 @@ export default function AttendanceIndex({ attendances, stats, departments, posit
                         className="rounded-lg border border-emerald-700/20 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-950/30 dark:text-emerald-200"
                     >
                         {flash.success}
+                    </div>
+                )}
+
+                {actionError && (
+                    <div
+                        role="alert"
+                        className="rounded-lg border border-red-600/30 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-400/30 dark:bg-red-950/30 dark:text-red-200"
+                    >
+                        {actionError}
                     </div>
                 )}
 
@@ -198,9 +242,34 @@ export default function AttendanceIndex({ attendances, stats, departments, posit
                                 header: 'Actions',
                                 className: 'text-right',
                                 cell: (summary) => (
-                                    <Button variant="ghost" size="sm" asChild>
-                                        <Link href={recordsUrl(summary)}>View</Link>
-                                    </Button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" aria-label={`Actions for ${employeeName(summary)}`}>
+                                                <MoreHorizontal className="size-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem asChild>
+                                                <Link href={recordsUrl(summary)}>View</Link>
+                                            </DropdownMenuItem>
+
+                                            {filters.status === 'active' ? (
+                                                <DropdownMenuItem
+                                                    className="text-destructive focus:text-destructive"
+                                                    onSelect={() => setArchiveCandidate(summary)}
+                                                >
+                                                    <Archive aria-hidden="true" />
+                                                    Archive
+                                                </DropdownMenuItem>
+                                            ) : (
+                                                <DropdownMenuItem disabled={restoringId === summary.employee_id} onSelect={() => restoreRecords(summary)}>
+                                                    <RotateCcw aria-hidden="true" />
+                                                    {restoringId === summary.employee_id ? 'Restoring...' : 'Restore'}
+                                                </DropdownMenuItem>
+                                            )}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 ),
                             },
                         ] satisfies DataTableColumn<AttendanceEmployeeSummary>[]
@@ -230,6 +299,30 @@ export default function AttendanceIndex({ attendances, stats, departments, posit
                         );
                     })}
                 </nav>
+
+                <Dialog
+                    open={archiveCandidate !== null}
+                    onOpenChange={(open) => {
+                        if (!open && !isArchiving) setArchiveCandidate(null);
+                    }}
+                >
+                    <DialogContent>
+                        <DialogTitle>Archive attendance records?</DialogTitle>
+                        <DialogDescription>
+                            {archiveCandidate
+                                ? `${archiveCandidate.records.toLocaleString()} attendance ${archiveCandidate.records === 1 ? 'record' : 'records'} of ${employeeName(archiveCandidate)}${filters.date ? ` on ${formatWorkDate(filters.date)}` : ''} will be removed from the active list. You can restore them later from Archived records.`
+                                : ''}
+                        </DialogDescription>
+                        <DialogFooter>
+                            <Button variant="outline" disabled={isArchiving} onClick={() => setArchiveCandidate(null)}>
+                                Cancel
+                            </Button>
+                            <Button variant="destructive" disabled={isArchiving} onClick={archiveRecords}>
+                                {isArchiving ? 'Archiving...' : 'Archive records'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </AppLayout>
     );

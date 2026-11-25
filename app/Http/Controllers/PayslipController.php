@@ -8,6 +8,7 @@ use App\Http\Requests\Payslip\PayslipRequest;
 use App\Models\Payslip;
 use App\Services\PayslipService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -59,6 +60,22 @@ class PayslipController extends Controller
         return Inertia::render('payslip/show', $this->payslipService->statement($payslip));
     }
 
+    // Archive / restore from the payslip list: every payslip of one employee
+    // (within the date filter, if any). The page and filters stay as they were.
+    public function archiveEmployee(PayslipEmployeeRecordsRequest $request, int $employeeId): RedirectResponse
+    {
+        $count = $this->payslipService->archiveEmployeePayslips($employeeId, $request->filters());
+
+        return back()->with('success', $this->countMessage($count, 'archived'));
+    }
+
+    public function restoreEmployee(PayslipEmployeeRecordsRequest $request, int $employeeId): RedirectResponse
+    {
+        $count = $this->payslipService->restoreEmployeePayslips($employeeId, $request->filters());
+
+        return back()->with('success', $this->countMessage($count, 'restored'));
+    }
+
     /*
      * LABEL: Archive payslip
      * Purpose: Ang DELETE route ay nag-a-archive na (walang permanenteng burahan).
@@ -77,5 +94,10 @@ class PayslipController extends Controller
         $this->payslipService->restore($payslip);
 
         return back()->with('success', 'Payslip restored successfully.');
+    }
+
+    private function countMessage(int $count, string $action): string
+    {
+        return "{$count} ".Str::plural('payslip', $count)." {$action} successfully.";
     }
 }

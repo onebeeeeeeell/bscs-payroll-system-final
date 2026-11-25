@@ -37,6 +37,14 @@ Route::middleware(['auth'])->group(function () {
         ->whereNumber('employee')
         ->name('attendance.employee-records');
 
+    // Archive / restore all records of one employee (from the actions of the attendance list)
+    Route::delete('/attendance/employees/{employee}', [AttendanceController::class, 'archiveEmployee'])
+        ->whereNumber('employee')
+        ->name('attendance.employee-records.archive');
+    Route::patch('/attendance/employees/{employee}/restore', [AttendanceController::class, 'restoreEmployee'])
+        ->whereNumber('employee')
+        ->name('attendance.employee-records.restore');
+
     Route::resource('attendance', AttendanceController::class)->except('show');
 
 
@@ -67,6 +75,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('payslips/employees/{employee}', [PayslipController::class, 'employeeRecords'])
         ->whereNumber('employee')
         ->name('payslips.employee-records');
+    // Archive / restore all payslips of one employee (from the actions of the payslip list)
+    Route::delete('payslips/employees/{employee}', [PayslipController::class, 'archiveEmployee'])
+        ->whereNumber('employee')
+        ->name('payslips.employee-records.archive');
+    Route::patch('payslips/employees/{employee}/restore', [PayslipController::class, 'restoreEmployee'])
+        ->whereNumber('employee')
+        ->name('payslips.employee-records.restore');
     // Walang edit/update: ang payslip ay generate, view, at archive lang
     Route::resource('payslips', PayslipController::class)->except(['edit', 'update']);
     Route::patch('payslips/{payslip}/restore', [PayslipController::class, 'restore'])->name('payslips.restore');

@@ -414,4 +414,78 @@ class AttendanceManagementTest extends TestCase
             'date' => '',
         ], $data['filters']);
     }
+
+    public function test_all_active_records_of_an_employee_can_be_archived_from_the_list(): void
+    {
+        $employee = Employee::factory()->create();
+        $otherEmployee = Employee::factory()->create();
+        Attendance::factory()->create(['employee_id' => $employee->id, 'work_date' => today()->toDateString()]);
+        Attendance::factory()->create(['employee_id' => $employee->id, 'work_date' => today()->subDay()->toDateString()]);
+        $other = Attendance::factory()->create(['employee_id' => $otherEmployee->id]);
+
+        $this->actingAs(User::factory()->create())
+            ->from(route('attendance.index'))
+            ->delete(route('attendance.employee-records.archive', $employee->id))
+            ->assertRedirect(route('attendance.index'))
+            ->assertSessionHas('success', '2 attendance records archived successfully.');
+
+        $this->assertSame(0, Attendance::query()->forEmployee($employee->id)->count());
+        $this->assertSame(2, Attendance::onlyTrashed()->forEmployee($employee->id)->count());
+        $this->assertNull($other->fresh()->deleted_at);
+    }
+
+    public function test_archiving_from_the_list_only_touches_the_filtered_date(): void
+    {
+        $employee = Employee::factory()->create();
+        $today = Attendance::factory()->create(['employee_id' => $employee->id, 'work_date' => today()->toDateString()]);
+        $yesterday = Attendance::factory()->create(['employee_id' => $employee->id, 'work_date' => today()->subDay()->toDateString()]);
+
+        $this->actingAs(User::factory()->create())
+            ->delete(route('attendance.employee-records.archive', $employee->id), ['date' => today()->toDateString()])
+            ->assertSessionHas('success', '1 attendance record archived successfully.');
+
+        $this->assertSoftDeleted('attendances', ['id' => $today->id]);
+        $this->assertNull($yesterday->fresh()->deleted_at);
+    }
+
+    public function test_archived_records_of_an_employee_can_be_restored_from_the_list(): void
+    {
+        $employee = Employee::factory()->create();
+        $first = Attendance::factory()->create(['employee_id' => $employee->id, 'work_date' => today()->toDateString()]);
+        $second = Attendance::factory()->create(['employee_id' => $employee->id, 'work_date' => today()->subDay()->toDateString()]);
+        $first->delete();
+        $second->delete();
+
+        $this->actingAs(User::factory()->create())
+            ->patch(route('attendance.employee-records.restore', $employee->id))
+            ->assertSessionHas('success', '2 attendance records restored successfully.');
+
+        $this->assertNull($first->fresh()->deleted_at);
+        $this->assertNull($second->fresh()->deleted_at);
+    }
+
+    public function test_restoring_from_the_list_is_blocked_when_it_would_duplicate_a_day(): void
+    {
+        $employee = Employee::factory()->create();
+        $archived = Attendance::factory()->create(['employee_id' => $employee->id, 'work_date' => today()->toDateString()]);
+        $archived->delete();
+        Attendance::factory()->create(['employee_id' => $employee->id, 'work_date' => today()->toDateString()]);
+
+        $this->actingAs(User::factory()->create())
+            ->patch(route('attendance.employee-records.restore', $employee->id))
+            ->assertSessionHasErrors('attendance');
+
+        $this->assertSoftDeleted('attendances', ['id' => $archived->id]);
+    }
+
+    public function test_archiving_from_the_list_rejects_bad_dates_and_unknown_employees(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->delete(route('attendance.employee-records.archive', Employee::factory()->create()->id), ['date' => 'next monday'])
+            ->assertSessionHasErrors('date');
+
+        $this->actingAs(User::factory()->create())
+            ->delete(route('attendance.employee-records.archive', 999999))
+            ->assertNotFound();
+    }
 }

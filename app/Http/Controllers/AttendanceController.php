@@ -8,6 +8,7 @@ use App\Http\Requests\Attendance\AttendanceRequest;
 use App\Models\Attendance;
 use App\Services\AttendanceService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,6 +46,22 @@ class AttendanceController extends Controller
         ));
     }
 
+    // Archive / restore from the attendance list: every record of one employee
+    // (within the date filter, if any). The page and filters stay as they were.
+    public function archiveEmployee(AttendanceEmployeeRecordsRequest $request, int $employeeId): RedirectResponse
+    {
+        $count = $this->attendanceService->archiveEmployeeRecords($employeeId, $request->validated());
+
+        return back()->with('success', $this->countMessage($count, 'archived'));
+    }
+
+    public function restoreEmployee(AttendanceEmployeeRecordsRequest $request, int $employeeId): RedirectResponse
+    {
+        $count = $this->attendanceService->restoreEmployeeRecords($employeeId, $request->validated());
+
+        return back()->with('success', $this->countMessage($count, 'restored'));
+    }
+
     public function edit(Attendance $attendance): Response
     {
         return Inertia::render('attendance/edit', $this->attendanceService->editData($attendance));
@@ -71,5 +88,10 @@ class AttendanceController extends Controller
         $this->attendanceService->restoreById($attendanceId);
 
         return back()->with('success', 'Attendance restored successfully.');
+    }
+
+    private function countMessage(int $count, string $action): string
+    {
+        return "{$count} attendance ".Str::plural('record', $count)." {$action} successfully.";
     }
 }
