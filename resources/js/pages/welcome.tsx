@@ -153,25 +153,15 @@ export default function Welcome() {
                                 </Link>
                             </Button>
                         ) : (
-                            <>
-                                <Button
-                                    size="lg"
-                                    className="h-12 rounded-full bg-gradient-to-r from-[#0fb582] to-[#16d79b] px-8 font-semibold text-white"
-                                    asChild
-                                >
-                                    <Link href="/register">
-                                        Get Started <ArrowRight />
-                                    </Link>
-                                </Button>
-                                <Button
-                                    size="lg"
-                                    variant="outline"
-                                    className="h-12 rounded-full border-emerald-700/40 bg-transparent px-8 font-semibold text-emerald-800 hover:bg-emerald-700/5 hover:text-emerald-900 dark:border-[#1fe0a0]/40 dark:text-white dark:hover:bg-white/5 dark:hover:text-white"
-                                    asChild
-                                >
-                                    <Link href="/login">Log In</Link>
-                                </Button>
-                            </>
+                            <Button
+                                size="lg"
+                                className="h-12 rounded-full bg-gradient-to-r from-[#0fb582] to-[#16d79b] px-8 font-semibold text-white"
+                                asChild
+                            >
+                                <Link href="/register">
+                                    Get Started <ArrowRight />
+                                </Link>
+                            </Button>
                         )}
                     </div>
 
