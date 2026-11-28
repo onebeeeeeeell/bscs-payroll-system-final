@@ -1,9 +1,11 @@
 <?php
 
 
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\ReviewManagementController;
+use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\PayrollProcessController;
 use App\Http\Controllers\PayslipController;
@@ -20,12 +22,14 @@ use App\Http\Controllers\ContributionTypeController;
 use App\Http\Controllers\TimeClockController;
 
 
-Route::get('/', function () {
-    return Inertia::render('welcome');
-})->name('home');
+Route::get('/', WelcomeController::class)->name('home');
 
 Route::get('time-clock', [TimeClockController::class, 'index'])->name('time-clock.index');
 Route::post('time-clock', [TimeClockController::class, 'store'])->middleware('throttle:60,1')->name('time-clock.store');
+
+// Public: walang login. Naghihintay ng approval ng admin bago lumabas sa welcome page.
+Route::get('reviews/create', [ReviewController::class, 'create'])->name('reviews.create');
+Route::post('reviews', [ReviewController::class, 'store'])->middleware('throttle:5,1')->name('reviews.store');
 
 
 Route::middleware(['auth'])->group(function () {
@@ -58,6 +62,19 @@ Route::middleware(['auth'])->group(function () {
 
 
     Route::get('search', SearchController::class)->name('search');
+
+
+    // Admin: i-approve, i-archive, at i-restore ang mga review (ang public form ay nasa taas)
+    Route::get('reviews', [ReviewManagementController::class, 'index'])->name('reviews.index');
+    Route::patch('reviews/{review}/approve', [ReviewManagementController::class, 'approve'])
+        ->whereNumber('review')
+        ->name('reviews.approve');
+    Route::patch('reviews/{review}/archive', [ReviewManagementController::class, 'archive'])
+        ->whereNumber('review')
+        ->name('reviews.archive');
+    Route::patch('reviews/{review}/restore', [ReviewManagementController::class, 'restore'])
+        ->whereNumber('review')
+        ->name('reviews.restore');
 
 
     Route::resource('contribution_rates', ContributionRateController::class);

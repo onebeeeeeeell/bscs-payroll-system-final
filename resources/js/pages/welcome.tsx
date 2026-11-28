@@ -3,7 +3,8 @@ import AppearanceToggleDropdown from '@/components/appearance-dropdown';
 import { Button } from '@/components/ui/button';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowRight, CalendarCheck, FileText, ShieldCheck, Users } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ArrowRight, CalendarCheck, FileText, MessageSquarePlus, ShieldCheck, Star, Users } from 'lucide-react';
 
 const GREEN = 'text-emerald-700 dark:text-[#1fe0a0]';
 
@@ -19,13 +20,42 @@ const features = [
     { icon: FileText, title: 'Payroll & Payslips', text: 'Process payroll, calculate deductions, and generate payslips with ease.' },
 ];
 
+type ReviewItem = {
+    id: number;
+    name: string;
+    rating: number;
+    comment: string;
+    created_at: string;
+};
+
+type WelcomeProps = {
+    summary: {
+        average: number;
+        total: number;
+        breakdown: { rating: number; total: number }[];
+    };
+    latest: ReviewItem[];
+};
+
+function Stars({ value, className }: { value: number; className?: string }) {
+    return (
+        <div className="flex items-center gap-0.5" aria-label={`${value} out of 5 stars`}>
+            {[1, 2, 3, 4, 5].map((star) => (
+                <Star key={star} className={cn('size-4', star <= Math.round(value) ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-white/25', className)} />
+            ))}
+        </div>
+    );
+}
+
+const formatDate = (value: string): string => new Date(value).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+
 function HighlightIcon({ type }: { type: string }) {
     if (type === 'shield') return <ShieldCheck className="size-9 stroke-[1.5]" />;
     if (type === 'file') return <FileText className="size-9 stroke-[1.5]" />;
     return <span className="flex size-9 items-center justify-center rounded-full border-2 border-current text-lg leading-none font-semibold">₱</span>;
 }
 
-export default function Welcome() {
+export default function Welcome({ summary, latest }: WelcomeProps) {
     const { auth, name } = usePage<SharedData>().props;
     const brand = name || 'BAYAN PAY';
     const [first, ...rest] = brand.split(' ');
@@ -54,6 +84,9 @@ export default function Welcome() {
                         <Link href="/time-clock" className="text-muted-foreground hover:text-foreground flex h-full items-center px-5">
                             Employee Clock-In
                         </Link>
+                        <a href="#reviews" className="text-muted-foreground hover:text-foreground flex h-full items-center px-5">
+                            Reviews
+                        </a>
                     </nav>
 
                     <div className="flex w-full items-center justify-end gap-2 sm:gap-3 md:w-auto">
@@ -228,6 +261,71 @@ export default function Welcome() {
                 <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-center text-sm leading-relaxed">
                     Clock in and out using your employee ID and six-digit PIN. Each employee can record one time-in and one time-out per workday.
                 </p>
+            </section>
+
+            {}
+            <section id="reviews" className="relative mx-auto max-w-6xl px-6 pb-20">
+                <div className="flex items-center justify-center gap-4 text-xs font-medium tracking-[0.2em] text-slate-600 dark:text-white/80">
+                    <span className="h-px w-8 bg-[#1fe0a0]" />
+                    REVIEWS
+                    <span className="h-px w-8 bg-[#1fe0a0]" />
+                </div>
+                <h2 className="mt-5 text-center text-3xl font-bold sm:text-4xl">
+                    What our users <span className={GREEN}>say.</span>
+                </h2>
+
+                <div className="mt-10 grid gap-6 md:grid-cols-[320px_1fr]">
+                    <div className="flex flex-col gap-5 rounded-xl border border-emerald-800/15 bg-emerald-50/70 p-6 dark:border-[#1fe0a0]/30 dark:bg-[#041a13]/60">
+                        <div className="flex items-end gap-3">
+                            <span className="text-5xl leading-none font-bold">{summary.total > 0 ? summary.average.toFixed(1) : '–'}</span>
+                            <span className="text-muted-foreground pb-1 text-sm">out of 5</span>
+                        </div>
+                        <Stars value={summary.average} className="size-5" />
+                        <p className="text-muted-foreground text-sm">
+                            {summary.total} {summary.total === 1 ? 'review' : 'reviews'}
+                        </p>
+
+                        <div className="space-y-2">
+                            {summary.breakdown.map((row) => (
+                                <div key={row.rating} className="flex items-center gap-3 text-xs">
+                                    <span className="w-6 shrink-0">{row.rating} ★</span>
+                                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
+                                        <div className="h-full rounded-full bg-amber-400" style={{ width: `${summary.total > 0 ? (row.total / summary.total) * 100 : 0}%` }} />
+                                    </div>
+                                    <span className="text-muted-foreground w-6 shrink-0 text-right">{row.total}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <Button className="mt-1 h-10 w-full rounded-full bg-emerald-700 font-semibold text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500" asChild>
+                            <Link href="/reviews/create">
+                                <MessageSquarePlus /> Write a review
+                            </Link>
+                        </Button>
+                    </div>
+
+                    {latest.length > 0 ? (
+                        <div className="grid content-start gap-4 sm:grid-cols-2">
+                            {latest.map((review) => (
+                                <article
+                                    key={review.id}
+                                    className="flex flex-col gap-3 rounded-xl border border-emerald-800/15 bg-white p-5 dark:border-[#1fe0a0]/20 dark:bg-[#07130f]"
+                                >
+                                    <div className="flex items-center justify-between gap-3">
+                                        <Stars value={review.rating} />
+                                        <time className="text-muted-foreground text-xs">{formatDate(review.created_at)}</time>
+                                    </div>
+                                    <p className="text-sm leading-relaxed break-words">{review.comment}</p>
+                                    <p className={cn('mt-auto text-sm font-semibold', GREEN)}>{review.name}</p>
+                                </article>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-muted-foreground flex items-center justify-center rounded-xl border border-dashed border-emerald-800/20 p-10 text-center text-sm dark:border-[#1fe0a0]/20">
+                            No reviews yet. Be the first to share your thoughts!
+                        </div>
+                    )}
+                </div>
             </section>
 
             {}
