@@ -141,6 +141,40 @@ export default function Welcome() {
                         {brand} helps you manage employee records, attendance, and payroll — all in one secure and easy-to-use platform.
                     </p>
 
+                    <div className="mt-8 flex flex-wrap gap-4">
+                        {auth.user ? (
+                            <Button
+                                size="lg"
+                                className="h-12 rounded-full bg-gradient-to-r from-[#0fb582] to-[#16d79b] px-8 font-semibold text-white"
+                                asChild
+                            >
+                                <Link href="/dashboard">
+                                    Go to Dashboard <ArrowRight />
+                                </Link>
+                            </Button>
+                        ) : (
+                            <>
+                                <Button
+                                    size="lg"
+                                    className="h-12 rounded-full bg-gradient-to-r from-[#0fb582] to-[#16d79b] px-8 font-semibold text-white"
+                                    asChild
+                                >
+                                    <Link href="/register">
+                                        Get Started <ArrowRight />
+                                    </Link>
+                                </Button>
+                                <Button
+                                    size="lg"
+                                    variant="outline"
+                                    className="h-12 rounded-full border-emerald-700/40 bg-transparent px-8 font-semibold text-emerald-800 hover:bg-emerald-700/5 hover:text-emerald-900 dark:border-[#1fe0a0]/40 dark:text-white dark:hover:bg-white/5 dark:hover:text-white"
+                                    asChild
+                                >
+                                    <Link href="/login">Log In</Link>
+                                </Button>
+                            </>
+                        )}
+                    </div>
+
                     <div className="mt-12 flex flex-wrap items-center gap-y-6">
                         {highlights.map((item, i) => (
                             <div
@@ -216,7 +250,7 @@ export default function Welcome() {
                         className="h-12 rounded-full bg-emerald-700 px-8 font-semibold text-white hover:bg-emerald-800 dark:bg-white dark:text-emerald-900 dark:hover:bg-white/90"
                         asChild
                     >
-                        <Link href={auth.user ? '/dashboard' : '/login'}>{auth.user ? 'Open Dashboard' : 'Log In'}</Link>
+                        <Link href={auth.user ? '/dashboard' : '/register'}>{auth.user ? 'Open Dashboard' : 'Create Your Account'}</Link>
                     </Button>
                 </div>
             </section>
