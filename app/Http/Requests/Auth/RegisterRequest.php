@@ -21,14 +21,13 @@ class RegisterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // letters, spaces, . ' - lang (pareho ng employee name), may kahit isang letter
+            // letters at single spaces lang (pareho ng department name), hanggang 30 characters
             'name' => [
                 'bail',
                 'required',
                 'string',
-                'max:50',
-                'regex:/^[\p{L}\p{M}.\'-]+(?:\s+[\p{L}\p{M}.\'-]+)*\z/u',
-                'regex:/\p{L}/u',
+                'max:30',
+                'regex:/^[\p{L}]+(?:[ ][\p{L}]+)*$/u',
             ],
             'email' => [
                 'bail',
@@ -57,7 +56,7 @@ class RegisterRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.regex' => 'The name may only contain letters, spaces, hyphens, apostrophes, and periods, and must have at least one letter.',
+            'name.regex' => 'The name may only contain letters and single spaces (no numbers or special characters).',
             'email.unique' => 'This email is already registered.',
         ];
     }
