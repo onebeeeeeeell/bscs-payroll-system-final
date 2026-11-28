@@ -9,6 +9,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
 
+// Pareho ng RegisterRequest: letters at single spaces lang. Ang server pa rin ang huling bantay.
+const NAME_MAX_LENGTH = 30;
+const EMAIL_MAX_LENGTH = 30;
+const cleanName = (value: string): string => value.replace(/[^\p{L} ]/gu, '').replace(/^ +/, '').replace(/ {2,}/g, ' ');
+
+// Walang spaces at lowercase lang, kasi lowercase lang ang tinatanggap ng server.
+const cleanEmail = (value: string): string => value.replace(/\s/g, '').toLowerCase();
+
 type RegisterForm = {
     name: string;
     email: string;
@@ -45,10 +53,12 @@ export default function Register() {
                             tabIndex={1}
                             autoComplete="name"
                             value={data.name}
-                            onChange={(e) => setData('name', e.target.value)}
+                            onChange={(e) => setData('name', cleanName(e.target.value))}
+                            maxLength={NAME_MAX_LENGTH}
                             disabled={processing}
                             placeholder="Full name"
                         />
+                        <p className="text-muted-foreground text-xs">Letters and single spaces only, up to 30 characters.</p>
                         <InputError message={errors.name} className="mt-2" />
                     </div>
 
@@ -61,10 +71,12 @@ export default function Register() {
                             tabIndex={2}
                             autoComplete="email"
                             value={data.email}
-                            onChange={(e) => setData('email', e.target.value)}
+                            onChange={(e) => setData('email', cleanEmail(e.target.value))}
+                            maxLength={EMAIL_MAX_LENGTH}
                             disabled={processing}
                             placeholder="email@example.com"
                         />
+                        <p className="text-muted-foreground text-xs">Up to 30 characters, no spaces. Must be unique.</p>
                         <InputError message={errors.email} />
                     </div>
 

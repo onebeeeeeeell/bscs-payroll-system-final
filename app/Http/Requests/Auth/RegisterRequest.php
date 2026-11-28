@@ -33,7 +33,7 @@ class RegisterRequest extends FormRequest
                 'bail',
                 'required',
                 'string',
-                'max:255',
+                'max:30',
                 'email:rfc',
                 // lowercase lang, para pareho ang unique check at ang sine-save ng service
                 'lowercase',
